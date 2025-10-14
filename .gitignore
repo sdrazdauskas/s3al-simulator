@@ -1,0 +1,43 @@
+# Build artifacts
+/build/
+/cmake-build*/
+CMakeCache.txt
+CMakeFiles/
+/CMakeScripts/
+cmake_install.cmake
+Makefile
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.dir/
+/compile_commands.json
+
+# Compiled binaries
+/bin/
+/lib/
+/out/
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.pdb
+*.obj
+*.o
+*.pch
+
+# IDE settings
+.vscode/
+.idea/
+*.code-workspace
+/.vs/
+
+# Logs and temp
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
