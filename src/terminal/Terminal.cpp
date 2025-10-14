@@ -6,14 +6,12 @@
 #include <csignal>
 #include <atomic>
 
-
-
 namespace terminal {
 
 namespace {
     std::atomic<bool> sigintReceived{false};
-    
-    void terminalSigintHandler(int) {
+
+    extern "C" void terminalSigintHandler(int) {
         sigintReceived.store(true);
     }
 }
