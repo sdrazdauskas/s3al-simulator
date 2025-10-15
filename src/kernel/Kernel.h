@@ -1,5 +1,4 @@
-#ifndef KERNEL_H
-#define KERNEL_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -8,25 +7,33 @@
 
 class Kernel {
 public:
-    Kernel();
-
-    void run();
-
-private:
-    std::string _process_line(const std::string& line);
-
-    void _register_commands();
-
-    std::string _handle_help(const std::vector<std::string>& args);
-    std::string _handle_echo(const std::vector<std::string>& args);
-    std::string _handle_add(const std::vector<std::string>& args);
-    std::string _handle_quit(const std::vector<std::string>& args);
-
     using CommandHandler = std::function<std::string(const std::vector<std::string>&)>;
 
-    std::map<std::string, CommandHandler> _commands;
+    Kernel();
 
-    bool _is_running;
+    /**
+     * @brief Processes a single line of input as a command and returns the result.
+     * @param line The full command line to execute.
+     * @return The output of the command.
+     */
+    std::string execute_command(const std::string& line);
+
+    /**
+     * @brief Checks if the kernel is still in a running state.
+     * @return true if the kernel should continue running, false otherwise.
+     */
+    bool is_running() const;
+
+private:
+    void register_commands();
+    std::string process_line(const std::string& line);
+
+    // Command handler methods
+    std::string handle_help(const std::vector<std::string>& args);
+    std::string handle_echo(const std::vector<std::string>& args);
+    std::string handle_add(const std::vector<std::string>& args);
+    std::string handle_quit(const std::vector<std::string>& args);
+
+    std::map<std::string, CommandHandler> m_commands;
+    bool m_is_running;
 };
-
-#endif
