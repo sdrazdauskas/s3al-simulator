@@ -4,4 +4,5 @@
 - **21 Sep:** 10:00–11:00 — Internal meeting (4/5 members) — 1h  
 - **23 Sep:** 18:00–18:25 — Internal meeting (5/5 members) — 0.5h  
 - **26 Sep:** 13:00–14:20 — Internal meeting (5/5 members) — 1.33h  
-- **10 Oct:** 11:30–12:30 — Internal meeting (5/5 members) — 1.0h  
+- **03 Oct:** 11:30–12:30 — Internal meeting (5/5 members) — 1.0h
+- **14 Oct:** 19:00–20:30 — Internal meeting (5/5 members) — 1.5h 
