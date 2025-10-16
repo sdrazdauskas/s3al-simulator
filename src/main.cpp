@@ -1,4 +1,5 @@
 #include "Terminal.h"
+#include "Shell.h"
 #include "Kernel.h"
 #include <iostream>
 
@@ -6,13 +7,18 @@ int main() {
     // Create the kernel (provides command handlers)
     Kernel kernel;
 
+    // Create the shell with a callback to the kernel
+    shell::Shell sh([&kernel](const std::string& cmd, const std::vector<std::string>& args) {
+        return kernel.execute_command(cmd, args);
+    });
+
     // Create the terminal (handles I/O)
     terminal::Terminal term;
 
-    // Wire terminal input to kernel
-    term.setSendCallback([&kernel, &term](const std::string& line) {
-        // Execute the command via kernel
-        std::string result = kernel.execute_command(line);
+    // Wire terminal input to shell, and shell output back to terminal
+    term.setSendCallback([&sh, &term](const std::string& line) {
+        // Process the command line through the shell
+        std::string result = sh.processCommandLine(line);
         
         // Display the result
         if (!result.empty()) {

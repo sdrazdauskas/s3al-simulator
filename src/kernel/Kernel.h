@@ -19,6 +19,14 @@ public:
     std::string execute_command(const std::string& line);
 
     /**
+     * @brief Executes a command with separated command name and arguments.
+     * @param cmd The command name.
+     * @param args The command arguments.
+     * @return The output of the command.
+     */
+    std::string execute_command(const std::string& cmd, const std::vector<std::string>& args);
+
+    /**
      * @brief Checks if the kernel is still in a running state.
      * @return true if the kernel should continue running, false otherwise.
      */
