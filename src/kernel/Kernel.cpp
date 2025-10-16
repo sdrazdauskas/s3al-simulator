@@ -1,10 +1,12 @@
 #include "Kernel.h"
+#include "Terminal.h"
+#include "Shell.h"
 #include <iostream>
 #include <sstream>
 
 Kernel::Kernel() : m_is_running(true) {
     register_commands();
-    std::cout << "Kernel initialized. Type 'help' for commands or 'quit' to exit." << std::endl;
+    std::cout << "Kernel initialized." << std::endl;
 }
 
 // New public method to be called by the Terminal's callback
@@ -117,4 +119,43 @@ std::string Kernel::handle_add(const std::vector<std::string>& args) {
 std::string Kernel::handle_quit(const std::vector<std::string>& args) {
     m_is_running = false;
     return "Shutting down kernel. Goodbye!";
+}
+
+void Kernel::boot() {
+    std::cout << "Booting s3al OS...\n";
+    
+    // Initialize shell subsystem with kernel callback
+    std::cout << "Initializing shell subsystem...\n";
+    shell::Shell sh([this](const std::string& cmd, const std::vector<std::string>& args) {
+        return this->execute_command(cmd, args);
+    });
+    
+    // Initialize terminal (TTY) subsystem
+    std::cout << "Initializing terminal subsystem...\n";
+    terminal::Terminal term;
+    
+    // Wire terminal input to shell
+    term.setSendCallback([&sh, &term](const std::string& line) {
+        std::string result = sh.processCommandLine(line);
+        if (!result.empty()) {
+            term.print(result);
+            if (result.back() != '\n') {
+                term.print("\n");
+            }
+        }
+    });
+    
+    // Wire signal handling
+    term.setSignalCallback([&term](int sig) {
+        term.print("^C\n");
+    });
+    
+    // Start init process (userspace)
+    std::cout << "\nStarting init process...\n";
+    std::cout << "Type 'help' for commands, 'quit' to exit\n\n";
+    
+    // Run the terminal event loop (blocks until shutdown)
+    term.runBlockingStdioLoop();
+    
+    std::cout << "\nShutdown complete.\n";
 }
