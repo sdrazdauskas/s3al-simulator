@@ -289,17 +289,3 @@ void handleCommand(string command) {
         cout << "Unknown command: " << cmd << endl;
     }
 }
-
-int main() {
-    cout << "=== Simulated OS Terminal ===" << endl;
-    cout << "Commands: touch, rm, write, cat, edit, mkdir, rmdir, cd, ls, pwd, exit" << endl;
-
-    string input;
-    while (true) {
-        cout << currentFolder->name << " >> ";
-        getline(cin, input);
-        if (!input.empty()) handleCommand(input);
-    }
-
-    return 0;
-}

@@ -18,6 +18,10 @@ add_library(kernel STATIC src/kernel/Kernel.cpp)
 target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal)
 target_link_libraries(kernel PUBLIC terminal shell)
 
+# Storage library
+add_library(storage STATIC src/storage/Storage.cpp)
+target_include_directories(storage PUBLIC src/storage)
+
 # Main executable
 add_executable(s3al_sim src/main.cpp)
 target_link_libraries(s3al_sim PRIVATE kernel)
