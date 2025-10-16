@@ -16,6 +16,15 @@ std::string Kernel::execute_command(const std::string& line) {
     return process_line(line);
 }
 
+// Overload for command + args (for Shell to call directly)
+std::string Kernel::execute_command(const std::string& cmd, const std::vector<std::string>& args) {
+    std::string line = cmd;
+    for (const auto& arg : args) {
+        line += " " + arg;
+    }
+    return execute_command(line);
+}
+
 bool Kernel::is_running() const {
     return m_is_running;
 }

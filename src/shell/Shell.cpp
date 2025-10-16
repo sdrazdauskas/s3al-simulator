@@ -2,8 +2,8 @@
 #include <sstream>
 
 namespace shell {
-Shell::Shell(std::string (*kernelFunc)(const std::string&, const std::vector<std::string>&))
-    : kernelHandler(kernelFunc) {}
+Shell::Shell(KernelCallback cb)
+    : kernelCallback(std::move(cb)) {}
 
 std::string Shell::parseQuotedToken(std::istringstream& iss, std::string token) {
     std::string quoted = token.substr(1);
@@ -39,15 +39,15 @@ std::string Shell::processCommandLine(const std::string& commandLine) {
         }
     }
 
-    if (kernelHandler) {
-        return kernelHandler(command, args);
+    if (kernelCallback) {
+        return kernelCallback(command, args);
     } else {
         return "Error: No kernel handler available";
     }
 }
 
 std::string Shell::executeCommand(const std::string& command, const std::vector<std::string>& args) {
-    if (!kernelHandler) {
+    if (!kernelCallback) {
         return "Error: No kernel handler available";
     }
 
@@ -55,7 +55,7 @@ std::string Shell::executeCommand(const std::string& command, const std::vector<
         return "Error: No command specified";
     }
 
-    return kernelHandler(command, args);
+    return kernelCallback(command, args);
 }
 
 void Shell::parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args) {
@@ -75,6 +75,6 @@ void Shell::parseCommand(const std::string& commandLine, std::string& command, s
 }
 
 bool Shell::isConnectedToKernel() const {
-    return kernelHandler != nullptr;
+    return kernelCallback != nullptr;
 }
 }
