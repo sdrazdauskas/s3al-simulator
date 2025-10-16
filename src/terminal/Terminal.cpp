@@ -21,6 +21,10 @@ void Terminal::setSendCallback(sendCallback cb) { sendCb = std::move(cb); }
 
 void Terminal::setSignalCallback(signalCallback cb) { sigCb = std::move(cb); }
 
+void Terminal::print(const std::string& output) {
+    std::cout << output << std::flush;
+}
+
 void Terminal::runBlockingStdioLoop() {
     std::string line;
     auto prev = std::signal(SIGINT, terminalSigintHandler);

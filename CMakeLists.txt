@@ -5,11 +5,19 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(terminal STATIC
-    src/terminal/Terminal.cpp
-)
+# Terminal library
+add_library(terminal STATIC src/terminal/Terminal.cpp)
+target_include_directories(terminal PUBLIC src/terminal)
 
-target_include_directories(terminal
-    PUBLIC
-        ${PROJECT_SOURCE_DIR}/src/terminal
-)
+# Shell library
+add_library(shell STATIC src/shell/Shell.cpp)
+target_include_directories(shell PUBLIC src/shell)
+
+# Kernel library
+add_library(kernel STATIC src/kernel/Kernel.cpp)
+target_include_directories(kernel PUBLIC src/kernel)
+
+# Main executable
+add_executable(s3al_sim src/main.cpp)
+target_link_libraries(s3al_sim PRIVATE terminal kernel shell)
+

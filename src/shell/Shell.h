@@ -1,9 +1,10 @@
-#ifndef SHELL_HPP
-#define SHELL_HPP
+#ifndef SHELL_H
+#define SHELL_H
 
 #include <string>
 #include <vector>
 
+namespace shell {
 class Shell {
 private:
     std::string (*kernelHandler)(const std::string&, const std::vector<std::string>&);
@@ -16,5 +17,5 @@ public:
     void parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args);
     bool isConnectedToKernel() const;
 };
-
+}
 #endif
