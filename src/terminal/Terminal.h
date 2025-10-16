@@ -12,7 +12,7 @@ namespace terminal {
 class Terminal {
 public:
     using sendCallback = std::function<void(const std::string&)>;
-    using signalCallback = std::function<void(int)>;     
+    using signalCallback = std::function<void(int)>;
 
     Terminal() = default;
     ~Terminal() = default;
@@ -24,6 +24,9 @@ public:
     void setSignalCallback(signalCallback cb);
 
     void runBlockingStdioLoop();
+
+    // Called by shell to display output (writes directly to stdout)
+    void print(const std::string& output);
 
 private:
     sendCallback sendCb;

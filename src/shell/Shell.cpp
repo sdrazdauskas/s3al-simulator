@@ -1,6 +1,7 @@
-#include "Shell.hpp"
+#include "Shell.h"
 #include <sstream>
 
+namespace shell {
 Shell::Shell(std::string (*kernelFunc)(const std::string&, const std::vector<std::string>&))
     : kernelHandler(kernelFunc) {}
 
@@ -75,4 +76,5 @@ void Shell::parseCommand(const std::string& commandLine, std::string& command, s
 
 bool Shell::isConnectedToKernel() const {
     return kernelHandler != nullptr;
+}
 }
