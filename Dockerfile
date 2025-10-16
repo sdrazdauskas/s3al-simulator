@@ -19,8 +19,6 @@ RUN cmake -S . -B build -G Ninja \
 FROM ubuntu:24.04 AS runtime
 
 WORKDIR /app
-COPY --from=build /app/build /app/build
-COPY --from=build /app/src /app/src
-COPY --from=build /app/CMakeLists.txt /app/CMakeLists.txt
+COPY --from=build /app/build/s3al_sim /app/s3al_sim
 
-CMD ["/bin/bash"]
+CMD ["/app/s3al_sim"]
