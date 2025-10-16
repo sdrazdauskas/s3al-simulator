@@ -32,6 +32,12 @@ public:
      */
     bool is_running() const;
 
+    /**
+     * @brief Boot sequence: initialize subsystems, wire components, start init process.
+     * This is the kernel entry point that sets up the entire system.
+     */
+    void boot();
+
 private:
     void register_commands();
     std::string process_line(const std::string& line);
