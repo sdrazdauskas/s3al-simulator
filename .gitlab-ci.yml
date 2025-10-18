@@ -1,0 +1,15 @@
+stages:
+  - build
+
+build:
+  stage: build
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update && apt-get install -y cmake ninja-build g++
+  script:
+    - cmake -B build -G Ninja
+    - cmake --build build
+  artifacts:
+    paths:
+      - build/s3al_sim.exe
+    expire_in: 1 week
