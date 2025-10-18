@@ -1,5 +1,4 @@
-#ifndef PROCESS_MANAGER_H
-#define PROCESS_MANAGER_H
+#pragma once
 
 #include <string>
 #include <optional>
@@ -9,6 +8,8 @@
 class MemoryManager;
 class CPUScheduler;
 
+namespace process {
+    
 class ProcessManager {
 public:
     ProcessManager(MemoryManager& mem, CPUScheduler& cpu);
@@ -26,10 +27,10 @@ public:
                         int memoryNeeded,
                         int priority = 0);   // prepare only; NO allocation
     bool run_process(int pid);                 // alloc → execute → dealloc
-    bool stopProcess(int pid);                 // mark terminated and remove
+    bool stop_process(int pid);                 // mark terminated and remove
 
     // Read-only access for kernel/UI/tests
-    std::vector<Process>   snapshot() const;
+    std::vector<Process> snapshot() const;
 
 private:
     int next_pid_{1};
@@ -40,4 +41,4 @@ private:
     Process*       find(int pid);
 };
 
-#endif
+}
