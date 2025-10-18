@@ -23,8 +23,8 @@ add_library(storage STATIC src/storage/Storage.cpp)
 target_include_directories(storage PUBLIC src/storage)
 
 # Process library
-add_library(process STATIC src/ProcessManager/ProcessManager.cpp)
-target_include_directories(process PUBLIC src/ProcessManager)
+add_library(process STATIC src/process/ProcessManager.cpp)
+target_include_directories(process PUBLIC src/process)
 
 # Memory library
 add_library(memory STATIC src/memory/Memory.cpp)
