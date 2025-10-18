@@ -1,8 +1,7 @@
 #include "ProcessManager.h"
-#include "OutputTest/MemoryManager.h"
-#include "OutputTest/CPUScheduler.h"
 #include <algorithm>
 
+namespace process {
 
 ProcessManager::ProcessManager(MemoryManager& mem, CPUScheduler& cpu)
     : mem_(mem), cpu_(cpu) {}
@@ -43,34 +42,32 @@ int ProcessManager::create_process(const std::string& name,
 }
 
 bool ProcessManager::run_process(int pid) {
-    auto* p = find(pid);
-    if (!p) return false;
+    auto it = std::find_if(table_.begin(), table_.end(),
+                           [pid](const Process& p) { return p.pid == pid; });
+    if (it == table_.end()) return false;
 
-    p->state = 2; // running
+    it->state = 2; // running
 
-    //single thread simulation. Thread per process in future?
-    mem_.allocate_memory_for_process(p->pid, p->memoryNeeded);
-    cpu_.execute_process(p->pid, p->cpuTimeNeeded);
-    mem_.deallocate_memory_for_process(p->pid);
+    // //single thread simulation. Thread per process in future?
+    // mem_.allocate_memory_for_process(it->pid, it->memoryNeeded);
+    // cpu_.execute_process(it->pid, it->cpuTimeNeeded);
+    // mem_.deallocate_memory_for_process(it->pid);
 
     return true;
 }
 
 // TODO: more implementations of "stop"- zombie, waiting, finished etc. 
 bool ProcessManager::stop_process(int pid) {
-    auto* p = find(pid);
-    if (!p) return false;
+    auto it = std::find_if(table_.begin(), table_.end(),
+                           [pid](const Process& p) { return p.pid == pid; });
+    if (it == table_.end()) return false;
 
-    p->state = 4; // terminated/finished/stopped etc.- no difference for now.
+    it->state = 4; // terminated/finished/stopped etc.- no difference for now.
 
     table_.erase(std::remove_if(table_.begin(), table_.end(),
-                   [&](const Process& pr){ return pr.pid == pid; }),
+                   [pid](const Process& pr){ return pr.pid == pid; }),
                  table_.end());
     return true;
 }
 
-//find by pid, non-const
-Process* ProcessManager::find(int pid) {
-    for (auto& p : table_) if (p.pid == pid) return &p;
-    return nullptr;
-}
+} // namespace process
