@@ -22,6 +22,10 @@ target_link_libraries(kernel PUBLIC terminal shell)
 add_library(storage STATIC src/storage/Storage.cpp)
 target_include_directories(storage PUBLIC src/storage)
 
+# Process library
+add_library(process STATIC src/ProcessManager/ProcessManager.cpp)
+target_include_directories(process PUBLIC src/ProcessManager)
+
 # Memory library
 add_library(memory STATIC src/memory/Memory.cpp)
 target_include_directories(memory PUBLIC src/memory)
