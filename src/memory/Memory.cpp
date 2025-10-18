@@ -16,15 +16,17 @@ Memory::~Memory() {
     }
 }
 
-void *Memory::allocate(size_t size)
+void *Memory::allocate(size_t size, int process_id)
 {
     if (used_memory + size > total_memory) {
         std::cerr << "Error: Out of memory\n";
         return nullptr;
     }
+
     void *ptr = new std::byte[size];
-    allocations[ptr] = size;
+    allocations[ptr] = {size, process_id};
     used_memory += size;
+
     return ptr;
 }
 
@@ -36,9 +38,22 @@ void Memory::deallocate(void *ptr)
         return;
     }
 
-    used_memory -= it->second;
+    used_memory -= it->second.size;
     delete[] static_cast<std::byte*>(ptr);
     allocations.erase(it);
+}
+
+void Memory::free_process_memory(int process_id)
+{
+    for (auto it = allocations.begin(); it != allocations.end(); ) {
+        if (it->second.process_id == process_id) {
+            used_memory -= it->second.size;
+            delete[] static_cast<std::byte*>(it->first);
+            it = allocations.erase(it); 
+        } else {
+            ++it;
+        }
+    }
 }
 
 } // namespace memory
