@@ -1,5 +1,7 @@
 #include <string>
 
+namespace process {
+
 struct Process {
     std::string name;
     int pid;
@@ -25,3 +27,5 @@ struct Process {
           state(st)
     {}
 };
+
+} // namespace process
