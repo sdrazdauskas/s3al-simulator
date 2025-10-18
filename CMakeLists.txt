@@ -23,7 +23,7 @@ add_library(storage STATIC src/storage/Storage.cpp)
 target_include_directories(storage PUBLIC src/storage)
 
 # Memory library
-add_library(memory STATIC src/memory/Memory.cpp)
+add_library(memory STATIC src/memory/MemoryManager.cpp)
 target_include_directories(memory PUBLIC src/memory)
 
 # Main executable
