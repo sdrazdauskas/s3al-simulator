@@ -22,6 +22,10 @@ target_link_libraries(kernel PUBLIC terminal shell)
 add_library(storage STATIC src/storage/Storage.cpp)
 target_include_directories(storage PUBLIC src/storage)
 
+# Memory library
+add_library(memory STATIC src/memory/Memory.cpp)
+target_include_directories(memory PUBLIC src/memory)
+
 # Main executable
 add_executable(s3al_sim src/main.cpp)
 target_link_libraries(s3al_sim PRIVATE kernel)
