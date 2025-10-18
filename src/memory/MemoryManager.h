@@ -6,11 +6,11 @@
 
 namespace memory {
 
-class Memory {
+class MemoryManager {
 public:
-    Memory(size_t total_size);
-    ~Memory();
-    
+    MemoryManager(size_t total_size);
+    ~MemoryManager();
+
     // Allocate memory for a process
     void *allocate(size_t size, int process_id = 0);
 
