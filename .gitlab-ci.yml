@@ -33,11 +33,20 @@ deploy:
         --form "file=@build/s3al_sim" \
         "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/uploads")
       
-      ARTIFACT_URL=$(echo $UPLOAD_RESPONSE | jq -r '.full_path')
-      echo "Artifact uploaded to: ${CI_PROJECT_URL}${ARTIFACT_URL}"
+      echo "Upload response: $UPLOAD_RESPONSE"
+      
+      ARTIFACT_URL=$(echo "$UPLOAD_RESPONSE" | jq -r '.url // .full_path // ""')
+      
+      if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
+        echo "ERROR: Failed to upload artifact"
+        echo "Response was: $UPLOAD_RESPONSE"
+        exit 1
+      fi
+      
+      echo "Artifact uploaded, URL: ${ARTIFACT_URL}"
       
       # Create release
-      curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+      RELEASE_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
         --header "Content-Type: application/json" \
         --data "{
           \"name\": \"${RELEASE_NAME}\",
@@ -45,8 +54,9 @@ deploy:
           \"ref\": \"${CI_COMMIT_SHA}\",
           \"description\": \"Automated release from commit ${CI_COMMIT_SHORT_SHA}\\n\\nCommit message: ${CI_COMMIT_MESSAGE}\\n\\n[Download s3al_sim](${CI_PROJECT_URL}${ARTIFACT_URL})\"
         }" \
-        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases")
       
+      echo "Release response: $RELEASE_RESPONSE"
       echo "Release created successfully!"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
