@@ -1,22 +1,22 @@
-#include "Memory.h"
+#include "MemoryManager.h"
 #include <iostream>
 
 namespace memory {
 
-Memory::Memory(size_t total_size)
+MemoryManager::MemoryManager(size_t total_size)
     : total_memory(total_size), used_memory(0) {
     std::cout << "Memory manager initialized with "
               << total_size / 1024 << "KB\n";
 }
 
-Memory::~Memory() {
+MemoryManager::~MemoryManager() {
     // Clean up any remaining allocations
     for (auto& [ptr, alloc] : allocations) {
         delete[] static_cast<std::byte*>(ptr);
     }
 }
 
-void *Memory::allocate(size_t size, int process_id)
+void *MemoryManager::allocate(size_t size, int process_id)
 {
     if (used_memory + size > total_memory) {
         std::cerr << "Error: Out of memory\n";
@@ -30,7 +30,7 @@ void *Memory::allocate(size_t size, int process_id)
     return ptr;
 }
 
-void Memory::deallocate(void *ptr)
+void MemoryManager::deallocate(void *ptr)
 {
     auto it = allocations.find(ptr);
     if (it == allocations.end()) {
@@ -43,7 +43,7 @@ void Memory::deallocate(void *ptr)
     allocations.erase(it);
 }
 
-void Memory::free_process_memory(int process_id)
+void MemoryManager::free_process_memory(int process_id)
 {
     for (auto it = allocations.begin(); it != allocations.end(); ) {
         if (it->second.process_id == process_id) {
