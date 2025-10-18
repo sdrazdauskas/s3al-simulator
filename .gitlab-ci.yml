@@ -11,5 +11,5 @@ build:
     - cmake --build build
   artifacts:
     paths:
-      - build/s3al_sim.exe
-    expire_in: 1 week
+      - build/s3al_sim
+    expire_in: 1 day
