@@ -1,5 +1,6 @@
 stages:
   - build
+  - deploy
 
 build:
   stage: build
@@ -16,3 +17,39 @@ build:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
+
+deploy:
+  stage: deploy
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update && apt-get install -y curl jq
+  script:
+    - |
+      RELEASE_NAME="Release-$(date +%Y%m%d-%H%M%S)"
+      echo "Creating release: $RELEASE_NAME"
+      
+      # Upload artifact to GitLab
+      UPLOAD_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+        --form "file=@build/s3al_sim" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/uploads")
+      
+      ARTIFACT_URL=$(echo $UPLOAD_RESPONSE | jq -r '.full_path')
+      echo "Artifact uploaded to: ${CI_PROJECT_URL}${ARTIFACT_URL}"
+      
+      # Create release
+      curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
+        --header "Content-Type: application/json" \
+        --data "{
+          \"name\": \"${RELEASE_NAME}\",
+          \"tag_name\": \"${RELEASE_NAME}\",
+          \"ref\": \"${CI_COMMIT_SHA}\",
+          \"description\": \"Automated release from commit ${CI_COMMIT_SHORT_SHA}\\n\\nCommit message: ${CI_COMMIT_MESSAGE}\\n\\n[Download s3al_sim](${CI_PROJECT_URL}${ARTIFACT_URL})\"
+        }" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+      
+      echo "Release created successfully!"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - when: manual
+  dependencies:
+    - build
