@@ -13,7 +13,7 @@ build:
   artifacts:
     paths:
       - build/s3al_sim
-    expire_in: 1 day
+    expire_in: 6 hour
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
@@ -24,8 +24,8 @@ deploy:
   script:
     - echo "Creating release from commit $CI_COMMIT_SHORT_SHA"
   release:
-    tag_name: 'release-$CI_PIPELINE_ID'
-    name: 'Release $CI_COMMIT_SHORT_SHA'
+    tag_name: 'v$(date +%Y.%m.%d-%H%M%S)'
+    name: 'Release $(date +%Y-%m-%d) - $CI_COMMIT_SHORT_SHA'
     description: |
       Automated release from commit $CI_COMMIT_SHORT_SHA
       
@@ -39,7 +39,6 @@ deploy:
           link_type: 'package'
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-    - when: manual
   needs:
     - job: build
       artifacts: true
