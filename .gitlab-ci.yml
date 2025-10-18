@@ -20,46 +20,26 @@ build:
 
 deploy:
   stage: deploy
-  image: ubuntu:24.04
-  before_script:
-    - apt-get update && apt-get install -y curl jq
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
   script:
-    - |
-      RELEASE_NAME="Release-$(date +%Y%m%d-%H%M%S)"
-      echo "Creating release: $RELEASE_NAME"
+    - echo "Creating release from commit $CI_COMMIT_SHORT_SHA"
+  release:
+    tag_name: 'release-$CI_PIPELINE_ID'
+    name: 'Release $CI_COMMIT_SHORT_SHA'
+    description: |
+      Automated release from commit $CI_COMMIT_SHORT_SHA
       
-      # Upload artifact to GitLab
-      UPLOAD_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
-        --form "file=@build/s3al_sim" \
-        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/uploads")
+      **Commit message:** $CI_COMMIT_MESSAGE
       
-      echo "Upload response: $UPLOAD_RESPONSE"
-      
-      ARTIFACT_URL=$(echo "$UPLOAD_RESPONSE" | jq -r '.url // .full_path // ""')
-      
-      if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
-        echo "ERROR: Failed to upload artifact"
-        echo "Response was: $UPLOAD_RESPONSE"
-        exit 1
-      fi
-      
-      echo "Artifact uploaded, URL: ${ARTIFACT_URL}"
-      
-      # Create release
-      RELEASE_RESPONSE=$(curl --request POST --header "PRIVATE-TOKEN: $CI_JOB_TOKEN" \
-        --header "Content-Type: application/json" \
-        --data "{
-          \"name\": \"${RELEASE_NAME}\",
-          \"tag_name\": \"${RELEASE_NAME}\",
-          \"ref\": \"${CI_COMMIT_SHA}\",
-          \"description\": \"Automated release from commit ${CI_COMMIT_SHORT_SHA}\\n\\nCommit message: ${CI_COMMIT_MESSAGE}\\n\\n[Download s3al_sim](${CI_PROJECT_URL}${ARTIFACT_URL})\"
-        }" \
-        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases")
-      
-      echo "Release response: $RELEASE_RESPONSE"
-      echo "Release created successfully!"
+      **Download the binary** from the artifacts of the build job.
+    assets:
+      links:
+        - name: 's3al_sim (Linux binary)'
+          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_SHA}/raw/build/s3al_sim?job=build'
+          link_type: 'package'
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - when: manual
-  dependencies:
-    - build
+  needs:
+    - job: build
+      artifacts: true
