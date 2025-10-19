@@ -1,5 +1,3 @@
-// Terminal.cpp
-
 #include "Terminal.h"
 #include <algorithm>
 #include <iostream>
@@ -47,4 +45,3 @@ void Terminal::runBlockingStdioLoop() {
 }
 
 } // namespace terminal
-
