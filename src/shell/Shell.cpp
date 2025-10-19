@@ -2,6 +2,7 @@
 #include <sstream>
 
 namespace shell {
+
 Shell::Shell(KernelCallback cb)
     : kernelCallback(std::move(cb)) {}
 
@@ -77,4 +78,5 @@ void Shell::parseCommand(const std::string& commandLine, std::string& command, s
 bool Shell::isConnectedToKernel() const {
     return kernelCallback != nullptr;
 }
-}
+
+} // namespace shell

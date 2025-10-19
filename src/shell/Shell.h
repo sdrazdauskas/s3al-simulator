@@ -1,5 +1,4 @@
-#ifndef SHELL_H
-#define SHELL_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -22,5 +21,4 @@ public:
     bool isConnectedToKernel() const;
 };
 
-}
-#endif
+} // namespace shell
