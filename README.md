@@ -3,7 +3,9 @@
 ## Native build
 
 ```powershell
+# First time or after changing CMakeLists.txt
 cmake -S . -B build
+
 cmake --build build
 ```
 
