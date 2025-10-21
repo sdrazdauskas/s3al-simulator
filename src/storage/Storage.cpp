@@ -1,14 +1,12 @@
 #include "Storage.h"
+#include <iostream>
+#include <sstream>
 
 StorageManager::StorageManager() {
     root = std::make_unique<Folder>();
     root->name = "root";
     root->parent = nullptr;
     currentFolder = root.get();
-}
-
-void StorageManager::sendToKernel(const std::string& message) const {
-    std::cout << "[Kernel] Message received: " << message << std::endl;
 }
 
 int StorageManager::findFileIndex(const std::string& name) const {
@@ -25,65 +23,65 @@ int StorageManager::findFolderIndex(const std::string& name) const {
     return -1;
 }
 
-void StorageManager::createFile(const std::string& name) {
-    if (findFileIndex(name) != -1) {
-        std::cout << "Error: File '" << name << "' already exists\n";
-        return;
-    }
+void StorageManager::recursiveDelete(Folder& folder) {
+    folder.files.clear();
+    for (auto& sub : folder.subfolders) recursiveDelete(*sub);
+    folder.subfolders.clear();
+}
+
+bool StorageManager::createFile(const std::string& name) {
+    if (findFileIndex(name) != -1)
+        return false;
     currentFolder->files.push_back(std::make_unique<File>(File{name, ""}));
-    std::cout << "[Storage] Created file: " << name << std::endl;
-    sendToKernel("Created file " + name);
+    return true;
 }
 
-void StorageManager::deleteFile(const std::string& name) {
+bool StorageManager::deleteFile(const std::string& name) {
     int i = findFileIndex(name);
-    if (i == -1) {
-        std::cout << "Error: File not found: " << name << std::endl;
-        return;
-    }
+    if (i == -1)
+        return false;
     currentFolder->files.erase(currentFolder->files.begin() + i);
-    std::cout << "[Storage] Deleted file: " << name << std::endl;
-    sendToKernel("Deleted file " + name);
+    return true;
 }
 
-void StorageManager::writeFile(const std::string& name) {
+bool StorageManager::writeFile(const std::string& name,
+                               const std::string& content) {
     int i = findFileIndex(name);
-    if (i == -1) {
-        std::cout << "Error: File not found: " << name << std::endl;
-        return;
-    }
-    std::cout << "Enter content for " << name << ": ";
-    std::string content;
-    std::getline(std::cin, content);
-    content += "\n";
-    currentFolder->files[i]->content = content;
-    std::cout << "[Storage] Wrote to file: " << name << std::endl;
-    sendToKernel("Wrote data to " + name);
+    if (i == -1)
+        return false;
+    currentFolder->files[i]->content = content + "\n";
+    return true;
 }
 
-void StorageManager::readFile(const std::string& name) {
+bool StorageManager::readFile(const std::string& name,
+                              std::string& outContent) const {
     int i = findFileIndex(name);
-    if (i == -1) {
-        std::cout << "Error: File not found: " << name << std::endl;
-        return;
-    }
-    std::cout << "[Storage] Reading " << name << std::endl;
-    std::cout << "Content:\n" << currentFolder->files[i]->content << std::endl;
+    if (i == -1)
+        return false;
+    outContent = currentFolder->files[i]->content;
+    return true;
 }
 
-void StorageManager::editFile(const std::string& fileName) {
-    int i = findFileIndex(fileName);
-    if (i == -1) {
-        std::cout << "Error: File not found: " << fileName << std::endl;
-        return;
-    }
+bool StorageManager::appendToFile(const std::string& name,
+                                  const std::string& content) {
+    int i = findFileIndex(name);
+    if (i == -1)
+        return false;
+    currentFolder->files[i]->content += content + "\n";
+    return true;
+}
 
-    File& f = *currentFolder->files[i];
-    std::cout << "=== Editing " << fileName << " ===\n";
-    if (f.content.empty())
+bool StorageManager::editFile(const std::string& name) {
+    int i = findFileIndex(name);
+    if (i == -1)
+        return false;
+
+    File& target = *currentFolder->files[i];
+    std::cout << "=== Editing " << name << " ===\n";
+    if (target.content.empty())
         std::cout << "(empty)\n";
     else
-        std::cout << f.content << std::endl;
+        std::cout << target.content;
 
     std::cout << "--------------------------------------\n";
     std::cout << "Type new content below to ADD to the file.\n";
@@ -93,94 +91,71 @@ void StorageManager::editFile(const std::string& fileName) {
     std::string newLines, line;
     while (true) {
         std::getline(std::cin, line);
-        if (line == ":wq") break;
+        if (line == ":wq")
+            break;
         newLines += line + "\n";
     }
 
-    f.content += newLines;
-    std::cout << "[Storage] Appended changes to file: " << fileName << std::endl;
-    sendToKernel("Appended to file " + fileName);
+    target.content += newLines;
+    return true;
 }
 
-void StorageManager::makeDir(const std::string& folderName) {
-    if (findFolderIndex(folderName) != -1) {
-        std::cout << "Error: Folder already exists\n";
-        return;
-    }
-    auto newFolder = std::make_unique<Folder>();
-    newFolder->name = folderName;
-    newFolder->parent = currentFolder;
-    currentFolder->subfolders.push_back(std::move(newFolder));
-    std::cout << "[Storage] Created folder: " << folderName << std::endl;
-    sendToKernel("Created folder " + folderName);
+bool StorageManager::makeDir(const std::string& name) {
+    if (findFolderIndex(name) != -1)
+        return false;
+    auto folder = std::make_unique<Folder>();
+    folder->name = name;
+    folder->parent = currentFolder;
+    currentFolder->subfolders.push_back(std::move(folder));
+    return true;
 }
 
-void StorageManager::recursiveDelete(Folder& folder) {
-    folder.files.clear();
-    for (auto& sub : folder.subfolders) recursiveDelete(*sub);
-    folder.subfolders.clear();
-}
-
-void StorageManager::removeDir(const std::string& name) {
+bool StorageManager::removeDir(const std::string& name) {
     int i = findFolderIndex(name);
-    if (i == -1) {
-        std::cout << "Error: Folder not found\n";
-        return;
-    }
+    if (i == -1)
+        return false;
     currentFolder->subfolders.erase(currentFolder->subfolders.begin() + i);
-    std::cout << "[Storage] Deleted folder (recursively): " << name << std::endl;
-    sendToKernel("Deleted folder " + name);
+    return true;
 }
 
-void StorageManager::changeDir(const std::string& folderName) {
-    if (folderName == "..") {
-        if (currentFolder->parent == nullptr) {
-            std::cout << "Already at root folder.\n";
-            return;
-        }
+bool StorageManager::changeDir(const std::string& name) {
+    if (name == "..") {
+        if (currentFolder->parent == nullptr)
+            return false;
         currentFolder = currentFolder->parent;
-        std::cout << "[Storage] Now in folder: " << currentFolder->name << std::endl;
-        sendToKernel("Changed directory up one level");
-        return;
+        return true;
     }
 
-    int i = findFolderIndex(folderName);
-    if (i == -1) {
-        std::cout << "Error: Folder not found: " << folderName << std::endl;
-        return;
-    }
+    int i = findFolderIndex(name);
+    if (i == -1)
+        return false;
+
     currentFolder = currentFolder->subfolders[i].get();
-    std::cout << "[Storage] Now in folder: " << currentFolder->name << std::endl;
-    sendToKernel("Changed into folder " + folderName);
+    return true;
 }
 
-void StorageManager::listDir() const {
-    std::cout << "=== Contents of " << currentFolder->name << " ===\nFolders:\n";
-    if (currentFolder->subfolders.empty())
-        std::cout << "  (none)\n";
-    else
-        for (auto& f : currentFolder->subfolders)
-            std::cout << "  [D] " << f->name << "\n";
-
-    std::cout << "Files:\n";
-    if (currentFolder->files.empty())
-        std::cout << "  (none)\n";
-    else
-        for (auto& file : currentFolder->files)
-            std::cout << "  [F] " << file->name << "\n";
+std::vector<std::string> StorageManager::listDir() const {
+    std::vector<std::string> entries;
+    for (auto& f : currentFolder->subfolders)
+        entries.push_back("[D] " + f->name);
+    for (auto& fl : currentFolder->files)
+        entries.push_back("[F] " + fl->name);
+    return entries;
 }
 
-void StorageManager::printWorkingDir() const {
-    std::vector<std::string> pathParts;
-    Folder* temp = currentFolder;
-    while (temp != nullptr) {
-        pathParts.push_back(temp->name);
-        temp = temp->parent;
+std::string StorageManager::getWorkingDir() const {
+    std::ostringstream path;
+    std::vector<std::string> parts;
+    auto* tmp = currentFolder;
+    while (tmp) {
+        parts.push_back(tmp->name);
+        tmp = tmp->parent;
     }
-    std::cout << "/";
-    for (int i = static_cast<int>(pathParts.size()) - 1; i >= 0; --i) {
-        std::cout << pathParts[i];
-        if (i != 0) std::cout << "/";
+    path << "/";
+    for (int i = static_cast<int>(parts.size()) - 1; i >= 0; --i) {
+        path << parts[i];
+        if (i != 0)
+            path << "/";
     }
-    std::cout << std::endl;
+    return path.str();
 }
