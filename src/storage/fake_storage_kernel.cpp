@@ -13,6 +13,9 @@ int main() {
     std::string input, cmd, arg;
 
     while (true) {
+        cmd.clear();
+        arg.clear();
+
         std::cout << "Kernel >> ";
         std::getline(std::cin, input);
         if (input.empty()) continue;
@@ -24,7 +27,6 @@ int main() {
         if (cmd == "exit")
             break;
 
-        // ===== FILE OPS =====
         else if (cmd == "touch") {
             if (arg.empty()) {
                 std::cout << "[Kernel] Usage: touch <filename>\n";
