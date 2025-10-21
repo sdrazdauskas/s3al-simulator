@@ -1,97 +1,123 @@
 #include "Storage.h"
 #include <iostream>
+#include <sstream>
+
+using Status = StorageManager::StorageStatus;
 
 int main() {
     StorageManager storage;
+
     std::cout << "=== Simulated OS Terminal ===\n";
     std::cout << "Commands: touch, rm, write, cat, edit, mkdir, rmdir, cd, ls, pwd, exit\n";
 
-    std::string input;
+    std::string input, cmd, arg;
+
     while (true) {
         std::cout << "Kernel >> ";
         std::getline(std::cin, input);
+        if (input.empty()) continue;
 
-        if (input == "exit")
+        std::stringstream ss(input);
+        ss >> cmd; // first word
+        ss >> arg; // second word (may remain empty)
+
+        if (cmd == "exit")
             break;
 
-        else if (input.rfind("touch ", 0) == 0) {
-            std::string name = input.substr(6);
-            if (storage.createFile(name))
-                std::cout << "[Kernel] File created: " << name << "\n";
-            else
-                std::cout << "[Kernel] Error: file already exists\n";
+        // ===== FILE OPS =====
+        else if (cmd == "touch") {
+            if (arg.empty()) {
+                std::cout << "[Kernel] Usage: touch <filename>\n";
+                continue;
+            }
+            std::cout << "[Kernel] "
+                      << StorageManager::toString(storage.createFile(arg)) << "\n";
         }
 
-        else if (input.rfind("rm ", 0) == 0) {
-            std::string name = input.substr(3);
-            if (storage.deleteFile(name))
-                std::cout << "[Kernel] Deleted file: " << name << "\n";
-            else
-                std::cout << "[Kernel] Error: file not found\n";
+        else if (cmd == "rm") {
+            if (arg.empty()) {
+                std::cout << "[Kernel] Usage: rm <filename>\n";
+                continue;
+            }
+            std::cout << "[Kernel] "
+                      << StorageManager::toString(storage.deleteFile(arg)) << "\n";
         }
 
-        else if (input.rfind("write ", 0) == 0) {
-            std::string name = input.substr(6);
+        else if (cmd == "write") {
+            if (arg.empty()) {
+                std::cout << "[Kernel] Usage: write <filename>\n";
+                continue;
+            }
             std::cout << "Enter content: ";
             std::string content;
             std::getline(std::cin, content);
-            if (storage.writeFile(name, content))
-                std::cout << "[Kernel] Written to file: " << name << "\n";
-            else
-                std::cout << "[Kernel] Error: file not found\n";
+            std::cout << "[Kernel] "
+                      << StorageManager::toString(storage.writeFile(arg, content)) << "\n";
         }
 
-        else if (input.rfind("cat ", 0) == 0) {
-            std::string name = input.substr(4);
+        else if (cmd == "cat") {
+            if (arg.empty()) {
+                std::cout << "[Kernel] Usage: cat <filename>\n";
+                continue;
+            }
             std::string contents;
-            if (storage.readFile(name, contents))
-                std::cout << contents << "\n";
+            auto status = storage.readFile(arg, contents);
+            if (status == Status::OK)
+                std::cout << contents;
             else
-                std::cout << "[Kernel] Error: file not found\n";
+                std::cout << "[Kernel] " << StorageManager::toString(status) << "\n";
         }
 
-        else if (input.rfind("edit ", 0) == 0) {
-            std::string name = input.substr(5);
-            if (!storage.editFile(name))
-                std::cout << "[Kernel] Error: file not found\n";
+        else if (cmd == "edit") {
+            if (arg.empty()) {
+                std::cout << "[Kernel] Usage: edit <filename>\n";
+                continue;
+            }
+            std::cout << "[Kernel] "
+                      << StorageManager::toString(storage.editFile(arg)) << "\n";
         }
 
-        else if (input.rfind("mkdir ", 0) == 0) {
-            std::string name = input.substr(6);
-            if (storage.makeDir(name))
-                std::cout << "[Kernel] Folder created: " << name << "\n";
-            else
-                std::cout << "[Kernel] Error: folder already exists\n";
+        else if (cmd == "mkdir") {
+            if (arg.empty()) {
+                std::cout << "[Kernel] Usage: mkdir <foldername>\n";
+                continue;
+            }
+            std::cout << "[Kernel] "
+                      << StorageManager::toString(storage.makeDir(arg)) << "\n";
         }
 
-        else if (input.rfind("rmdir ", 0) == 0) {
-            std::string name = input.substr(6);
-            if (storage.removeDir(name))
-                std::cout << "[Kernel] Folder removed: " << name << "\n";
-            else
-                std::cout << "[Kernel] Error: folder not found\n";
+        else if (cmd == "rmdir") {
+            if (arg.empty()) {
+                std::cout << "[Kernel] Usage: rmdir <foldername>\n";
+                continue;
+            }
+            std::cout << "[Kernel] "
+                      << StorageManager::toString(storage.removeDir(arg)) << "\n";
         }
 
-        else if (input.rfind("cd ", 0) == 0) {
-            std::string path = input.substr(3);
-            if (storage.changeDir(path))
-                std::cout << "[Kernel] Changed directory\n";
-            else
-                std::cout << "[Kernel] Error: folder not found or at root\n";
+        else if (cmd == "cd") {
+            if (arg.empty()) {
+                std::cout << "[Kernel] Usage: cd <foldername | ..>\n";
+                continue;
+            }
+            std::cout << "[Kernel] "
+                      << StorageManager::toString(storage.changeDir(arg)) << "\n";
         }
 
-        else if (input == "ls") {
+        else if (cmd == "ls") {
             auto entries = storage.listDir();
-            std::cout << "=== Contents ===\n";
+            std::cout << "=== Contents of " << storage.getWorkingDir() << " ===\n";
             if (entries.empty()) std::cout << "(empty)\n";
-            for (auto& e : entries) std::cout << e << "\n";
+            for (auto& e : entries)
+                std::cout << e << "\n";
         }
 
-        else if (input == "pwd")
+        else if (cmd == "pwd") {
             std::cout << storage.getWorkingDir() << "\n";
+        }
 
         else
-            std::cout << "[Kernel] Unknown command.\n";
+            std::cout << "[Kernel] Unknown command: " << cmd << "\n";
     }
 
     std::cout << "Exiting simulated OS...\n";
