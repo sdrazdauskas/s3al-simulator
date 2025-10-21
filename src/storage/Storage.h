@@ -1,13 +1,12 @@
-#ifndef STORAGE_H
-#define STORAGE_H
+#pragma once
 
 #include <iostream>
+#include <memory>
 #include <string>
-#include <vector>
 #include <sstream>
+#include <vector>
 
 namespace storage {
-
 struct File {
     std::string name;
     std::string content;
@@ -15,30 +14,26 @@ struct File {
 
 struct Folder {
     std::string name;
-    std::vector<File> files;
-    std::vector<Folder> subfolders;
+    std::vector<std::unique_ptr<File>> files;
+    std::vector<std::unique_ptr<Folder>> subfolders;
     Folder* parent = nullptr;
 };
 
 extern Folder root;
 extern Folder* currentFolder;
 
-void sendToKernel(std::string message);
-int findFileIndex(Folder* dir, std::string name);
-int findFolderIndex(Folder* dir, std::string name);
-void createFile(std::string name);
-void deleteFile(std::string name);
-void writeFile(std::string name);
-void readFile(std::string name);
-void editFile(std::string fileName);
-void makeDir(std::string folderName);
-void recursiveDelete(Folder& folder);
-void removeDir(std::string name);
-void changeDir(std::string folderName);
+void sendToKernel(const std::string& message);
+
+void createFile(const std::string& name);
+void deleteFile(const std::string& name);
+void writeFile(const std::string& name);
+void readFile(const std::string& name);
+void editFile(const std::string& name);
+void makeDir(const std::string& name);
+void removeDir(const std::string& name);
+void changeDir(const std::string& name);
 void listDir();
 void printWorkingDir();
-void handleCommand(std::string command);
+void handleCommand(const std::string& command);
 
 }  // namespace storage
-
-#endif  // STORAGE_H
