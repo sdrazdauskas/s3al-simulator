@@ -4,21 +4,23 @@
 #include <algorithm>
 #include <cctype>
 
-using Status = StorageManager::StorageStatus;
+namespace storage {
 
-std::string StorageManager::toString(StorageStatus status) {
+using Response = StorageManager::StorageResponse;
+
+std::string StorageManager::toString(StorageResponse status) {
     switch (status) {
-        case Status::OK:
+        case Response::OK:
             return "OK";
-        case Status::AlreadyExists:
+        case Response::AlreadyExists:
             return "Already Exists";
-        case Status::NotFound:
+        case Response::NotFound:
             return "Not Found";
-        case Status::AtRoot:
+        case Response::AtRoot:
             return "Already at Root";
-        case Status::InvalidArgument:
+        case Response::InvalidArgument:
             return "Invalid Argument";
-        case Status::Error:
+        case Response::Error:
         default:
             return "Error";
     }
@@ -58,52 +60,61 @@ void StorageManager::recursiveDelete(Folder& folder) {
     folder.subfolders.clear();
 }
 
-Status StorageManager::createFile(const std::string& name) {
-    if (isNameInvalid(name)) return Status::InvalidArgument;
-    if (findFileIndex(name) != -1) return Status::AlreadyExists;
+Response StorageManager::fileExists(const std::string& name) const {
+    if (isNameInvalid(name))
+        return Response::InvalidArgument;
+
+    return (findFileIndex(name) != -1)
+               ? Response::OK
+               : Response::NotFound;
+}
+
+Response StorageManager::createFile(const std::string& name) {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
+    if (findFileIndex(name) != -1) return Response::AlreadyExists;
     currentFolder->files.push_back(std::make_unique<File>(File{name, ""}));
-    return Status::OK;
+    return Response::OK;
 }
 
-Status StorageManager::deleteFile(const std::string& name) {
-    if (isNameInvalid(name)) return Status::InvalidArgument;
+Response StorageManager::deleteFile(const std::string& name) {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFileIndex(name);
-    if (i == -1) return Status::NotFound;
+    if (i == -1) return Response::NotFound;
     currentFolder->files.erase(currentFolder->files.begin() + i);
-    return Status::OK;
+    return Response::OK;
 }
 
-Status StorageManager::writeFile(const std::string& name,
-                                 const std::string& content) {
-    if (isNameInvalid(name)) return Status::InvalidArgument;
+Response StorageManager::writeFile(const std::string& name,
+                                   const std::string& content) {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFileIndex(name);
-    if (i == -1) return Status::NotFound;
+    if (i == -1) return Response::NotFound;
     currentFolder->files[i]->content = content + "\n";
-    return Status::OK;
+    return Response::OK;
 }
 
-Status StorageManager::readFile(const std::string& name,
-                                std::string& outContent) const {
-    if (isNameInvalid(name)) return Status::InvalidArgument;
+Response StorageManager::readFile(const std::string& name,
+                                  std::string& outContent) const {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFileIndex(name);
-    if (i == -1) return Status::NotFound;
+    if (i == -1) return Response::NotFound;
     outContent = currentFolder->files[i]->content;
-    return Status::OK;
+    return Response::OK;
 }
 
-Status StorageManager::appendToFile(const std::string& name,
-                                    const std::string& content) {
-    if (isNameInvalid(name)) return Status::InvalidArgument;
+Response StorageManager::appendToFile(const std::string& name,
+                                      const std::string& content) {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFileIndex(name);
-    if (i == -1) return Status::NotFound;
+    if (i == -1) return Response::NotFound;
     currentFolder->files[i]->content += content + "\n";
-    return Status::OK;
+    return Response::OK;
 }
 
-Status StorageManager::editFile(const std::string& name) {
-    if (isNameInvalid(name)) return Status::InvalidArgument;
+Response StorageManager::editFile(const std::string& name) {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFileIndex(name);
-    if (i == -1) return Status::NotFound;
+    if (i == -1) return Response::NotFound;
 
     File& f = *currentFolder->files[i];
     std::cout << "=== Editing " << name << " ===\n";
@@ -121,38 +132,38 @@ Status StorageManager::editFile(const std::string& name) {
         newLines += line + "\n";
     }
     f.content += newLines;
-    return Status::OK;
+    return Response::OK;
 }
 
-Status StorageManager::makeDir(const std::string& name) {
-    if (isNameInvalid(name)) return Status::InvalidArgument;
-    if (findFolderIndex(name) != -1) return Status::AlreadyExists;
+Response StorageManager::makeDir(const std::string& name) {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
+    if (findFolderIndex(name) != -1) return Response::AlreadyExists;
     auto folder = std::make_unique<Folder>();
     folder->name = name;
     folder->parent = currentFolder;
     currentFolder->subfolders.push_back(std::move(folder));
-    return Status::OK;
+    return Response::OK;
 }
 
-Status StorageManager::removeDir(const std::string& name) {
-    if (isNameInvalid(name)) return Status::InvalidArgument;
+Response StorageManager::removeDir(const std::string& name) {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFolderIndex(name);
-    if (i == -1) return Status::NotFound;
+    if (i == -1) return Response::NotFound;
     currentFolder->subfolders.erase(currentFolder->subfolders.begin() + i);
-    return Status::OK;
+    return Response::OK;
 }
 
-Status StorageManager::changeDir(const std::string& path) {
-    if (isNameInvalid(path)) return Status::InvalidArgument;
+Response StorageManager::changeDir(const std::string& path) {
+    if (isNameInvalid(path)) return Response::InvalidArgument;
     if (path == "..") {
-        if (currentFolder->parent == nullptr) return Status::AtRoot;
+        if (currentFolder->parent == nullptr) return Response::AtRoot;
         currentFolder = currentFolder->parent;
-        return Status::OK;
+        return Response::OK;
     }
     int i = findFolderIndex(path);
-    if (i == -1) return Status::NotFound;
+    if (i == -1) return Response::NotFound;
     currentFolder = currentFolder->subfolders[i].get();
-    return Status::OK;
+    return Response::OK;
 }
 
 std::vector<std::string> StorageManager::listDir() const {
@@ -179,3 +190,5 @@ std::string StorageManager::getWorkingDir() const {
     }
     return path.str();
 }
+
+} // namespace storage

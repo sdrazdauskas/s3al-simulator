@@ -2,7 +2,8 @@
 #include <iostream>
 #include <sstream>
 
-using Status = StorageManager::StorageStatus;
+using namespace storage;
+using Response = StorageManager::StorageResponse;
 
 int main() {
     StorageManager storage;
@@ -21,8 +22,8 @@ int main() {
         if (input.empty()) continue;
 
         std::stringstream ss(input);
-        ss >> cmd; // first word
-        ss >> arg; // second word (may remain empty)
+        ss >> cmd;
+        ss >> arg;
 
         if (cmd == "exit")
             break;
@@ -50,11 +51,18 @@ int main() {
                 std::cout << "[Kernel] Usage: write <filename>\n";
                 continue;
             }
+
+            auto fileCheck = storage.fileExists(arg);
+            if (fileCheck == Response::NotFound) {
+                std::cout << "[Kernel] " << StorageManager::toString(fileCheck) << "\n";
+                continue;
+            }
+
             std::cout << "Enter content: ";
             std::string content;
             std::getline(std::cin, content);
-            std::cout << "[Kernel] "
-                      << StorageManager::toString(storage.writeFile(arg, content)) << "\n";
+            auto res = storage.writeFile(arg, content);
+            std::cout << "[Kernel] " << StorageManager::toString(res) << "\n";
         }
 
         else if (cmd == "cat") {
@@ -64,7 +72,7 @@ int main() {
             }
             std::string contents;
             auto status = storage.readFile(arg, contents);
-            if (status == Status::OK)
+            if (status == Response::OK)
                 std::cout << contents;
             else
                 std::cout << "[Kernel] " << StorageManager::toString(status) << "\n";

@@ -4,9 +4,11 @@
 #include <string>
 #include <vector>
 
+namespace storage {
+
 class StorageManager {
 public:
-    enum class StorageStatus {
+    enum class StorageResponse {
         OK,
         AlreadyExists,
         NotFound,
@@ -15,20 +17,21 @@ public:
         Error
     };
 
-    static std::string toString(StorageStatus status);
+    static std::string toString(StorageResponse status);
 
     StorageManager();
 
-    StorageStatus createFile(const std::string& name);
-    StorageStatus deleteFile(const std::string& name);
-    StorageStatus writeFile(const std::string& name, const std::string& content);
-    StorageStatus readFile(const std::string& name, std::string& outContent) const;
-    StorageStatus appendToFile(const std::string& name, const std::string& content);
-    StorageStatus editFile(const std::string& name);
+    StorageResponse createFile(const std::string& name);
+    StorageResponse deleteFile(const std::string& name);
+    StorageResponse writeFile(const std::string& name, const std::string& content);
+    StorageResponse readFile(const std::string& name, std::string& outContent) const;
+    StorageResponse appendToFile(const std::string& name, const std::string& content);
+    StorageResponse editFile(const std::string& name);
+    StorageResponse fileExists(const std::string& name) const;
 
-    StorageStatus makeDir(const std::string& name);
-    StorageStatus removeDir(const std::string& name);
-    StorageStatus changeDir(const std::string& name);
+    StorageResponse makeDir(const std::string& name);
+    StorageResponse removeDir(const std::string& name);
+    StorageResponse changeDir(const std::string& name);
 
     std::vector<std::string> listDir() const;
     std::string getWorkingDir() const;
@@ -54,3 +57,5 @@ private:
     int findFolderIndex(const std::string& name) const;
     void recursiveDelete(Folder& folder);
 };
+
+} // namespace storage
