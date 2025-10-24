@@ -3,15 +3,19 @@
 #include "Shell.h"
 #include <iostream>
 #include <sstream>
+#include <numeric>
+
+using namespace std;
+using namespace storage; // for convenience; you can also fully qualify
 
 Kernel::Kernel() : m_is_running(true) {
     register_commands();
-    std::cout << "Kernel initialized." << std::endl;
+    cout << "Kernel initialized." << endl;
 }
 
 // New public method to be called by the Terminal's callback
 std::string Kernel::execute_command(const std::string& line) {
-    // We remove the newline character added by the Terminal class before processing
+    // Remove newline if present
     if (!line.empty() && line.back() == '\n') {
         return process_line(line.substr(0, line.length() - 1));
     }
@@ -31,30 +35,41 @@ bool Kernel::is_running() const {
     return m_is_running;
 }
 
-// The old run() method is removed completely.
-
 void Kernel::register_commands() {
+    // existing commands
     m_commands["help"] = [this](const auto& args) { return this->handle_help(args); };
     m_commands["echo"] = [this](const auto& args) { return this->handle_echo(args); };
     m_commands["add"] = [this](const auto& args) { return this->handle_add(args); };
     m_commands["quit"] = [this](const auto& args) { return this->handle_quit(args); };
     m_commands["exit"] = [this](const auto& args) { return this->handle_quit(args); };
+
+    // storage commands (no prefix - direct as requested)
+    m_commands["touch"] = [this](const auto& args) { return this->handle_touch(args); };
+    m_commands["rm"] = [this](const auto& args) { return this->handle_rm(args); };
+    m_commands["write"] = [this](const auto& args) { return this->handle_write(args); };
+    m_commands["cat"] = [this](const auto& args) { return this->handle_cat(args); };
+    m_commands["edit"] = [this](const auto& args) { return this->handle_edit(args); };
+    m_commands["mkdir"] = [this](const auto& args) { return this->handle_mkdir(args); };
+    m_commands["rmdir"] = [this](const auto& args) { return this->handle_rmdir(args); };
+    m_commands["cd"] = [this](const auto& args) { return this->handle_cd(args); };
+    m_commands["ls"] = [this](const auto& args) { return this->handle_ls(args); };
+    m_commands["pwd"] = [this](const auto& args) { return this->handle_pwd(args); };
 }
 
 std::string Kernel::process_line(const std::string& line) {
     if (line.empty()) {
         return "";
     }
-    
+
     std::istringstream iss(line);
     std::string command_name;
     iss >> command_name;
 
     std::vector<std::string> args;
     std::string token;
-    // This parsing logic is kept as you wrote it. It works well.
+    // parsing that supports quoted args
     while (iss >> token) {
-        if (token.front() == '"') {
+        if (!token.empty() && token.front() == '"') {
             std::string quoted_arg = token.substr(1);
             while (iss && (quoted_arg.empty() || quoted_arg.back() != '"')) {
                 if (!(iss >> token)) break;
@@ -77,16 +92,14 @@ std::string Kernel::process_line(const std::string& line) {
     return "Unknown command: '" + command_name + "'.";
 }
 
-// Handler implementations remain the same.
+// Handler implementations
+
 std::string Kernel::handle_help(const std::vector<std::string>& args) {
     std::string help_text = "Available commands:\n";
     for (const auto& pair : m_commands) {
         help_text += "- " + pair.first + "\n";
     }
-    // Remove the final newline for cleaner output
-    if (!help_text.empty()) {
-        help_text.pop_back();
-    }
+    if (!help_text.empty()) help_text.pop_back();
     return help_text;
 }
 
@@ -121,21 +134,112 @@ std::string Kernel::handle_quit(const std::vector<std::string>& args) {
     return "Shutting down kernel. Goodbye!";
 }
 
+// ---------------- Storage handlers ----------------
+
+std::string Kernel::handle_touch(const std::vector<std::string>& args) {
+    if (args.size() < 1) return "Usage: touch <filename>";
+    auto res = m_storage.createFile(args[0]);
+    return "[Kernel] " + storage::StorageManager::toString(res);
+}
+
+std::string Kernel::handle_rm(const std::vector<std::string>& args) {
+    if (args.size() < 1) return "Usage: rm <filename>";
+    auto res = m_storage.deleteFile(args[0]);
+    return "[Kernel] " + storage::StorageManager::toString(res);
+}
+
+std::string Kernel::handle_write(const std::vector<std::string>& args) {
+    // write <filename> <content...>
+    if (args.size() < 2) return "Usage: write <filename> <content>";
+    const std::string& fname = args[0];
+    std::string content;
+    for (size_t i = 1; i < args.size(); ++i) {
+        content += args[i];
+        if (i + 1 < args.size()) content += " ";
+    }
+    auto exists = m_storage.fileExists(fname);
+    if (exists != storage::StorageManager::StorageResponse::OK) {
+        return "[Kernel] " + storage::StorageManager::toString(exists);
+    }
+    auto res = m_storage.writeFile(fname, content);
+    return "[Kernel] " + storage::StorageManager::toString(res);
+}
+
+std::string Kernel::handle_cat(const std::vector<std::string>& args) {
+    if (args.size() < 1) return "Usage: cat <filename>";
+    std::string out;
+    auto res = m_storage.readFile(args[0], out);
+    if (res != storage::StorageManager::StorageResponse::OK) {
+        return "[Kernel] " + storage::StorageManager::toString(res);
+    }
+    return out;
+}
+
+std::string Kernel::handle_edit(const std::vector<std::string>& args) {
+    // inline append: edit <filename> <content...>
+    if (args.size() < 2) return "Usage: edit <filename> <content to append>";
+    const std::string& fname = args[0];
+    std::string content;
+    for (size_t i = 1; i < args.size(); ++i) {
+        content += args[i];
+        if (i + 1 < args.size()) content += " ";
+    }
+    auto exists = m_storage.fileExists(fname);
+    if (exists != storage::StorageManager::StorageResponse::OK) {
+        return "[Kernel] " + storage::StorageManager::toString(exists);
+    }
+    auto res = m_storage.appendToFile(fname, content);
+    return "[Kernel] " + storage::StorageManager::toString(res);
+}
+
+std::string Kernel::handle_mkdir(const std::vector<std::string>& args) {
+    if (args.size() < 1) return "Usage: mkdir <foldername>";
+    auto res = m_storage.makeDir(args[0]);
+    return "[Kernel] " + storage::StorageManager::toString(res);
+}
+
+std::string Kernel::handle_rmdir(const std::vector<std::string>& args) {
+    if (args.size() < 1) return "Usage: rmdir <foldername>";
+    auto res = m_storage.removeDir(args[0]);
+    return "[Kernel] " + storage::StorageManager::toString(res);
+}
+
+std::string Kernel::handle_cd(const std::vector<std::string>& args) {
+    if (args.size() < 1) return "Usage: cd <foldername | ..>";
+    auto res = m_storage.changeDir(args[0]);
+    return "[Kernel] " + storage::StorageManager::toString(res);
+}
+
+std::string Kernel::handle_ls(const std::vector<std::string>& args) {
+    (void)args;
+    auto entries = m_storage.listDir();
+    std::ostringstream out;
+    out << "=== Contents of " << m_storage.getWorkingDir() << " ===\n";
+    if (entries.empty()) out << "(empty)\n";
+    for (const auto& e : entries) out << e << "\n";
+    return out.str();
+}
+
+std::string Kernel::handle_pwd(const std::vector<std::string>& args) {
+    (void)args;
+    return m_storage.getWorkingDir();
+}
+
+// ----------------- boot -----------------
 void Kernel::boot() {
     std::cout << "Booting s3al OS...\n";
-    
+
     // Initialize shell subsystem with kernel callback
     std::cout << "Initializing shell subsystem...\n";
     shell::Shell sh([this](const std::string& cmd, const std::vector<std::string>& args) {
         return this->execute_command(cmd, args);
     });
-    
-    // Initialize terminal (TTY) subsystem
+
     std::cout << "Initializing terminal subsystem...\n";
     terminal::Terminal term;
-    
-    // Wire terminal input to shell
-    term.setSendCallback([&sh, &term](const std::string& line) {
+
+    // Set up send callback: process command and print output
+    term.setSendCallback([this, &sh, &term](const std::string& line) {
         std::string result = sh.processCommandLine(line);
         if (!result.empty()) {
             term.print(result);
@@ -144,18 +248,27 @@ void Kernel::boot() {
             }
         }
     });
-    
-    // Wire signal handling
+
+    // Signal handling (Ctrl+C)
     term.setSignalCallback([&term](int sig) {
         term.print("^C\n");
     });
-    
-    // Start init process (userspace)
+
     std::cout << "\nStarting init process...\n";
     std::cout << "Type 'help' for commands, 'quit' to exit\n\n";
-    
-    // Run the terminal event loop (blocks until shutdown)
-    term.runBlockingStdioLoop();
-    
+
+    // Main CLI loop with dynamic prompt
+    while (m_is_running) {
+        // Print prompt with current working directory
+        std::cout << m_storage.getWorkingDir() << "$ ";
+        std::string line;
+        std::getline(std::cin, line);
+
+        if (line.empty()) continue;
+
+        std::string output = execute_command(line);
+        if (!output.empty()) std::cout << output << "\n";
+    }
+
     std::cout << "\nShutdown complete.\n";
 }

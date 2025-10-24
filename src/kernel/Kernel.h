@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include "../storage/Storage.h"
 
 class Kernel {
 public:
@@ -48,6 +49,21 @@ private:
     std::string handle_add(const std::vector<std::string>& args);
     std::string handle_quit(const std::vector<std::string>& args);
 
+    // Storage-related handlers
+    std::string handle_touch(const std::vector<std::string>& args);
+    std::string handle_rm(const std::vector<std::string>& args);
+    std::string handle_write(const std::vector<std::string>& args); // write (replace) file
+    std::string handle_cat(const std::vector<std::string>& args);
+    std::string handle_edit(const std::vector<std::string>& args);  // inline append (chosen B)
+    std::string handle_mkdir(const std::vector<std::string>& args);
+    std::string handle_rmdir(const std::vector<std::string>& args);
+    std::string handle_cd(const std::vector<std::string>& args);
+    std::string handle_ls(const std::vector<std::string>& args);
+    std::string handle_pwd(const std::vector<std::string>& args);
+
     std::map<std::string, CommandHandler> m_commands;
     bool m_is_running;
+
+    // Storage manager instance
+    storage::StorageManager m_storage;
 };
