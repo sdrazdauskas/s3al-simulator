@@ -1,4 +1,7 @@
 #include "Kernel.h"
+
+#include <iomanip>
+
 #include "Terminal.h"
 #include "Shell.h"
 #include <iostream>
@@ -95,13 +98,62 @@ std::string Kernel::process_line(const std::string& line) {
 // Handler implementations
 
 std::string Kernel::handle_help(const std::vector<std::string>& args) {
-    std::string help_text = "Available commands:\n";
-    for (const auto& pair : m_commands) {
-        help_text += "- " + pair.first + "\n";
+    (void)args;
+
+    struct CmdInfo {
+        std::string name;
+        std::string params;
+        std::string desc;
+    };
+
+    std::vector<CmdInfo> commands = {
+        {"help",  "", "Display this help message"},
+        {"echo",  "[text]", "Repeat the text back"},
+        {"add",   "[num1] [num2] ...", "Sum the numbers"},
+        {"quit",  "", "Exit the kernel"},
+        {"exit",  "", "Alias for quit"},
+        {"touch", "[filename]", "Create a new empty file"},
+        {"rm",    "[filename]", "Delete a file"},
+        {"write", "[filename] [text]", "Write text to a file (overwrite)"},
+        {"cat",   "[filename]", "Display file contents"},
+        {"edit",  "[filename] [text]", "Append text to a file"},
+        {"mkdir", "[foldername]", "Create a new folder"},
+        {"rmdir", "[foldername]", "Remove an empty folder"},
+        {"cd",    "[foldername|..]", "Change current directory"},
+        {"ls",    "", "List contents of current directory"},
+        {"pwd",   "", "Show current directory path"}
+    };
+
+    size_t max_name_len = 4;   // "Name"
+    size_t max_param_len = 9;  // "Parameters"
+    for (auto& cmd : commands) {
+        if (cmd.name.size() > max_name_len) max_name_len = cmd.name.size();
+        if (cmd.params.size() > max_param_len) max_param_len = cmd.params.size();
     }
-    if (!help_text.empty()) help_text.pop_back();
-    return help_text;
+
+    auto draw_line = [&]() {
+        return "+" + std::string(max_name_len + 2, '-') + "+"
+               + std::string(max_param_len + 2, '-') + "+"
+               + std::string(50, '-') + "+\n"; // fixed width for description
+    };
+
+    std::ostringstream oss;
+    oss << draw_line();
+    oss << "| " << std::left << std::setw(max_name_len) << "Name" << " | "
+        << std::left << std::setw(max_param_len) << "Parameters" << " | "
+        << "Description" << " |\n";
+    oss << draw_line();
+
+    for (auto& cmd : commands) {
+        oss << "| " << std::left << std::setw(max_name_len) << cmd.name << " | "
+            << std::left << std::setw(max_param_len) << cmd.params << " | "
+            << cmd.desc << " |\n";
+    }
+    oss << draw_line();
+
+    return oss.str();
 }
+
 
 std::string Kernel::handle_echo(const std::vector<std::string>& args) {
     if (args.empty()) {
