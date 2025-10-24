@@ -5,12 +5,14 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-using namespace std;
+
+
+namespace scheduler{
 
 class FCFS {
-    vector<Process>& process_queue;
+    std::vector<Process>& process_queue;
 public:
-    FCFS(vector<Process>& p) : process_queue(p) {}
+    FCFS(std::vector<Process>& p) : process_queue(p) {}
 
     void run() {
         sort(process_queue.begin(), process_queue.end(),
@@ -18,9 +20,11 @@ public:
 
         for (auto& p : process_queue) {
             p.burstTime--;
-            cout << "[\"CPU\"]" << " Simulating execution on process PiD "<< p.id <<" for 1 tick." <<endl;
+            std::cout << "[\"CPU\"]" << " Simulating execution on process PiD "<< p.id <<" for 1 tick." <<std::endl;
         }
     }
 };
+
+}
 
 #endif

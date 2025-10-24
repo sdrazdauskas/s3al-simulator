@@ -4,6 +4,8 @@
 #include <vector>
 #include "process.h"
 
+namespace scheduler {
+
 enum class Algorithm {
     FCFS,
     //RoundRobin,
@@ -33,5 +35,5 @@ private:
     int quantum_;
     std::vector<Process> processes_;
 };
-
+}
 #endif // CPU_SCHEDULER_H

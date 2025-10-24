@@ -5,16 +5,17 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
-using namespace std;
+
+namespace scheduler {
 
 class PriorityQueueSched {
-    vector<Process>& process_queue;
+    std::vector<Process>& process_queue;
 
 public:
-    PriorityQueueSched(vector<Process>& p) : process_queue(p) {}
+    PriorityQueueSched(std::vector<Process>& p) : process_queue(p) {}
 
     void run() {
-        sort(process_queue.begin(), process_queue.end(),
+        std::sort(process_queue.begin(), process_queue.end(),
              [](const Process& a, const Process& b) {
                  if (a.arrivalTime == b.arrivalTime)
                      return a.priority > b.priority; // higher priority first
@@ -23,9 +24,9 @@ public:
 
         for (auto& p : process_queue) {
             p.burstTime--;
-            cout << "[\"CPU\"]" << " Simulating execution on process PiD "<< p.id <<" for 1 tick." <<endl;
+            std::cout << "[\"CPU\"]" << " Simulating execution on process PiD "<< p.id <<" for 1 tick." << std::endl;
         }
     }
 };
-
+}
 #endif

@@ -1,9 +1,10 @@
 #include "cpu_scheduler.h"
-
 #include <stdexcept>
 #include "sched_algos/fcfs.h"
 //#include "sched_algos/roundrobin.h"
 #include "sched_algos/priorityqueue.h"
+
+namespace scheduler {
 
 CPUScheduler::CPUScheduler() 
     : sysTime(0), algo_(Algorithm::PriorityQueue), quantum_(1){}
@@ -71,3 +72,4 @@ void CPUScheduler::run() {
             throw std::runtime_error("Unknown algorithm");
     }
 }
+}//namespace
