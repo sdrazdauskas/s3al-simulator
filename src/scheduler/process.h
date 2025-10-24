@@ -1,6 +1,7 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+namespace scheduler {
 struct Process {
     int id; //PiD
     int arrivalTime;  //When did process arrive to queue? 
@@ -16,5 +17,7 @@ struct Process {
         : id(pid), arrivalTime(arrival), burstTime(burst),
           priority(prio) {}
 };
+
+}
 
 #endif
