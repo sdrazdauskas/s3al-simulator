@@ -41,31 +41,37 @@ std::string Shell::parseQuotedToken(std::istringstream& iss, std::string token) 
     return commands;
 }
 
-std::string Shell::processCommandLine(const std::string& commandLine) {
-    std::istringstream iss(commandLine);
-    std::string command;
-    iss >> command;
-
-    if (command.empty()) {
+    std::string Shell::processCommandLine(const std::string& commandLine) {
+    if (commandLine.empty()) {
         return "Error: No command entered";
     }
 
-    std::vector<std::string> args;
-    std::string token;
+    std::vector<std::string> commands = splitByAndOperator(commandLine);
+    std::string combinedOutput;
 
-    while (iss >> token) {
-        if (token.front() == '"') {
-            args.push_back(parseQuotedToken(iss, token));
-        } else {
-            args.push_back(token);
+    for (const auto& cmd : commands) {
+        std::string command;
+        std::vector<std::string> args;
+
+        parseCommand(cmd, command, args);
+
+        if (command.empty()) {
+            continue;
+        }
+
+        std::string result = executeCommand(command, args);
+
+        if (!combinedOutput.empty()) {
+            combinedOutput += "\n";
+        }
+        combinedOutput += result;
+
+        if (result.rfind("Error", 0) == 0) {
+            break;
         }
     }
 
-    if (kernelCallback) {
-        return kernelCallback(command, args);
-    } else {
-        return "Error: No kernel handler available";
-    }
+    return combinedOutput;
 }
 
 std::string Shell::executeCommand(const std::string& command, const std::vector<std::string>& args) {
