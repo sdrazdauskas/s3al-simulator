@@ -13,6 +13,8 @@ private:
     KernelCallback kernelCallback;
     std::string parseQuotedToken(std::istringstream& iss, std::string token);
 
+    std::vector<std::string> splitByAndOperator(const std::string& commandLine);
+
 public:
     Shell(KernelCallback cb);
     std::string processCommandLine(const std::string& commandLine);
