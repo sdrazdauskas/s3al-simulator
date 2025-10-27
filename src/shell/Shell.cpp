@@ -20,6 +20,27 @@ std::string Shell::parseQuotedToken(std::istringstream& iss, std::string token) 
     return quoted;
 }
 
+    std::vector<std::string> Shell::splitByAndOperator(const std::string& commandLine) {
+    std::vector<std::string> commands;
+    std::string temp = commandLine;
+    size_t pos = 0;
+
+    while ((pos = temp.find("&&")) != std::string::npos) {
+        std::string part = temp.substr(0, pos);
+        size_t start = part.find_first_not_of(" \t");
+        size_t end = part.find_last_not_of(" \t");
+        if (start != std::string::npos)
+            commands.push_back(part.substr(start, end - start + 1));
+        temp.erase(0, pos + 2);
+    }
+    size_t start = temp.find_first_not_of(" \t");
+    size_t end = temp.find_last_not_of(" \t");
+    if (start != std::string::npos)
+        commands.push_back(temp.substr(start, end - start + 1));
+
+    return commands;
+}
+
 std::string Shell::processCommandLine(const std::string& commandLine) {
     std::istringstream iss(commandLine);
     std::string command;
