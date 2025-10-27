@@ -16,7 +16,7 @@ target_include_directories(shell PUBLIC src/shell)
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
 target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal)
-target_link_libraries(kernel PUBLIC terminal shell)
+target_link_libraries(kernel PUBLIC terminal shell logging)
 
 # Storage library
 add_library(storage STATIC src/storage/Storage.cpp)
@@ -30,7 +30,11 @@ target_include_directories(process PUBLIC src/process)
 add_library(memory STATIC src/memory/MemoryManager.cpp)
 target_include_directories(memory PUBLIC src/memory)
 
+# Logging library
+add_library(logging STATIC src/logger/Logger.cpp)
+target_include_directories(logging PUBLIC src/logger)
+
 # Main executable
 add_executable(s3al_sim src/main.cpp)
-target_link_libraries(s3al_sim PRIVATE kernel)
+target_link_libraries(s3al_sim PRIVATE kernel logging)
 
