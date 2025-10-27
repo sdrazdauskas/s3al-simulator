@@ -1,4 +1,4 @@
-#include "kernel/Kernel.h"
+#include "Kernel.h"
 
 int main() {
     // Kernel entry point - initializes subsystems and starts init process
