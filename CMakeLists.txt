@@ -13,26 +13,32 @@ target_include_directories(terminal PUBLIC src/terminal)
 add_library(shell STATIC src/shell/Shell.cpp)
 target_include_directories(shell PUBLIC src/shell)
 
-# Kernel library
-add_library(kernel STATIC src/kernel/Kernel.cpp)
-target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal src/storage)
-target_link_libraries(kernel PUBLIC terminal shell storage)
-
 # Storage library
 add_library(storage STATIC src/storage/Storage.cpp)
 target_include_directories(storage PUBLIC src/storage)
-
-# Process library
-add_library(process STATIC src/process/ProcessManager.cpp)
-target_include_directories(process PUBLIC src/process)
 
 # Memory library
 add_library(memory STATIC src/memory/MemoryManager.cpp)
 target_include_directories(memory PUBLIC src/memory)
 
+# Scheduler library
+add_library(scheduler STATIC
+        src/scheduler/scheduler.cpp
+)
+target_include_directories(scheduler PUBLIC src/scheduler src/scheduler/sched_algos)
+target_link_libraries(scheduler PUBLIC process)
+
+# Kernel library
+add_library(kernel STATIC src/kernel/Kernel.cpp)
+target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal src/storage src/scheduler src/process)
+target_link_libraries(kernel PUBLIC terminal shell storage scheduler process)
+
+add_library(process STATIC src/process/ProcessManager.cpp)
+
+
 # Main executable
 add_executable(s3al_sim src/main.cpp)
-target_link_libraries(s3al_sim PRIVATE kernel storage)
+target_link_libraries(s3al_sim PRIVATE kernel storage scheduler process)
 
 # --- Unit Tests ---
 include(FetchContent)
