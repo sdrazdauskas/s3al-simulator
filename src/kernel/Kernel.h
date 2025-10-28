@@ -62,6 +62,9 @@ private:
     std::string handle_ls(const std::vector<std::string>& args);
     std::string handle_pwd(const std::vector<std::string>& args);
 
+    std::string handle_meminfo(const std::vector<std::string>& args);
+    std::string handle_membar(const std::vector<std::string>& args);
+
     std::map<std::string, CommandHandler> m_commands;
     bool m_is_running;
 
