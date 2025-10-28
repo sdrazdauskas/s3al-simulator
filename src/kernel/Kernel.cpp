@@ -49,6 +49,10 @@ void Kernel::register_commands() {
     m_commands["cd"]    = [this](const auto& args){ return handle_cd(args); };
     m_commands["ls"]    = [this](const auto& args){ return handle_ls(args); };
     m_commands["pwd"]   = [this](const auto& args){ return handle_pwd(args); };
+
+    m_commands["meminfo"] = [this](const auto& args){ return this->handle_meminfo(args); };
+    m_commands["membar"]  = [this](const auto& args){ return this->handle_membar(args); };
+
 }
 
 std::string Kernel::process_line(const std::string& line) {
@@ -104,7 +108,9 @@ std::string Kernel::handle_help(const vector<string>& args) {
         {"rmdir","[foldername]","Remove an empty folder"},
         {"cd","[foldername|..]","Change current directory"},
         {"ls","","List contents of current directory"},
-        {"pwd","","Show current directory path"}
+        {"pwd","","Show current directory path"},
+        {"membar", "", "Display memory usage bar"},
+        {"meminfo", "", "Display memory info summary"}
     };
 
     size_t max_name_len=4, max_param_len=9;
@@ -240,4 +246,35 @@ void Kernel::boot(){
         if(!output.empty()) cout<<output<<"\n";
     }
     cout<<"\nShutdown complete.\n";
+}
+
+
+std::string Kernel::handle_meminfo(const std::vector<std::string>& args) {
+    (void)args;
+    size_t total = m_mem_mgr.get_total_memory();
+    size_t used  = m_mem_mgr.get_used_memory();
+    size_t free  = total - used;
+
+    std::ostringstream oss;
+    oss << "=== Memory Info ===\n";
+    oss << "Total: " << total / 1024 << " KB\n";
+    oss << "Used : " << used / 1024 << " KB\n";
+    oss << "Free : " << free / 1024 << " KB\n";
+    return oss.str();
+}
+
+std::string Kernel::handle_membar(const std::vector<std::string>& args) {
+    (void)args;
+    size_t total = m_mem_mgr.get_total_memory();
+    size_t used  = m_mem_mgr.get_used_memory();
+    int bar_width = 40;
+    int used_blocks = static_cast<int>((double)used / total * bar_width);
+
+    std::ostringstream oss;
+    oss << "[Memory] [";
+    for (int i = 0; i < bar_width; ++i) {
+        oss << (i < used_blocks ? '#' : '-');
+    }
+    oss << "] " << (used * 100 / total) << "% used\n";
+    return oss.str();
 }
