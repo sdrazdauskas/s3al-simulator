@@ -30,13 +30,6 @@ void CPUScheduler::run() {
     if (processes_.empty()) return;
 
     switch (algo_) {
-        
-        //rrobin implementation will change vastly with implementation of multiprocessing, not available for usage for now.
-        // case Algorithm::RoundRobin: {
-        //     RoundRobin rr(processes_, quantum_);
-        //     rr.run();
-        //     break;
-        // }
 
         case Algorithm::FCFS: {
             FCFS fcfs(processes_);
