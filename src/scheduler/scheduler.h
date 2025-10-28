@@ -25,7 +25,6 @@ public:
 
     void clear();
 
-    // Runs the selected algorithm and prints to algorithm's display(). stdout for now.
     void run();
 
 private:

@@ -14,7 +14,6 @@ void CPUScheduler::setAlgorithm(Algorithm a) { algo_ = a; }
 void CPUScheduler::setQuantum(int q) { quantum_ = (q > 0 ? q : 1); }
 
 void CPUScheduler::execute_process(int pid, int burstTime, int priorty) {
-    std::cout << "[CPU scheduler] request to execute process PiD " <<pid<<" for "<<burstTime<<" ticks received."<< std::endl;
     processes_.emplace_back(pid, burstTime, priorty);
     run();
 }
