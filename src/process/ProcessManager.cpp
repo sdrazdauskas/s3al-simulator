@@ -3,7 +3,7 @@
 
 namespace process {
 
-ProcessManager::ProcessManager(MemoryManager& mem, CPUScheduler& cpu)
+ProcessManager::ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu)
     : mem(mem), cpu(cpu) {}
 
 void ProcessManager::log(const std::string& level, const std::string& message) {
