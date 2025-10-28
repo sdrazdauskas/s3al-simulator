@@ -6,8 +6,8 @@
 #include <functional>
 #include "Process.h"
 
-class MemoryManager;
-class CPUScheduler;
+namespace memory { class MemoryManager; }
+namespace scheduler { class CPUScheduler; }
 
 namespace process {
     
@@ -17,7 +17,7 @@ public:
                                            const std::string& module, 
                                            const std::string& message)>;
 
-    ProcessManager(MemoryManager& mem, CPUScheduler& cpu);
+    ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu);
 
     void setLogCallback(LogCallback callback) { log_callback = callback; }
 
@@ -42,8 +42,8 @@ public:
 private:
     int next_pid_{1};
     std::vector<Process> table;
-    MemoryManager& mem;
-    CPUScheduler&  cpu;
+    memory::MemoryManager& mem;
+    scheduler::CPUScheduler&  cpu;
     LogCallback log_callback;
 
     Process*       find(int pid);
