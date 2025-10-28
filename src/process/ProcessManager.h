@@ -4,6 +4,15 @@
 #include <optional>
 #include <vector>
 #include "Process.h"
+#include "../memory/MemoryManager.h"
+#include "../scheduler/scheduler.h"
+namespace memory {
+    class MemoryManager;
+}
+
+namespace scheduler {
+    class CPUScheduler;
+}
 
 class MemoryManager;
 class CPUScheduler;
@@ -12,7 +21,7 @@ namespace process {
     
 class ProcessManager {
 public:
-    ProcessManager(MemoryManager& mem, CPUScheduler& cpu);
+    ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu);
 
     // One-shot orchestration: prepare -> run (alloc→execute→dealloc) -> stop
     // Returns PID on success; -1 on validation failure.
@@ -35,8 +44,8 @@ public:
 private:
     int next_pid_{1};
     std::vector<Process> table_;
-    MemoryManager& mem_;
-    CPUScheduler&  cpu_;
+    memory::MemoryManager mem_;
+    scheduler::CPUScheduler cpu_;
 
     Process*       find(int pid);
 };

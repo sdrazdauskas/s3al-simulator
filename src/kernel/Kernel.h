@@ -6,6 +6,8 @@
 #include <functional>
 #include "../storage/Storage.h"
 #include "../scheduler/scheduler.h"
+#include "../memory/MemoryManager.h"
+#include "../process/ProcessManager.h"
 
 class Kernel {
 public:
@@ -44,18 +46,16 @@ private:
     void register_commands();
     std::string process_line(const std::string& line);
 
-    // Command handler methods
     std::string handle_help(const std::vector<std::string>& args);
     std::string handle_echo(const std::vector<std::string>& args);
     std::string handle_add(const std::vector<std::string>& args);
     std::string handle_quit(const std::vector<std::string>& args);
 
-    // Storage-related handlers
     std::string handle_touch(const std::vector<std::string>& args);
     std::string handle_rm(const std::vector<std::string>& args);
-    std::string handle_write(const std::vector<std::string>& args); // write (replace) file
+    std::string handle_write(const std::vector<std::string>& args);
     std::string handle_cat(const std::vector<std::string>& args);
-    std::string handle_edit(const std::vector<std::string>& args);  // inline append (chosen B)
+    std::string handle_edit(const std::vector<std::string>& args);
     std::string handle_mkdir(const std::vector<std::string>& args);
     std::string handle_rmdir(const std::vector<std::string>& args);
     std::string handle_cd(const std::vector<std::string>& args);
@@ -65,10 +65,8 @@ private:
     std::map<std::string, CommandHandler> m_commands;
     bool m_is_running;
 
-    // Storage manager instance
     storage::StorageManager m_storage;
-
-    // Scheduler integration
+    memory::MemoryManager m_mem_mgr;
     scheduler::CPUScheduler m_scheduler;
-    int m_next_pid;
+    process::ProcessManager m_proc_manager;
 };

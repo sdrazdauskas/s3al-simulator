@@ -3,8 +3,9 @@
 
 namespace process {
 
-ProcessManager::ProcessManager(MemoryManager& mem, CPUScheduler& cpu)
-    : mem_(mem), cpu_(cpu) {}
+    process::ProcessManager::ProcessManager(memory::MemoryManager& mem,
+                                            scheduler::CPUScheduler& cpu)
+        : mem_(mem), cpu_(cpu) {}
 
 //general function describing lifecycle, accessed by kernel
 int ProcessManager::execute_process(const std::string& name,
