@@ -5,6 +5,7 @@
 #include <map>
 #include <functional>
 #include "../storage/Storage.h"
+#include "../scheduler/scheduler.h"
 
 class Kernel {
 public:
@@ -66,4 +67,8 @@ private:
 
     // Storage manager instance
     storage::StorageManager m_storage;
+
+    // Scheduler integration
+    scheduler::CPUScheduler m_scheduler;
+    int m_next_pid;
 };

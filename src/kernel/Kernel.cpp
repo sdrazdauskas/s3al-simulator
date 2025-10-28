@@ -1,7 +1,6 @@
 #include "Kernel.h"
 
 #include <iomanip>
-
 #include "Terminal.h"
 #include "Shell.h"
 #include <iostream>
@@ -11,7 +10,7 @@
 using namespace std;
 using namespace storage; // for convenience; you can also fully qualify
 
-Kernel::Kernel() : m_is_running(true) {
+Kernel::Kernel() : m_is_running(true), m_scheduler(), m_next_pid(1) {
     register_commands();
     cout << "Kernel initialized." << endl;
 }
@@ -59,10 +58,26 @@ void Kernel::register_commands() {
     m_commands["pwd"] = [this](const auto& args) { return this->handle_pwd(args); };
 }
 
-std::string Kernel::process_line(const std::string& line) {
-    if (line.empty()) {
-        return "";
+static int estimate_burst_for_action(const std::string& cmd, const std::vector<std::string>& args) {
+    if (cmd == "write" || cmd == "edit") {
+        size_t total_chars = 0;
+        for (size_t i = 1; i < args.size(); ++i) total_chars += args[i].size();
+        int b = static_cast<int>(total_chars / 10) + 1;
+        if (b < 1) b = 1;
+        return b;
     }
+    if (cmd == "touch" || cmd == "ls" || cmd == "pwd") return 1;
+    if (cmd == "rm" || cmd == "rmdir" || cmd == "mkdir" || cmd == "cd" || cmd == "cat") return 2;
+    return 1;
+}
+
+static int default_priority_for_action(const std::string& cmd) {
+    if (cmd == "write" || cmd == "edit") return 2;
+    return 1;
+}
+
+std::string Kernel::process_line(const std::string& line) {
+    if (line.empty()) return "";
 
     std::istringstream iss(line);
     std::string command_name;
@@ -78,9 +93,7 @@ std::string Kernel::process_line(const std::string& line) {
                 if (!(iss >> token)) break;
                 quoted_arg += " " + token;
             }
-            if (!quoted_arg.empty() && quoted_arg.back() == '"') {
-                quoted_arg.pop_back();
-            }
+            if (!quoted_arg.empty() && quoted_arg.back() == '"') quoted_arg.pop_back();
             args.push_back(quoted_arg);
         } else {
             args.push_back(token);
@@ -89,7 +102,21 @@ std::string Kernel::process_line(const std::string& line) {
 
     auto it = m_commands.find(command_name);
     if (it != m_commands.end()) {
-        return it->second(args);
+        std::string res = it->second(args);
+
+        // Scheduler integration: create a process for storage commands
+        if (command_name == "touch" || command_name == "rm" || command_name == "write" ||
+            command_name == "cat" || command_name == "edit" || command_name == "mkdir" ||
+            command_name == "rmdir" || command_name == "cd" || command_name == "ls" ||
+            command_name == "pwd") {
+
+            int burst = estimate_burst_for_action(command_name, args);
+            int prio = default_priority_for_action(command_name);
+            int pid = m_next_pid++;
+            m_scheduler.execute_process(pid, burst, prio);
+        }
+
+        return res;
     }
 
     return "Unknown command: '" + command_name + "'.";
@@ -124,8 +151,8 @@ std::string Kernel::handle_help(const std::vector<std::string>& args) {
         {"pwd",   "", "Show current directory path"}
     };
 
-    size_t max_name_len = 4;   // "Name"
-    size_t max_param_len = 9;  // "Parameters"
+    size_t max_name_len = 4;
+    size_t max_param_len = 9;
     for (auto& cmd : commands) {
         if (cmd.name.size() > max_name_len) max_name_len = cmd.name.size();
         if (cmd.params.size() > max_param_len) max_param_len = cmd.params.size();
@@ -134,7 +161,7 @@ std::string Kernel::handle_help(const std::vector<std::string>& args) {
     auto draw_line = [&]() {
         return "+" + std::string(max_name_len + 2, '-') + "+"
                + std::string(max_param_len + 2, '-') + "+"
-               + std::string(50, '-') + "+\n"; // fixed width for description
+               + std::string(50, '-') + "+\n";
     };
 
     std::ostringstream oss;
