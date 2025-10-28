@@ -1,5 +1,4 @@
-#ifndef PROCESS_H
-#define PROCESS_H
+#pragma once
 
 namespace scheduler {
 struct Process {
@@ -18,6 +17,4 @@ struct Process {
           priority(prio) {}
 };
 
-}
-
-#endif
+}//namespace scheduler

@@ -1,5 +1,4 @@
-#ifndef PRIORITYQUEUE_H
-#define PRIORITYQUEUE_H
+#pragma once
 
 #include "../process.h"
 #include <vector>
@@ -18,7 +17,7 @@ public:
         std::sort(process_queue.begin(), process_queue.end(),
              [](const Process& a, const Process& b) {
                  if (a.arrivalTime == b.arrivalTime)
-                     return a.priority > b.priority; // higher priority first
+                     return a.priority > b.priority;
                  return a.arrivalTime < b.arrivalTime;
              });
 
@@ -27,5 +26,4 @@ public:
         }
     }
 };
-}
-#endif
+}//namespace scheduler

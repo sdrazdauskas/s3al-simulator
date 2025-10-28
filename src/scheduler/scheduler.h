@@ -1,5 +1,4 @@
-#ifndef CPU_SCHEDULER_H
-#define CPU_SCHEDULER_H
+#pragma once
 
 #include <vector>
 #include "process.h"
@@ -8,7 +7,6 @@ namespace scheduler {
 
 enum class Algorithm {
     FCFS,
-    //RoundRobin,
     PriorityQueue
 };
 
@@ -34,5 +32,4 @@ private:
     int quantum_;
     std::vector<Process> processes_;
 };
-}
-#endif // CPU_SCHEDULER_H
+}//namespace scheduler
