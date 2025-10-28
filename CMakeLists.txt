@@ -34,3 +34,25 @@ target_include_directories(memory PUBLIC src/memory)
 add_executable(s3al_sim src/main.cpp)
 target_link_libraries(s3al_sim PRIVATE kernel)
 
+# --- Unit Tests ---
+include(FetchContent)
+
+
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/heads/main.zip
+)
+
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
+# Storage Tests
+add_executable(storage_tests tests/storage_tests.cpp)
+target_include_directories(storage_tests PRIVATE src/storage)
+target_link_libraries(storage_tests PRIVATE storage GTest::gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(storage_tests)
