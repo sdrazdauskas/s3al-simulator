@@ -6,7 +6,7 @@
 #include <algorithm>
 
 
-namespace scheduler{
+namespace scheduler {
 
 class FCFS {
     std::vector<Process>& process_queue;
@@ -23,4 +23,4 @@ public:
     }
 };
 
-}//namespace scheduler
+} //namespace scheduler
