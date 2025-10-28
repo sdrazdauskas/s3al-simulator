@@ -3,11 +3,16 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace storage {
 
 class StorageManager {
 public:
+    using LogCallback = std::function<void(const std::string& level, 
+                                           const std::string& module, 
+                                           const std::string& message)>;
+
     enum class StorageResponse {
         OK,
         AlreadyExists,
@@ -20,6 +25,8 @@ public:
     static std::string toString(StorageResponse status);
 
     StorageManager();
+
+    void setLogCallback(LogCallback callback);
 
     StorageResponse createFile(const std::string& name);
     StorageResponse deleteFile(const std::string& name);
@@ -51,11 +58,13 @@ private:
 
     std::unique_ptr<Folder> root;
     Folder* currentFolder;
+    LogCallback log_callback;
 
     static bool isNameInvalid(const std::string& s);
     int findFileIndex(const std::string& name) const;
     int findFolderIndex(const std::string& name) const;
     void recursiveDelete(Folder& folder);
+    void log(const std::string& level, const std::string& message);
 };
 
 } // namespace storage
