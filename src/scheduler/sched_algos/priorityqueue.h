@@ -24,7 +24,6 @@ public:
 
         for (auto& p : process_queue) {
             p.burstTime--;
-            std::cout << "[\"CPU\"]" << " Simulating execution on process PiD "<< p.id <<" for 1 tick." << std::endl;
         }
     }
 };
