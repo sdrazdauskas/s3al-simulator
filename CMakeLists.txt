@@ -16,7 +16,7 @@ target_include_directories(shell PUBLIC src/shell)
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
 target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal)
-target_link_libraries(kernel PUBLIC terminal shell logging)
+target_link_libraries(kernel PUBLIC terminal shell logging memory process storage scheduler)
 
 # Storage library
 add_library(storage STATIC src/storage/Storage.cpp)
@@ -29,6 +29,10 @@ target_include_directories(process PUBLIC src/process)
 # Memory library
 add_library(memory STATIC src/memory/MemoryManager.cpp)
 target_include_directories(memory PUBLIC src/memory)
+
+# Scheduler library
+add_library(scheduler STATIC src/scheduler/scheduler.cpp)
+target_include_directories(scheduler PUBLIC src/scheduler)
 
 # Logging library
 add_library(logging STATIC src/logger/Logger.cpp)
@@ -45,6 +49,7 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/heads/main.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
