@@ -45,6 +45,7 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
          << "[" << levelToString(level) << "] "
          << "[" << module << "] "
          << message << "\n";
+    file.flush();
 }
 
 void Logger::flush() {
