@@ -40,6 +40,16 @@ StorageManager::StorageManager() {
     currentFolder = root.get();
 }
 
+void StorageManager::setLogCallback(LogCallback callback) {
+    log_callback = callback;
+}
+
+void StorageManager::log(const std::string& level, const std::string& message) {
+    if (log_callback) {
+        log_callback(level, "STORAGE", message);
+    }
+}
+
 int StorageManager::findFileIndex(const std::string& name) const {
     for (size_t i = 0; i < currentFolder->files.size(); ++i)
         if (currentFolder->files[i]->name == name)
@@ -71,16 +81,24 @@ Response StorageManager::fileExists(const std::string& name) const {
 
 Response StorageManager::createFile(const std::string& name) {
     if (isNameInvalid(name)) return Response::InvalidArgument;
-    if (findFileIndex(name) != -1) return Response::AlreadyExists;
+    if (findFileIndex(name) != -1) {
+        log("ERROR", "File already exists: " + name);
+        return Response::AlreadyExists;
+    }
     currentFolder->files.push_back(std::make_unique<File>(File{name, ""}));
+    log("INFO", "Created file: " + name);
     return Response::OK;
 }
 
 Response StorageManager::deleteFile(const std::string& name) {
     if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFileIndex(name);
-    if (i == -1) return Response::NotFound;
+    if (i == -1) {
+        log("ERROR", "File not found: " + name);
+        return Response::NotFound;
+    }
     currentFolder->files.erase(currentFolder->files.begin() + i);
+    log("INFO", "Deleted file: " + name);
     return Response::OK;
 }
 
@@ -88,8 +106,12 @@ Response StorageManager::writeFile(const std::string& name,
                                    const std::string& content) {
     if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFileIndex(name);
-    if (i == -1) return Response::NotFound;
+    if (i == -1) {
+        log("ERROR", "File not found: " + name);
+        return Response::NotFound;
+    }
     currentFolder->files[i]->content = content + "\n";
+    log("INFO", "Wrote to file: " + name);
     return Response::OK;
 }
 
@@ -137,19 +159,27 @@ Response StorageManager::editFile(const std::string& name) {
 
 Response StorageManager::makeDir(const std::string& name) {
     if (isNameInvalid(name)) return Response::InvalidArgument;
-    if (findFolderIndex(name) != -1) return Response::AlreadyExists;
+    if (findFolderIndex(name) != -1) {
+        log("ERROR", "Directory already exists: " + name);
+        return Response::AlreadyExists;
+    }
     auto folder = std::make_unique<Folder>();
     folder->name = name;
     folder->parent = currentFolder;
     currentFolder->subfolders.push_back(std::move(folder));
+    log("INFO", "Created directory: " + name);
     return Response::OK;
 }
 
 Response StorageManager::removeDir(const std::string& name) {
     if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFolderIndex(name);
-    if (i == -1) return Response::NotFound;
+    if (i == -1) {
+        log("ERROR", "Directory not found: " + name);
+        return Response::NotFound;
+    }
     currentFolder->subfolders.erase(currentFolder->subfolders.begin() + i);
+    log("INFO", "Removed directory: " + name);
     return Response::OK;
 }
 
@@ -158,11 +188,16 @@ Response StorageManager::changeDir(const std::string& path) {
     if (path == "..") {
         if (currentFolder->parent == nullptr) return Response::AtRoot;
         currentFolder = currentFolder->parent;
+        log("INFO", "Changed directory to: " + currentFolder->name);
         return Response::OK;
     }
     int i = findFolderIndex(path);
-    if (i == -1) return Response::NotFound;
+    if (i == -1) {
+        log("ERROR", "Directory not found: " + path);
+        return Response::NotFound;
+    }
     currentFolder = currentFolder->subfolders[i].get();
+    log("INFO", "Changed directory to: " + currentFolder->name);
     return Response::OK;
 }
 

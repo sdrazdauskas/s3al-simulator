@@ -3,8 +3,14 @@
 
 namespace process {
 
-ProcessManager::ProcessManager(MemoryManager& mem, CPUScheduler& cpu)
-    : mem_(mem), cpu_(cpu) {}
+ProcessManager::ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu)
+    : mem(mem), cpu(cpu) {}
+
+void ProcessManager::log(const std::string& level, const std::string& message) {
+    if (log_callback) {
+        log_callback(level, "PROCESS", message);
+    }
+}
 
 //general function describing lifecycle, accessed by kernel
 int ProcessManager::execute_process(const std::string& name,
@@ -22,7 +28,7 @@ int ProcessManager::execute_process(const std::string& name,
 
 //called by kernel, unstructured data- let kernel do it.
 std::vector<Process> ProcessManager::snapshot() const {
-    return table_;
+    return table;
 }
 
 //-----------Tools used by pm itself-------------------
@@ -30,43 +36,55 @@ int ProcessManager::create_process(const std::string& name,
                                    int cpuTimeNeeded,
                                    int memoryNeeded,
                                    int priority) {
-    if (name.empty() || cpuTimeNeeded <= 0 || memoryNeeded <= 0) return -1;
+    if (name.empty() || cpuTimeNeeded <= 0 || memoryNeeded <= 0) {
+        log("ERROR", "Invalid process parameters: name=" + name);
+        return -1;
+    }
 
     const int pid = next_pid_++;
 
     Process p{name, pid, cpuTimeNeeded, memoryNeeded, priority, 0}; // 0=new
     p.state = 1; // 1=ready
-    table_.push_back(p);
+    table.push_back(p);
 
+    log("INFO", "Created process '" + name + "' (PID=" + std::to_string(pid) + ")");
     return pid;
 }
 
 bool ProcessManager::run_process(int pid) {
-    auto it = std::find_if(table_.begin(), table_.end(),
+    auto it = std::find_if(table.begin(), table.end(),
                            [pid](const Process& p) { return p.pid == pid; });
-    if (it == table_.end()) return false;
+    if (it == table.end()) {
+        log("ERROR", "Cannot run process: PID " + std::to_string(pid) + " not found");
+        return false;
+    }
 
     it->state = 2; // running
+    log("INFO", "Running process '" + it->name + "' (PID=" + std::to_string(pid) + ")");
 
     // //single thread simulation. Thread per process in future?
-    // mem_.allocate_memory_for_process(it->pid, it->memoryNeeded);
-    // cpu_.execute_process(it->pid, it->cpuTimeNeeded);
-    // mem_.deallocate_memory_for_process(it->pid);
+    // mem.allocate_memory_for_process(it->pid, it->memoryNeeded);
+    // cpu.execute_process(it->pid, it->cpuTimeNeeded);
+    // mem.deallocate_memory_for_process(it->pid);
 
     return true;
 }
 
 // TODO: more implementations of "stop"- zombie, waiting, finished etc. 
 bool ProcessManager::stop_process(int pid) {
-    auto it = std::find_if(table_.begin(), table_.end(),
+    auto it = std::find_if(table.begin(), table.end(),
                            [pid](const Process& p) { return p.pid == pid; });
-    if (it == table_.end()) return false;
+    if (it == table.end()) {
+        log("ERROR", "Cannot stop process: PID " + std::to_string(pid) + " not found");
+        return false;
+    }
 
     it->state = 4; // terminated/finished/stopped etc.- no difference for now.
+    log("INFO", "Stopped process '" + it->name + "' (PID=" + std::to_string(pid) + ")");
 
-    table_.erase(std::remove_if(table_.begin(), table_.end(),
+    table.erase(std::remove_if(table.begin(), table.end(),
                    [pid](const Process& pr){ return pr.pid == pid; }),
-                 table_.end());
+                 table.end());
     return true;
 }
 
