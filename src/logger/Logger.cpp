@@ -1,4 +1,5 @@
 #include "Logger.h"
+#include <iostream>
 
 namespace logging {
 
@@ -21,6 +22,8 @@ void Logger::init(const std::string& filename, LogLevel min_level) {
         file << getCurrentTime() << " "
              << "[INFO] [LOGGER] Logger initialized: " << filename << "\n";
         file.flush();
+    } else {
+        std::cerr << "ERROR: Failed to open log file: " << filename << std::endl;
     }
 }
 
