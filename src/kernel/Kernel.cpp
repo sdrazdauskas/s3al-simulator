@@ -15,11 +15,7 @@ Kernel::Kernel()
       m_mem_mgr(1024 * 1024),
       m_proc_manager(m_mem_mgr, m_scheduler) {
     auto logger_callback = [](const std::string& level, const std::string& module, const std::string& message){
-        using namespace logging;
-        if (level == "DEBUG") Logger::getInstance().log(LogLevel::DEBUG, module, message);
-        else if (level == "INFO") Logger::getInstance().log(LogLevel::INFO, module, message);
-        else if (level == "WARNING") Logger::getInstance().log(LogLevel::WARNING, module, message);
-        else if (level == "ERROR") Logger::getInstance().log(LogLevel::ERROR, module, message);
+        logging::Logger::getInstance().log(level, module, message);
     };
 
     m_proc_manager.setLogCallback(logger_callback);
@@ -238,8 +234,16 @@ std::string Kernel::handle_pwd(const vector<string>& args){
 
 void Kernel::boot(){
     LOG_INFO("KERNEL", "Booting s3al OS...");
+    
+    auto logger_callback = [](const std::string& level, const std::string& module, const std::string& message){
+        logging::Logger::getInstance().log(level, module, message);
+    };
+    
     shell::Shell sh([this](const string& cmd,const vector<string>& args){ return execute_command(cmd,args); });
+    sh.setLogCallback(logger_callback);
+    
     terminal::Terminal term;
+    term.setLogCallback(logger_callback);
     term.setSendCallback([&](const string& line){
         string result = sh.processCommandLine(line);
         if(!result.empty()){ term.print(result); if(result.back()!='\n') term.print("\n"); }
