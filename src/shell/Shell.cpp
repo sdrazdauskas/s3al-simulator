@@ -6,6 +6,16 @@ namespace shell {
 Shell::Shell(KernelCallback cb)
     : kernelCallback(std::move(cb)) {}
 
+void Shell::setLogCallback(LogCallback callback) {
+    log_callback = callback;
+}
+
+void Shell::log(const std::string& level, const std::string& message) {
+    if (log_callback) {
+        log_callback(level, "SHELL", message);
+    }
+}
+
 std::string Shell::parseQuotedToken(std::istringstream& iss, std::string token) {
     std::string quoted = token.substr(1);
     std::string next;
@@ -64,8 +74,12 @@ std::vector<std::string> Shell::splitByPipeOperator(const std::string& commandLi
 }
 
 std::string Shell::processCommandLine(const std::string& commandLine) {
-    if (commandLine.empty())
+    if (commandLine.empty()) {
+        log("DEBUG", "Empty command line received");
         return "Error: No command entered";
+    }
+
+    log("DEBUG", "Processing command: " + commandLine);
 
     std::vector<std::string> andCommands = splitByAndOperator(commandLine);
     std::string combinedOutput;
@@ -99,11 +113,17 @@ std::string Shell::processCommandLine(const std::string& commandLine) {
 }
 
 std::string Shell::executeCommand(const std::string& command, const std::vector<std::string>& args, const std::string& input) {
-    if (!kernelCallback)
+    if (!kernelCallback) {
+        log("ERROR", "No kernel handler available");
         return "Error: No kernel handler available";
+    }
 
-    if (command.empty())
+    if (command.empty()) {
+        log("ERROR", "No command specified");
         return "Error: No command specified";
+    }
+
+    log("INFO", "Executing command: " + command);
 
     std::vector<std::string> argsWithInput = args;
     if (!input.empty())
