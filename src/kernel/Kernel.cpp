@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "Terminal.h"
 #include "Shell.h"
+#include "Logger.h"
 
 using namespace std;
 
@@ -13,9 +14,22 @@ Kernel::Kernel()
       m_scheduler(),
       m_mem_mgr(1024 * 1024),
       m_proc_manager(m_mem_mgr, m_scheduler) {
+    auto logger_callback = [](const std::string& level, const std::string& module, const std::string& message){
+        using namespace logging;
+        if (level == "DEBUG") Logger::getInstance().log(LogLevel::DEBUG, module, message);
+        else if (level == "INFO") Logger::getInstance().log(LogLevel::INFO, module, message);
+        else if (level == "WARNING") Logger::getInstance().log(LogLevel::WARNING, module, message);
+        else if (level == "ERROR") Logger::getInstance().log(LogLevel::ERROR, module, message);
+    };
+
+    m_proc_manager.setLogCallback(logger_callback);
+    m_scheduler.setLogCallback(logger_callback);
+    m_storage.setLogCallback(logger_callback);
+
     register_commands();
-    cout << "Kernel initialized." << endl;
+    std::cout << "Kernel initialized." << std::endl;
 }
+
 
 std::string Kernel::execute_command(const std::string& line) {
     if (!line.empty() && line.back() == '\n') {
@@ -52,7 +66,6 @@ void Kernel::register_commands() {
 
     m_commands["meminfo"] = [this](const auto& args){ return this->handle_meminfo(args); };
     m_commands["membar"]  = [this](const auto& args){ return this->handle_membar(args); };
-
 }
 
 std::string Kernel::process_line(const std::string& line) {
@@ -81,7 +94,6 @@ std::string Kernel::process_line(const std::string& line) {
     auto it = m_commands.find(command_name);
     if(it != m_commands.end()) {
         string result = it->second(args);
-        // ProcessManager integration (always succeeds)
         m_proc_manager.execute_process(command_name, 1, 1, 0);
         return result;
     }
@@ -89,7 +101,6 @@ std::string Kernel::process_line(const std::string& line) {
     return "Unknown command: '" + command_name + "'.";
 }
 
-// -------- Handlers --------
 std::string Kernel::handle_help(const vector<string>& args) {
     (void)args;
     struct CmdInfo { string name, params, desc; };
@@ -158,7 +169,6 @@ std::string Kernel::handle_quit(const vector<string>& args){
     return "Shutting down kernel.";
 }
 
-// -------- Storage handlers --------
 std::string Kernel::handle_touch(const vector<string>& args){
     if(args.empty()) return "Usage: touch <filename>";
     return "[Kernel] "+storage::StorageManager::toString(m_storage.createFile(args[0]));
@@ -225,9 +235,8 @@ std::string Kernel::handle_pwd(const vector<string>& args){
     return m_storage.getWorkingDir();
 }
 
-// -------- Boot loop --------
 void Kernel::boot(){
-    cout << "Booting s3al OS...\nInitializing shell subsystem...\n";
+    LOG_INFO("KERNEL", "Booting s3al OS...");
     shell::Shell sh([this](const string& cmd,const vector<string>& args){ return execute_command(cmd,args); });
     terminal::Terminal term;
     term.setSendCallback([&](const string& line){
@@ -236,7 +245,7 @@ void Kernel::boot(){
     });
     term.setSignalCallback([&](int){ term.print("^C\n"); });
 
-    cout<<"\nStarting init process...\nType 'help' for commands, 'quit' to exit\n\n";
+    LOG_INFO("KERNEL", "Init process started");
     while(m_is_running){
         cout<<m_storage.getWorkingDir()<<"$ ";
         string line;
@@ -245,9 +254,8 @@ void Kernel::boot(){
         string output = execute_command(line);
         if(!output.empty()) cout<<output<<"\n";
     }
-    cout<<"\nShutdown complete.\n";
+    LOG_INFO("KERNEL", "Shutdown complete");
 }
-
 
 std::string Kernel::handle_meminfo(const std::vector<std::string>& args) {
     (void)args;
