@@ -7,7 +7,7 @@
 #include <Storage.h>
 #include <MemoryManager.h>
 #include <ProcessManager.h>
-#include <scheduler.h>
+#include <Scheduler.h>
 
 class Kernel {
 public:
