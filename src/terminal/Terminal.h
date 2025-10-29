@@ -32,11 +32,15 @@ public:
 
     // Called by shell to display output (writes directly to stdout)
     void print(const std::string& output);
+    
+    // Signal the terminal to stop
+    void requestShutdown();
 
 private:
     sendCallback sendCb;
     signalCallback sigCb;
     LogCallback log_callback;
+    bool should_shutdown = false;
 
     void log(const std::string& level, const std::string& message);
 };
