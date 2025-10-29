@@ -3,16 +3,23 @@
 #include <string>
 #include <optional>
 #include <vector>
+#include <functional>
 #include "Process.h"
 
-class MemoryManager;
-class CPUScheduler;
+namespace memory { class MemoryManager; }
+namespace scheduler { class CPUScheduler; }
 
 namespace process {
     
 class ProcessManager {
 public:
-    ProcessManager(MemoryManager& mem, CPUScheduler& cpu);
+    using LogCallback = std::function<void(const std::string& level, 
+                                           const std::string& module, 
+                                           const std::string& message)>;
+
+    ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu);
+
+    void setLogCallback(LogCallback callback) { log_callback = callback; }
 
     // One-shot orchestration: prepare -> run (alloc→execute→dealloc) -> stop
     // Returns PID on success; -1 on validation failure.
@@ -34,11 +41,13 @@ public:
 
 private:
     int next_pid_{1};
-    std::vector<Process> table_;
-    MemoryManager& mem_;
-    CPUScheduler&  cpu_;
+    std::vector<Process> table;
+    memory::MemoryManager& mem;
+    scheduler::CPUScheduler&  cpu;
+    LogCallback log_callback;
 
     Process*       find(int pid);
+    void log(const std::string& level, const std::string& message);
 };
 
 }

@@ -2,13 +2,21 @@
 
 #include <map>
 #include <cstddef>
+#include <functional>
+#include <string>
 
 namespace memory {
 
 class MemoryManager {
 public:
+    using LogCallback = std::function<void(const std::string& level, 
+                                           const std::string& module, 
+                                           const std::string& message)>;
+
     MemoryManager(size_t total_size);
     ~MemoryManager();
+
+    void setLogCallback(LogCallback callback) { log_callback = callback; }
 
     // Allocate memory for a process
     void *allocate(size_t size, int process_id = 0);
@@ -32,6 +40,9 @@ private:
     std::map<void*, Allocation> allocations;
     size_t total_memory;
     size_t used_memory;
+    LogCallback log_callback;
+
+    void log(const std::string& level, const std::string& message);
 };
 
 } // namespace memory
