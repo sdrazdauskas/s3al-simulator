@@ -25,6 +25,7 @@ Kernel::Kernel()
     m_proc_manager.setLogCallback(logger_callback);
     m_scheduler.setLogCallback(logger_callback);
     m_storage.setLogCallback(logger_callback);
+    m_mem_mgr.setLogCallback(logger_callback);
 
     register_commands();
     std::cout << "Kernel initialized." << std::endl;
