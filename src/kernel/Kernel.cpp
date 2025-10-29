@@ -244,21 +244,31 @@ void Kernel::boot(){
     
     terminal::Terminal term;
     term.setLogCallback(logger_callback);
-    term.setSendCallback([&](const string& line){
-        string result = sh.processCommandLine(line);
-        if(!result.empty()){ term.print(result); if(result.back()!='\n') term.print("\n"); }
+    
+    // Shell's output callback - prints results to terminal
+    sh.setOutputCallback([&term](const string& output){
+        if(!output.empty()){ 
+            term.print(output); 
+            if(output.back()!='\n') term.print("\n"); 
+        }
     });
-    term.setSignalCallback([&](int){ term.print("^C\n"); });
+    
+    term.setSendCallback([&](const string& line){
+        sh.processCommandLine(line);
+        
+        // If kernel wants to shutdown, signal terminal to exit
+        if(!m_is_running) {
+            term.requestShutdown();
+        }
+    });
+    term.setSignalCallback([&term](int){ 
+        std::cout << "^C\n" << std::flush;
+        // TODO: Interrupt currently running process
+        // For now, just print ^C and continue
+    });
 
     LOG_INFO("KERNEL", "Init process started");
-    while(m_is_running){
-        cout<<m_storage.getWorkingDir()<<"$ ";
-        string line;
-        getline(cin,line);
-        if(line.empty()) continue;
-        string output = execute_command(line);
-        if(!output.empty()) cout<<output<<"\n";
-    }
+    term.runBlockingStdioLoop();
     LOG_INFO("KERNEL", "Shutdown complete");
 }
 
