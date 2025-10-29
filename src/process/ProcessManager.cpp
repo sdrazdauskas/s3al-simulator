@@ -1,5 +1,8 @@
+#include "../memory/MemoryManager.h"
+#include "../scheduler/scheduler.h"
 #include "ProcessManager.h"
 #include <algorithm>
+#include <iostream>
 
 namespace process {
 
@@ -63,9 +66,9 @@ bool ProcessManager::run_process(int pid) {
     log("INFO", "Running process '" + it->name + "' (PID=" + std::to_string(pid) + ")");
 
     // //single thread simulation. Thread per process in future?
-    // mem.allocate_memory_for_process(it->pid, it->memoryNeeded);
-    // cpu.execute_process(it->pid, it->cpuTimeNeeded);
-    // mem.deallocate_memory_for_process(it->pid);
+    mem.allocate(it->memoryNeeded, it->pid);
+    cpu.execute_process(it->pid, it->cpuTimeNeeded, it->priority);
+    mem.free_process_memory(it->pid);
 
     return true;
 }

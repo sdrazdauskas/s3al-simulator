@@ -47,9 +47,9 @@ include(FetchContent)
 
 
 FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/refs/heads/main.zip
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        googletest
+        URL https://github.com/google/googletest/archive/refs/heads/main.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
