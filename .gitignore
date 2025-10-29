@@ -41,3 +41,8 @@ Makefile
 *.swo
 .DS_Store
 Thumbs.db
+
+# CI/CD artifacts
+.cache/
+*.deb
+*.rpm

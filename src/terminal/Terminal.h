@@ -13,6 +13,9 @@ class Terminal {
 public:
     using sendCallback = std::function<void(const std::string&)>;
     using signalCallback = std::function<void(int)>;
+    using LogCallback = std::function<void(const std::string& level, 
+                                           const std::string& module, 
+                                           const std::string& message)>;
 
     Terminal() = default;
     ~Terminal() = default;
@@ -23,6 +26,8 @@ public:
     // Set the signal callback which will be called when an interrupt
     void setSignalCallback(signalCallback cb);
 
+    void setLogCallback(LogCallback callback);
+
     void runBlockingStdioLoop();
 
     // Called by shell to display output (writes directly to stdout)
@@ -31,6 +36,9 @@ public:
 private:
     sendCallback sendCb;
     signalCallback sigCb;
+    LogCallback log_callback;
+
+    void log(const std::string& level, const std::string& message);
 };
 
 } // namespace terminal
