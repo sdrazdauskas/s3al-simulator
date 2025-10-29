@@ -4,10 +4,10 @@
 #include <vector>
 #include <map>
 #include <functional>
-#include <storage/Storage.h>
-#include <scheduler/scheduler.h>
-#include <memory/MemoryManager.h>
-#include <process/ProcessManager.h>
+#include <Storage.h>
+#include <MemoryManager.h>
+#include <ProcessManager.h>
+#include <scheduler.h>
 
 class Kernel {
 public:
