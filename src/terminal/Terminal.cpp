@@ -18,6 +18,8 @@ void Terminal::setSendCallback(sendCallback cb) { sendCb = std::move(cb); }
 
 void Terminal::setSignalCallback(signalCallback cb) { sigCb = std::move(cb); }
 
+void Terminal::setPromptCallback(promptCallback cb) { promptCb = std::move(cb); }
+
 void Terminal::setLogCallback(LogCallback callback) {
     log_callback = callback;
 }
@@ -57,6 +59,11 @@ void Terminal::runBlockingStdioLoop() {
             continue;
         }
 
+        // Print prompt if callback is set
+        if (promptCb) {
+            std::cout << promptCb() << std::flush;
+        }
+        
         if (!std::getline(std::cin, line)) {
             log("INFO", "Terminal input stream closed (EOF)");
             break; // EOF or error
