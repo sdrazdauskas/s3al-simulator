@@ -29,16 +29,19 @@ target_link_libraries(process PUBLIC memory scheduler)
 # Scheduler library
 add_library(scheduler STATIC src/scheduler/scheduler.cpp)
 target_include_directories(scheduler PUBLIC src/scheduler src/scheduler/sched_algos)
-target_link_libraries(scheduler PUBLIC process)
+
+# Logger library
+add_library(logger STATIC src/logger/Logger.cpp)
+target_include_directories(logger PUBLIC src/logger)
 
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
-target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal src/storage src/scheduler src/process src/memory)
-target_link_libraries(kernel PUBLIC terminal shell storage scheduler process memory)
+target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal src/storage src/scheduler src/process src/memory src/logger)
+target_link_libraries(kernel PUBLIC terminal shell storage scheduler process memory logger)
 
 # Main executable
 add_executable(s3al_sim src/main.cpp)
-target_link_libraries(s3al_sim PRIVATE kernel storage scheduler process memory shell terminal)
+target_link_libraries(s3al_sim PRIVATE kernel)
 
 # --- Unit Tests ---
 include(FetchContent)
