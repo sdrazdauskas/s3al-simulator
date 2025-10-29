@@ -245,6 +245,11 @@ void Kernel::boot(){
     terminal::Terminal term;
     term.setLogCallback(logger_callback);
     
+    // Set prompt callback to show current directory
+    term.setPromptCallback([this](){
+        return m_storage.getWorkingDir() + "$ ";
+    });
+    
     // Shell's output callback - prints results to terminal
     sh.setOutputCallback([&term](const string& output){
         if(!output.empty()){ 
