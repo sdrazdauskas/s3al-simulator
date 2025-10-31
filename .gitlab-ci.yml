@@ -10,6 +10,7 @@ build:
   script:
     - cmake -B build -G Ninja
     - cmake --build build
+    - chmod +x build/s3al_sim
   artifacts:
     paths:
       - build/s3al_sim
@@ -18,11 +19,11 @@ build:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
 
-deploy:
+deploy:dated:
   stage: deploy
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   script:
-    - echo "Creating release from commit $CI_COMMIT_SHORT_SHA"
+    - echo "Creating dated release from commit $CI_COMMIT_SHORT_SHA"
   release:
     tag_name: 'v$(date +%Y.%m.%d-%H%M%S)'
     name: 'Release $(date +%Y-%m-%d) - $CI_COMMIT_SHORT_SHA'
