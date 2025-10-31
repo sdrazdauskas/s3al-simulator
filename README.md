@@ -14,7 +14,15 @@ cmake --build build
 Build the containerized toolchain and project:
 
 ```powershell
-docker build -t s3al/simulator .
+# Build and automatically clean up dangling images
+docker build -t s3al/simulator:latest . ; docker image prune -f
+```
+
+Or build and clean separately:
+
+```powershell
+docker build -t s3al/simulator:latest .
+docker image prune -f
 ```
 
 Launch an interactive shell in the image:
