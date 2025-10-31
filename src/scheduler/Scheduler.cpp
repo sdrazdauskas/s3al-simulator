@@ -1,7 +1,7 @@
-#include "scheduler.h"
+#include "Scheduler.h"
 #include <stdexcept>
-#include "sched_algos/fcfs.h"
-#include "sched_algos/priorityqueue.h"
+#include "sched_algos/Fcfs.h"
+#include "sched_algos/PriorityQueue.h"
 
 namespace scheduler {
 

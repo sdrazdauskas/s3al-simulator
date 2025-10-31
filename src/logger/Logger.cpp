@@ -1,5 +1,6 @@
 #include "Logger.h"
 #include <iostream>
+#include <map>
 
 namespace logging {
 
@@ -46,6 +47,21 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
          << "[" << module << "] "
          << message << "\n";
     file.flush();
+}
+
+void Logger::log(const std::string& level, const std::string& module, const std::string& message) {
+    static const std::map<std::string, LogLevel> level_map = {
+        {"DEBUG", LogLevel::DEBUG},
+        {"INFO", LogLevel::INFO},
+        {"WARNING", LogLevel::WARNING},
+        {"WARN", LogLevel::WARNING},
+        {"ERROR", LogLevel::ERROR}
+    };
+    
+    auto it = level_map.find(level);
+    LogLevel log_level = (it != level_map.end()) ? it->second : LogLevel::INFO;
+    
+    log(log_level, module, message);
 }
 
 void Logger::flush() {

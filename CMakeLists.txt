@@ -31,7 +31,7 @@ add_library(memory STATIC src/memory/MemoryManager.cpp)
 target_include_directories(memory PUBLIC src/memory)
 
 # Scheduler library
-add_library(scheduler STATIC src/scheduler/scheduler.cpp)
+add_library(scheduler STATIC src/scheduler/Scheduler.cpp)
 target_include_directories(scheduler PUBLIC src/scheduler)
 
 # Logging library
