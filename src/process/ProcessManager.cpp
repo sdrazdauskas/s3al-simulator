@@ -1,5 +1,5 @@
 #include "../memory/MemoryManager.h"
-#include "../scheduler/scheduler.h"
+#include "../scheduler/Scheduler.h"
 #include "ProcessManager.h"
 #include <algorithm>
 #include <iostream>

@@ -10,6 +10,10 @@ void Shell::setLogCallback(LogCallback callback) {
     log_callback = callback;
 }
 
+void Shell::setOutputCallback(OutputCallback callback) {
+    outputCallback = callback;
+}
+
 void Shell::log(const std::string& level, const std::string& message) {
     if (log_callback) {
         log_callback(level, "SHELL", message);
@@ -73,10 +77,11 @@ std::vector<std::string> Shell::splitByPipeOperator(const std::string& commandLi
     return parts;
 }
 
-std::string Shell::processCommandLine(const std::string& commandLine) {
+void Shell::processCommandLine(const std::string& commandLine) {
     if (commandLine.empty()) {
         log("DEBUG", "Empty command line received");
-        return "Error: No command entered";
+        if (outputCallback) outputCallback("Error: No command entered");
+        return;
     }
 
     log("DEBUG", "Processing command: " + commandLine);
@@ -109,7 +114,9 @@ std::string Shell::processCommandLine(const std::string& commandLine) {
             break;
     }
 
-    return combinedOutput;
+    if (outputCallback && !combinedOutput.empty()) {
+        outputCallback(combinedOutput);
+    }
 }
 
 std::string Shell::executeCommand(const std::string& command, const std::vector<std::string>& args, const std::string& input) {

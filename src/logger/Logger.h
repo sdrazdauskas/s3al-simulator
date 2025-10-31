@@ -22,6 +22,7 @@ public:
     
     void init(const std::string& filename, LogLevel min_level = LogLevel::INFO);
     void log(LogLevel level, const std::string& module, const std::string& message);
+    void log(const std::string& level, const std::string& module, const std::string& message);
     void flush();
     
     // Disable copy/move, enforce existence of single instance
