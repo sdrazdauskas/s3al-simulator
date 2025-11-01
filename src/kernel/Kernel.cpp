@@ -90,9 +90,14 @@ std::string Kernel::process_line(const std::string& line) {
 
     auto it = m_commands.find(command_name);
     if(it != m_commands.end()) {
-        string result = it->second(args);
-        m_proc_manager.execute_process(command_name, 1, 1, 0);
-        return result;
+        // Make it a bit dynamic by passing args size as resource needs
+        int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
+        if (m_proc_manager.execute_process(command_name, arg_count, arg_count, 0) != -1) {
+            string result = it->second(args);
+            return result;
+        } else {
+            return "Error: Unable to execute process for command '" + command_name + "'.";
+        }
     }
 
     return "Unknown command: '" + command_name + "'.";
