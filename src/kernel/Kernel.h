@@ -45,23 +45,7 @@ public:
 private:
     void register_commands();
     std::string process_line(const std::string& line);
-
-    std::string handle_help(const std::vector<std::string>& args);
-    std::string handle_echo(const std::vector<std::string>& args);
-    std::string handle_add(const std::vector<std::string>& args);
     std::string handle_quit(const std::vector<std::string>& args);
-
-    std::string handle_touch(const std::vector<std::string>& args);
-    std::string handle_rm(const std::vector<std::string>& args);
-    std::string handle_write(const std::vector<std::string>& args);
-    std::string handle_cat(const std::vector<std::string>& args);
-    std::string handle_edit(const std::vector<std::string>& args);
-    std::string handle_mkdir(const std::vector<std::string>& args);
-    std::string handle_rmdir(const std::vector<std::string>& args);
-    std::string handle_cd(const std::vector<std::string>& args);
-    std::string handle_ls(const std::vector<std::string>& args);
-    std::string handle_pwd(const std::vector<std::string>& args);
-
     std::string handle_meminfo(const std::vector<std::string>& args);
     std::string handle_membar(const std::vector<std::string>& args);
 
