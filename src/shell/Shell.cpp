@@ -1,10 +1,11 @@
 #include "Shell.h"
 #include <sstream>
+#include <iostream>
 
 namespace shell {
 
-Shell::Shell(KernelCallback cb)
-    : kernelCallback(std::move(cb)) {}
+Shell::Shell(SysApi& sys_, const CommandRegistry& reg)
+    : sys(sys_), registry(reg) {}
 
 void Shell::setLogCallback(LogCallback callback) {
     log_callback = callback;
@@ -120,10 +121,6 @@ void Shell::processCommandLine(const std::string& commandLine) {
 }
 
 std::string Shell::executeCommand(const std::string& command, const std::vector<std::string>& args, const std::string& input) {
-    if (!kernelCallback) {
-        log("ERROR", "No kernel handler available");
-        return "Error: No kernel handler available";
-    }
 
     if (command.empty()) {
         log("ERROR", "No command specified");
@@ -132,11 +129,20 @@ std::string Shell::executeCommand(const std::string& command, const std::vector<
 
     log("INFO", "Executing command: " + command);
 
-    std::vector<std::string> argsWithInput = args;
-    if (!input.empty())
-        argsWithInput.push_back(input);
+    CommandFn fn = registry.find(command);
+    if (!fn) {
+        log("ERROR", "Unknown command: " + command);
+        return "Error: Unknown command: " + command;
+    }
 
-    return kernelCallback(command, argsWithInput);
+    std::ostringstream out, err;
+    int rc = fn(args, input, out, err, sys);
+
+    std::string result;
+    if (!err.str().empty()) result += err.str();
+    result += out.str();
+
+    return result;
 }
 
 void Shell::parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args) {
@@ -151,10 +157,6 @@ void Shell::parseCommand(const std::string& commandLine, std::string& command, s
         else
             args.push_back(token);
     }
-}
-
-bool Shell::isConnectedToKernel() const {
-    return kernelCallback != nullptr;
 }
 
 } // namespace shell
