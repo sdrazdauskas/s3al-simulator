@@ -17,8 +17,9 @@ int cmd_cat(const std::vector<std::string>& args,
     int rc = 0;
     for (const auto& name : args) {
         std::string content;
-        if (!sys.readFile(name, content)) {
-            err << "cat: " << name << ": cannot open\n";
+        auto r = sys.readFile(name, content);
+        if (r != shell::SysResult::OK) {
+            err << "cat: " << name << ": " << shell::toString(r) << "\n";
             rc = 1;
             continue;
         }
