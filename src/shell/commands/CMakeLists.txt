@@ -1,7 +1,3 @@
-## List of shell command sources maintained in this directory.
-## Keeping the list here means adding a new command only requires editing
-## files in this folder instead of touching the top-level CMakeLists.
-
 set(SHELL_COMMAND_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Cat.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Touch.cpp
