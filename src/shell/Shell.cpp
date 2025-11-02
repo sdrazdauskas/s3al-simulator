@@ -139,7 +139,10 @@ std::string Shell::executeCommand(const std::string& command, const std::vector<
     int rc = fn(args, input, out, err, sys);
 
     std::string result;
-    if (!err.str().empty()) result += err.str();
+    if (!err.str().empty()) {
+        log("ERROR", err.str());
+        result += err.str();
+    }
     result += out.str();
 
     return result;
