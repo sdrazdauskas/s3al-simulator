@@ -1,4 +1,3 @@
-// kernels syscall implementations
 #pragma once
 #include "SysCallsAPI.h"
 #include "Storage.h"
