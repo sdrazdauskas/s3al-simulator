@@ -8,10 +8,15 @@ struct SysApiKernel : shell::SysApi {
     storage::StorageManager& fs;
     explicit SysApiKernel(storage::StorageManager& sm) : fs(sm) {}
 
-    bool readFile(const std::string& name, std::string& out) override {
+    shell::SysResult readFile(const std::string& name, std::string& out) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = fs.readFile(name, out);
-        return res == Resp::OK;
+        switch(res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
+            default: return shell::SysResult::Error;
+        }
     }
 
     shell::SysResult createFile(const std::string& name) override {

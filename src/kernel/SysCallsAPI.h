@@ -5,8 +5,7 @@
  
 namespace shell {
 
-// Result codes exposed to the shell via SysApi. These mirror the storage layer
-// response codes but keep the shell decoupled from storage types.
+// TODO: error code system implementation?
 enum class SysResult {
     OK,
     AlreadyExists,
@@ -28,7 +27,7 @@ inline std::string toString(SysResult r) {
 }
 
 struct SysApi {
-    virtual bool readFile(const std::string& name, std::string& out) = 0;
+    virtual SysResult readFile(const std::string& name, std::string& out) = 0;
 
     virtual SysResult createFile(const std::string& name) = 0;
 
