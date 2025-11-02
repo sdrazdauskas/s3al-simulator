@@ -46,10 +46,7 @@ std::string Kernel::execute_command(const std::string& cmd, const std::vector<st
 bool Kernel::is_running() const { return m_is_running; }
 
 void Kernel::register_commands() {
-    // Kernel-owned commands: keep quit/exit and memory introspection here.
-    m_commands["quit"] = [this](const auto& args){ return handle_quit(args); };
-    m_commands["exit"] = [this](const auto& args){ return handle_quit(args); };
-
+    // Kernel-owned commands: keep memory introspection here.
     m_commands["meminfo"] = [this](const auto& args){ return this->handle_meminfo(args); };
     m_commands["membar"]  = [this](const auto& args){ return this->handle_membar(args); };
 }
@@ -79,9 +76,15 @@ std::string Kernel::process_line(const std::string& line) {
 
     auto it = m_commands.find(command_name);
     if(it != m_commands.end()) {
-        string result = it->second(args);
-        m_proc_manager.execute_process(command_name, 1, 1, 0);
-        return result;
+        // Make it a bit dynamic by passing args size as resource needs
+        int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
+        if (m_proc_manager.execute_process(command_name, arg_count, arg_count, 0) != -1) {
+            string result = it->second(args);
+            return result;
+        } else {
+            return "Error: Unable to execute process for command '" + command_name + "'.";
+        }
+
     }
 
     return "Unknown command: '" + command_name + "'.";
@@ -101,7 +104,7 @@ void Kernel::boot(){
     };
     
 
-    SysApiKernel sys(m_storage);//build sysclals
+    SysApiKernel sys(m_storage, this);//build sysclals
     shell::CommandRegistry reg;//build command REGISTRY
     init_commands(reg); // register commands
     shell::Shell sh(sys, reg);

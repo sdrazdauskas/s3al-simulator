@@ -1,11 +1,14 @@
 #pragma once
 #include "SysCallsAPI.h"
 #include "Storage.h"
+#include "Kernel.h"
 #include <string>
 
 struct SysApiKernel : shell::SysApi {
     storage::StorageManager& fs;
-    explicit SysApiKernel(storage::StorageManager& sm) : fs(sm) {}
+    Kernel* kernel_owner{nullptr};
+    explicit SysApiKernel(storage::StorageManager& sm, Kernel* owner = nullptr)
+        : fs(sm), kernel_owner(owner) {}
 
     shell::SysResult readFile(const std::string& name, std::string& out) override {
         using Resp = storage::StorageManager::StorageResponse;
@@ -113,5 +116,9 @@ struct SysApiKernel : shell::SysApi {
             case Resp::NotFound: return shell::SysResult::NotFound;
             default: return shell::SysResult::Error;
         }
+    }
+
+    void requestShutdown() override {
+        if (kernel_owner) kernel_owner->handle_quit(std::vector<std::string>());
     }
 };
