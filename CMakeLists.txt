@@ -17,7 +17,7 @@ target_include_directories(shell PUBLIC src src/kernel src/shell)
 
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
-target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal src/storage)
+target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal)
 target_link_libraries(kernel PUBLIC terminal shell logging memory process storage scheduler)
 
 # Storage library
