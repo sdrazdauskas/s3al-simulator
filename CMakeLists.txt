@@ -26,7 +26,7 @@ add_library(shell STATIC
         src/shell/commands/Pwd.cpp
         src/shell/commands/Help.cpp
 )
-# shell needs access to top-level headers and the kernel public headers (SysCallsAPI.h)
+
 target_include_directories(shell PUBLIC
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/src/kernel
