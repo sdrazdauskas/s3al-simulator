@@ -1,4 +1,3 @@
-// public systemcall interface
 #pragma once
 #include <string>
 #include <vector>
