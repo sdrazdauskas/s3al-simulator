@@ -45,6 +45,9 @@ struct SysApi {
 
     virtual SysResult fileExists(const std::string& name) = 0;
 
+
+    virtual void requestShutdown() = 0;
+
     virtual ~SysApi() = default;
 };
 

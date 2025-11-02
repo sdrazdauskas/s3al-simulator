@@ -42,10 +42,12 @@ public:
      */
     void boot();
 
+    // Kernel command handlers exposed for direct invocation by syscalls.
+    std::string handle_quit(const std::vector<std::string>& args);
+
 private:
     void register_commands();
     std::string process_line(const std::string& line);
-    std::string handle_quit(const std::vector<std::string>& args);
     std::string handle_meminfo(const std::vector<std::string>& args);
     std::string handle_membar(const std::vector<std::string>& args);
 
