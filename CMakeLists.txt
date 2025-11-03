@@ -22,7 +22,10 @@ target_link_libraries(kernel PUBLIC terminal shell logging memory process storag
 
 # Storage library
 add_library(storage STATIC src/storage/Storage.cpp)
-target_include_directories(storage PUBLIC src/storage)
+target_include_directories(storage 
+    PUBLIC src/storage
+    PUBLIC ${CMAKE_SOURCE_DIR}/include
+)
 
 # Process library
 add_library(process STATIC src/process/ProcessManager.cpp)
