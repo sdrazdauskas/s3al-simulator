@@ -36,9 +36,17 @@ test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
 
-deploy:dated:
+.deploy_template: &deploy_template
   stage: deploy
   image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - job: build
+      artifacts: true
+
+deploy:dated:
+  <<: *deploy_template
   script:
     - echo "Creating dated release from commit $CI_COMMIT_SHORT_SHA"
   release:
@@ -55,8 +63,17 @@ deploy:dated:
         - name: 's3al_sim (Linux binary)'
           url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_SHA}/raw/build/s3al_sim?job=build'
           link_type: 'package'
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-  needs:
-    - job: build
-      artifacts: true
+
+deploy:latest:
+  <<: *deploy_template
+  script:
+    - echo "Updating latest release from commit $CI_COMMIT_SHORT_SHA"
+  release:
+    tag_name: 'latest'
+    name: 'Latest Release'
+    description: 'Latest stable release from main branch. Commit: $CI_COMMIT_SHORT_SHA'
+    assets:
+      links:
+        - name: 's3al_sim (Linux binary)'
+          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_SHA}/raw/build/s3al_sim?job=build'
+          link_type: 'package'
