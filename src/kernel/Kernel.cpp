@@ -25,8 +25,14 @@ Kernel::Kernel()
     m_storage.setLogCallback(logger_callback);
     m_mem_mgr.setLogCallback(logger_callback);
 
-    register_commands();
     std::cout << "Kernel initialized." << std::endl;
+}
+
+shell::SysApi::SysInfo Kernel::get_sysinfo() const {
+    shell::SysApi::SysInfo info;
+    info.total_memory = m_mem_mgr.get_total_memory();
+    info.used_memory = m_mem_mgr.get_used_memory();
+    return info;
 }
 
 
@@ -45,11 +51,7 @@ std::string Kernel::execute_command(const std::string& cmd, const std::vector<st
 
 bool Kernel::is_running() const { return m_is_running; }
 
-void Kernel::register_commands() {
-    // Kernel-owned commands: keep memory introspection here.
-    m_commands["meminfo"] = [this](const auto& args){ return this->handle_meminfo(args); };
-    m_commands["membar"]  = [this](const auto& args){ return this->handle_membar(args); };
-}
+
 
 std::string Kernel::process_line(const std::string& line) {
     if(line.empty()) return "";
