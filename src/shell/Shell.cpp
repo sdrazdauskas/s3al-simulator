@@ -4,8 +4,8 @@
 
 namespace shell {
 
-Shell::Shell(SysApi& sys_, const CommandRegistry& reg)
-    : sys(sys_), registry(reg) {}
+Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
+    : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)) {}
 
 void Shell::setLogCallback(LogCallback callback) {
     log_callback = callback;
@@ -128,11 +128,20 @@ std::string Shell::executeCommand(const std::string& command, const std::vector<
     }
 
     log("INFO", "Executing command: " + command);
+    
+    std::vector<std::string> argsWithInput = args;
+    if (!input.empty())
+        argsWithInput.push_back(input);
+
 
     CommandFn fn = registry.find(command);
     if (!fn) {
         log("ERROR", "Unknown command: " + command);
         return "Error: Unknown command: " + command;
+    }
+
+    if (kernelCallback) {
+        kernelCallback(command, argsWithInput);
     }
 
     std::ostringstream out, err;

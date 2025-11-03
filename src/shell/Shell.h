@@ -5,7 +5,7 @@
 #include <functional>
 #include <sstream>
 #include <ostream>
-#include "CommandAPI.h" // Command registry and Command funtion
+#include "CommandAPI.h"
 
 namespace shell {
 
@@ -13,6 +13,7 @@ namespace shell {
     using LogCallback = std::function<void(const std::string& level, 
                                            const std::string& module, 
                                            const std::string& message)>;
+    using KernelCallback = std::function<void(const std::string& command, const std::vector<std::string>& args)>;
 
     class Shell {
     private:
@@ -20,6 +21,7 @@ namespace shell {
         const CommandRegistry& registry;
         OutputCallback outputCallback;
         LogCallback log_callback;
+        KernelCallback kernelCallback;
 
         void log(const std::string& level, const std::string& message);
         std::string parseQuotedToken(std::istringstream& iss, std::string token);
@@ -27,10 +29,11 @@ namespace shell {
         std::vector<std::string> splitByPipeOperator(const std::string& commandLine);
 
     public:
-        explicit Shell(SysApi& sys_, const CommandRegistry& reg);
+    explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
         
         void setLogCallback(LogCallback callback);
         void setOutputCallback(OutputCallback callback);
+        void setKernelCallback(KernelCallback callback) { kernelCallback = std::move(callback); }
         
         void processCommandLine(const std::string& commandLine);
         std::string executeCommand(const std::string& command, const std::vector<std::string>& args, const std::string& input = "");
