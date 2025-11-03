@@ -38,7 +38,7 @@ struct SysApi {
 
     virtual SysResult writeFile(const std::string& name, const std::string& content) = 0;
 
-    virtual SysResult appendToFile(const std::string& name, const std::string& content) = 0;
+    virtual SysResult editFile(const std::string& name) = 0;
 
     virtual SysResult makeDir(const std::string& name) = 0;
     virtual SysResult removeDir(const std::string& name) = 0;

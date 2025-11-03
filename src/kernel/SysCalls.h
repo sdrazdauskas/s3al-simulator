@@ -23,12 +23,23 @@ struct SysApiKernel : shell::SysApi {
 
     shell::SysResult createFile(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.createFile(name);
+        auto res = fs.touchFile(name);
         switch(res) {
             case Resp::OK: return shell::SysResult::OK;
             case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
             case Resp::NotFound: return shell::SysResult::NotFound;
             case Resp::AtRoot: return shell::SysResult::AtRoot;
+            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
+            default: return shell::SysResult::Error;
+        }
+    }
+
+    shell::SysResult editFile(const std::string& name) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.editFile(name);
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::NotFound: return shell::SysResult::NotFound;
             case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
             default: return shell::SysResult::Error;
         }
@@ -48,17 +59,6 @@ struct SysApiKernel : shell::SysApi {
     shell::SysResult writeFile(const std::string& name, const std::string& content) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = fs.writeFile(name, content);
-        switch(res) {
-            case Resp::OK: return shell::SysResult::OK;
-            case Resp::NotFound: return shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
-            default: return shell::SysResult::Error;
-        }
-    }
-
-    shell::SysResult appendToFile(const std::string& name, const std::string& content) override {
-        using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.appendToFile(name, content);
         switch(res) {
             case Resp::OK: return shell::SysResult::OK;
             case Resp::NotFound: return shell::SysResult::NotFound;
