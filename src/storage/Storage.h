@@ -34,7 +34,6 @@ public:
     StorageResponse deleteFile(const std::string& name);
     StorageResponse writeFile(const std::string& name, const std::string& content);
     StorageResponse readFile(const std::string& name, std::string& outContent) const;
-    StorageResponse appendToFile(const std::string& name, const std::string& content);
     StorageResponse editFile(const std::string& name);
     StorageResponse fileExists(const std::string& name) const;
 
