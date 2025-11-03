@@ -31,6 +31,10 @@ int cmd_help(const std::vector<std::string>&,
              const std::string&, std::ostream&, std::ostream&, SysApi&);
 int cmd_quit(const std::vector<std::string>&,
              const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_meminfo(const std::vector<std::string>&,
+                const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_membar(const std::vector<std::string>&,
+               const std::string&, std::ostream&, std::ostream&, SysApi&);
 
 inline void init_commands(CommandRegistry& reg) {
     reg.add("cat", &cmd_cat);
@@ -48,6 +52,8 @@ inline void init_commands(CommandRegistry& reg) {
     reg.add("help", &cmd_help);
     reg.add("quit", &cmd_quit);
     reg.add("exit", &cmd_quit);
+    reg.add("meminfo", &cmd_meminfo);
+    reg.add("membar", &cmd_membar);
 }
 
 } // namespace shell
