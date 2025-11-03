@@ -13,7 +13,7 @@ int cmd_load(const std::vector<std::string>& args,
         err << "Usage: load <name>\n";
         return 1;
     }
-    auto fileName = args[1];
+    auto fileName = args[0];
     auto res = sys.loadFromDisk(fileName);
     out << "Load result: " << toString(res) << "\n";
     return res == SysResult::OK ? 0 : 1;
