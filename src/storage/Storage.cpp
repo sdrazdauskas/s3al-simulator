@@ -3,6 +3,8 @@
 #include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <iomanip>
+#include <ctime>
 
 namespace storage {
 
@@ -85,8 +87,32 @@ Response StorageManager::createFile(const std::string& name) {
         log("ERROR", "File already exists: " + name);
         return Response::AlreadyExists;
     }
-    currentFolder->files.push_back(std::make_unique<File>(File{name, ""}));
+
+    auto newFile = std::make_unique<File>();
+    newFile->name = name;
+    newFile->content = "";
+    newFile->createdAt = std::chrono::system_clock::now();
+    newFile->modifiedAt = std::chrono::system_clock::now();
+
+    currentFolder->files.push_back(std::move(newFile));
+    currentFolder->modifiedAt = std::chrono::system_clock::now();
     log("INFO", "Created file: " + name);
+    return Response::OK;
+}
+
+Response StorageManager::touchFile(const std::string& name) {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
+    int i = findFileIndex(name);
+
+    if (i == -1) {
+        log("INFO", "File does not exist, it wil be created: " + name);
+        createFile(name);
+        return Response::OK;
+    }
+
+    currentFolder->files[i]->modifiedAt = std::chrono::system_clock::now();
+    currentFolder->modifiedAt = std::chrono::system_clock::now();
+    log("INFO", "File already exists, timestamp was updated: " + name);
     return Response::OK;
 }
 
@@ -98,6 +124,7 @@ Response StorageManager::deleteFile(const std::string& name) {
         return Response::NotFound;
     }
     currentFolder->files.erase(currentFolder->files.begin() + i);
+    currentFolder->modifiedAt = std::chrono::system_clock::now();
     log("INFO", "Deleted file: " + name);
     return Response::OK;
 }
@@ -111,6 +138,8 @@ Response StorageManager::writeFile(const std::string& name,
         return Response::NotFound;
     }
     currentFolder->files[i]->content = content + "\n";
+    currentFolder->files[i]->modifiedAt = std::chrono::system_clock::now();
+    currentFolder->modifiedAt = std::chrono::system_clock::now();
     log("INFO", "Wrote to file: " + name);
     return Response::OK;
 }
@@ -121,15 +150,6 @@ Response StorageManager::readFile(const std::string& name,
     int i = findFileIndex(name);
     if (i == -1) return Response::NotFound;
     outContent = currentFolder->files[i]->content;
-    return Response::OK;
-}
-
-Response StorageManager::appendToFile(const std::string& name,
-                                      const std::string& content) {
-    if (isNameInvalid(name)) return Response::InvalidArgument;
-    int i = findFileIndex(name);
-    if (i == -1) return Response::NotFound;
-    currentFolder->files[i]->content += content + "\n";
     return Response::OK;
 }
 
@@ -154,6 +174,8 @@ Response StorageManager::editFile(const std::string& name) {
         newLines += line + "\n";
     }
     f.content += newLines;
+    currentFolder->files[i]->modifiedAt = std::chrono::system_clock::now();
+    currentFolder->modifiedAt = std::chrono::system_clock::now();
     return Response::OK;
 }
 
@@ -163,10 +185,15 @@ Response StorageManager::makeDir(const std::string& name) {
         log("ERROR", "Directory already exists: " + name);
         return Response::AlreadyExists;
     }
+
     auto folder = std::make_unique<Folder>();
     folder->name = name;
     folder->parent = currentFolder;
+    folder->createdAt = std::chrono::system_clock::now();
+    folder->modifiedAt = std::chrono::system_clock::now();
+
     currentFolder->subfolders.push_back(std::move(folder));
+    currentFolder->modifiedAt = std::chrono::system_clock::now();
     log("INFO", "Created directory: " + name);
     return Response::OK;
 }
@@ -179,6 +206,7 @@ Response StorageManager::removeDir(const std::string& name) {
         return Response::NotFound;
     }
     currentFolder->subfolders.erase(currentFolder->subfolders.begin() + i);
+    currentFolder->modifiedAt = std::chrono::system_clock::now();
     log("INFO", "Removed directory: " + name);
     return Response::OK;
 }
@@ -201,12 +229,34 @@ Response StorageManager::changeDir(const std::string& path) {
     return Response::OK;
 }
 
+std::string formatTime(const std::chrono::system_clock::time_point& tp) {
+    std::time_t time = std::chrono::system_clock::to_time_t(tp);
+    std::tm tm = *std::localtime(&time);
+
+    std::ostringstream ss;
+    ss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+    return ss.str();
+}
+
 std::vector<std::string> StorageManager::listDir() const {
     std::vector<std::string> entries;
-    for (auto& f : currentFolder->subfolders)
-        entries.push_back("[D] " + f->name);
-    for (auto& fl : currentFolder->files)
-        entries.push_back("[F] " + fl->name);
+
+    for (auto& f : currentFolder->subfolders) {
+        std::ostringstream line;
+        line << "[D] " << f->name
+            << " | created: " << formatTime(f->createdAt)
+            << " | modified: " << formatTime(f->modifiedAt);
+        entries.push_back(line.str());
+    }
+
+    for (auto& fl : currentFolder->files) {
+        std::ostringstream line;
+        line << "[F] " << fl->name
+             << " | created: " << formatTime(fl->createdAt)
+             << " | modified: " << formatTime(fl->modifiedAt);
+        entries.push_back(line.str());
+    }
+
     return entries;
 }
 

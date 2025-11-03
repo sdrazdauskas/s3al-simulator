@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <chrono>
 
 namespace storage {
 
@@ -29,10 +30,10 @@ public:
     void setLogCallback(LogCallback callback);
 
     StorageResponse createFile(const std::string& name);
+    StorageResponse touchFile(const std::string& name);
     StorageResponse deleteFile(const std::string& name);
     StorageResponse writeFile(const std::string& name, const std::string& content);
     StorageResponse readFile(const std::string& name, std::string& outContent) const;
-    StorageResponse appendToFile(const std::string& name, const std::string& content);
     StorageResponse editFile(const std::string& name);
     StorageResponse fileExists(const std::string& name) const;
 
@@ -47,6 +48,8 @@ private:
     struct File {
         std::string name;
         std::string content;
+        std::chrono::system_clock::time_point createdAt;
+        std::chrono::system_clock::time_point modifiedAt;
     };
 
     struct Folder {
@@ -54,6 +57,8 @@ private:
         std::vector<std::unique_ptr<File>> files;
         std::vector<std::unique_ptr<Folder>> subfolders;
         Folder* parent = nullptr;
+        std::chrono::system_clock::time_point createdAt;
+        std::chrono::system_clock::time_point modifiedAt;
     };
 
     std::unique_ptr<Folder> root;
