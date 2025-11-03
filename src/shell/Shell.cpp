@@ -87,6 +87,20 @@ void Shell::processCommandLine(const std::string& commandLine) {
 
     log("DEBUG", "Processing command: " + commandLine);
 
+    std::istringstream checkStream(commandLine);
+    std::string firstWord;
+    checkStream >> firstWord;
+
+    if (firstWord == "write" || firstWord == "edit") {
+        std::string command;
+        std::vector<std::string> args;
+        parseCommand(commandLine, command, args);
+        std::string result = executeCommand(command, args, "");
+        if (outputCallback && !result.empty())
+            outputCallback(result);
+        return;
+    }
+
     std::vector<std::string> andCommands = splitByAndOperator(commandLine);
     std::string combinedOutput;
 
