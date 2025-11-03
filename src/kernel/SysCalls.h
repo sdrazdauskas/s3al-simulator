@@ -118,6 +118,14 @@ struct SysApiKernel : shell::SysApi {
         }
     }
 
+    shell::SysApi::SysInfo get_sysinfo() override {
+        shell::SysApi::SysInfo info;
+        if (kernel_owner) {
+            info = kernel_owner->get_sysinfo();
+        }
+        return info;
+    }
+
     void requestShutdown() override {
         if (kernel_owner) kernel_owner->handle_quit(std::vector<std::string>());
     }

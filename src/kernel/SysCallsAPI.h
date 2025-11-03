@@ -26,6 +26,10 @@ inline std::string toString(SysResult r) {
 }
 
 struct SysApi {
+    struct SysInfo {
+        size_t total_memory{0};
+        size_t used_memory{0};
+    };
     virtual SysResult readFile(const std::string& name, std::string& out) = 0;
 
     virtual SysResult createFile(const std::string& name) = 0;
@@ -42,6 +46,8 @@ struct SysApi {
 
     virtual std::vector<std::string> listDir() = 0;
     virtual std::string getWorkingDir() = 0;
+
+    virtual SysInfo get_sysinfo() = 0;
 
     virtual SysResult fileExists(const std::string& name) = 0;
 
