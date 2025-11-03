@@ -1,4 +1,3 @@
-// shell/cmd_cat.cpp
 #include "CommandAPI.h"
 
 namespace shell {
