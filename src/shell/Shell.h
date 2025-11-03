@@ -29,6 +29,7 @@ namespace shell {
         std::string parseQuotedToken(std::istringstream& iss, std::string token);
         std::vector<std::string> splitByAndOperator(const std::string& commandLine);
         std::vector<std::string> splitByPipeOperator(const std::string& commandLine);
+        std::string executeScriptFile(const std::string& filename);
 
     public:
         explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
