@@ -45,7 +45,6 @@ public:
 
     shell::SysApi::SysInfo get_sysinfo() const;
 
-    // Kernel command handlers exposed for direct invocation by syscalls.
     std::string handle_quit(const std::vector<std::string>& args);
 
 private:
