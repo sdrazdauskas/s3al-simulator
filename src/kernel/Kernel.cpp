@@ -116,7 +116,7 @@ std::string Kernel::handle_help(const vector<string>& args) {
         {"rm","[filename]","Delete a file"},
         {"write","[filename] [text]","Write text to a file (overwrite)"},
         {"cat","[filename]","Display file contents"},
-        {"edit","[filename] [text]","Append text to a file"},
+        {"edit","[filename]","Open editor to append text to a file"},
         {"mkdir","[foldername]","Create a new folder"},
         {"rmdir","[foldername]","Remove an empty folder"},
         {"cd","[foldername|..]","Change current directory"},
@@ -173,7 +173,7 @@ std::string Kernel::handle_quit(const vector<string>& args){
 
 std::string Kernel::handle_touch(const vector<string>& args){
     if(args.empty()) return "Usage: touch <filename>";
-    return "[Kernel] "+storage::StorageManager::toString(m_storage.createFile(args[0]));
+    return "[Kernel] "+storage::StorageManager::toString(m_storage.touchFile(args[0]));
 }
 
 std::string Kernel::handle_rm(const vector<string>& args){
@@ -198,13 +198,13 @@ std::string Kernel::handle_cat(const vector<string>& args){
     return out;
 }
 
-std::string Kernel::handle_edit(const vector<string>& args){
-    if(args.size()<2) return "Usage: edit <filename> <content>";
-    string content;
-    for(size_t i=1;i<args.size();++i) content+=args[i]+(i+1<args.size()?" ":"");
-    auto exists=m_storage.fileExists(args[0]);
-    if(exists!=storage::StorageManager::StorageResponse::OK) return "[Kernel] "+storage::StorageManager::toString(exists);
-    return "[Kernel] "+storage::StorageManager::toString(m_storage.appendToFile(args[0],content));
+std::string Kernel::handle_edit(const std::vector<std::string>& args) {
+    if (args.size() < 1)
+        return "Usage: edit <filename>";
+
+    const std::string& filename = args[0];
+    auto status = m_storage.editFile(filename);
+    return "[Kernel] " + storage::StorageManager::toString(status);
 }
 
 std::string Kernel::handle_mkdir(const vector<string>& args){
