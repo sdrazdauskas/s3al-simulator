@@ -281,6 +281,12 @@ std::string StorageManager::getWorkingDir() const {
 static json serializeFolder(const StorageManager::Folder& folder) {
     json j;
     j["name"] = folder.name;
+    j["createdAt"] = std::chrono::duration_cast<std::chrono::seconds>(
+                         folder.createdAt.time_since_epoch())
+                         .count();
+    j["modifiedAt"] = std::chrono::duration_cast<std::chrono::seconds>(
+                          folder.modifiedAt.time_since_epoch())
+                          .count();
     j["files"] = json::array();
     j["subfolders"] = json::array();
 
@@ -309,22 +315,47 @@ static std::unique_ptr<StorageManager::Folder> deserializeFolder(
     auto folder = std::make_unique<StorageManager::Folder>();
     folder->name = j.at("name");
     folder->parent = parent;
-    folder->createdAt = std::chrono::system_clock::now();
-    folder->modifiedAt = std::chrono::system_clock::now();
 
-    for (const auto& jf : j.at("files")) {
-        auto f = std::make_unique<StorageManager::File>();
-        f->name = jf.at("name");
-        f->content = jf.at("content");
-        f->createdAt = std::chrono::system_clock::time_point(
-            std::chrono::seconds(jf.at("createdAt").get<long long>()));
-        f->modifiedAt = std::chrono::system_clock::time_point(
-            std::chrono::seconds(jf.at("modifiedAt").get<long long>()));
-        folder->files.push_back(std::move(f));
+    if (j.contains("createdAt")) {
+        folder->createdAt = std::chrono::system_clock::time_point(
+            std::chrono::seconds(j.at("createdAt").get<long long>()));
+    } else {
+        folder->createdAt = std::chrono::system_clock::now();
     }
 
-    for (const auto& sub : j.at("subfolders")) {
-        folder->subfolders.push_back(deserializeFolder(sub, folder.get()));
+    if (j.contains("modifiedAt")) {
+        folder->modifiedAt = std::chrono::system_clock::time_point(
+            std::chrono::seconds(j.at("modifiedAt").get<long long>()));
+    } else {
+        folder->modifiedAt = folder->createdAt;
+    }
+
+    if (j.contains("files")) {
+        for (const auto& jf : j.at("files")) {
+            auto f = std::make_unique<StorageManager::File>();
+            f->name = jf.at("name");
+            f->content = jf.at("content");
+
+            if (jf.contains("createdAt"))
+                f->createdAt = std::chrono::system_clock::time_point(
+                    std::chrono::seconds(jf.at("createdAt").get<long long>()));
+            else
+                f->createdAt = std::chrono::system_clock::now();
+
+            if (jf.contains("modifiedAt"))
+                f->modifiedAt = std::chrono::system_clock::time_point(
+                    std::chrono::seconds(jf.at("modifiedAt").get<long long>()));
+            else
+                f->modifiedAt = f->createdAt;
+
+            folder->files.push_back(std::move(f));
+        }
+    }
+
+    if (j.contains("subfolders")) {
+        for (const auto& sub : j.at("subfolders")) {
+            folder->subfolders.push_back(deserializeFolder(sub, folder.get()));
+        }
     }
 
     return folder;
@@ -358,7 +389,6 @@ Response StorageManager::saveToDisk(const std::string& fileName) const {
         std::ofstream out(fullPath);
         out << std::setw(4) << j;
         out.close();
-
         return Response::OK;
     } catch (const std::exception& e) {
         return Response::Error;
