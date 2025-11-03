@@ -9,9 +9,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_library(terminal STATIC src/terminal/Terminal.cpp)
 target_include_directories(terminal PUBLIC src/terminal)
 
-# Shell library
-add_library(shell STATIC src/shell/Shell.cpp)
-target_include_directories(shell PUBLIC src/shell)
+
+# Shell library. command cmake maintained in src/shell/commands/CMakeLists.txt
+add_subdirectory(src/shell/commands)
+add_library(shell STATIC src/shell/Shell.cpp ${SHELL_COMMAND_SOURCES})
+target_include_directories(shell PUBLIC src src/kernel src/shell)
 
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
@@ -41,6 +43,7 @@ target_include_directories(logging PUBLIC src/logger)
 # Main executable
 add_executable(s3al_sim src/main.cpp)
 target_link_libraries(s3al_sim PRIVATE kernel logging)
+target_include_directories(s3al_sim PRIVATE src)
 
 # --- Unit Tests ---
 include(FetchContent)
