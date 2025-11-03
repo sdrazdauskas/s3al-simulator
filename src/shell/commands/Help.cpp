@@ -27,29 +27,36 @@ int cmd_help(const std::vector<std::string>& /*args*/,
         {"cd","[foldername|..]","Change current directory"},
         {"ls","","List contents of current directory"},
         {"pwd","","Show current directory path"},
+        {"save", "[name]", "Save current storage state to 'data/[name].json'"},
+        {"load", "[name]", "Load storage state from 'data/[name].json'"},
+        {"reset", "", "Clear current storage and start fresh"},
         {"membar", "", "Display memory usage bar"},
         {"meminfo", "", "Display memory info summary"}
     };
 
-    size_t max_name_len=4, max_param_len=9;
+    size_t max_name_len=4, max_param_len=9, max_desc_len = 11;
     for(auto& cmd: commands){
         if(cmd.name.size()>max_name_len) max_name_len=cmd.name.size();
         if(cmd.params.size()>max_param_len) max_param_len=cmd.params.size();
+        if (cmd.desc.size()>max_desc_len) max_desc_len = cmd.desc.size();
     }
 
     auto draw_line = [&](){ return "+"+std::string(max_name_len+2,'-')+"+"+
-                                   std::string(max_param_len+2,'-')+"+"+std::string(50,'-')+"\n"; };
+                                    std::string(max_param_len+2,'-')+"+"+
+                                    std::string(max_desc_len+2,'-') + "+\n";
+    };
 
     std::ostringstream oss;
     oss << draw_line();
     oss << "| " << std::left << std::setw(max_name_len) << "Name" << " | "
-        << std::left << std::setw(max_param_len) << "Parameters" << " | Description |\n";
+        << std::left << std::setw(max_param_len) << "Parameters" << " | "
+        << std::left << std::setw(max_desc_len) << "Description" << " |\n";
     oss << draw_line();
 
     for(auto& cmd: commands){
         oss << "| " << std::left << std::setw(max_name_len) << cmd.name << " | "
             << std::left << std::setw(max_param_len) << cmd.params << " | "
-            << cmd.desc << " |\n";
+            << std::left << std::setw(max_desc_len) << cmd.desc << " |\n";
     }
     oss << draw_line();
 
