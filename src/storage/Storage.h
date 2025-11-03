@@ -5,13 +5,14 @@
 #include <vector>
 #include <functional>
 #include <chrono>
+#include "json.hpp"
 
 namespace storage {
 
 class StorageManager {
 public:
-    using LogCallback = std::function<void(const std::string& level, 
-                                           const std::string& module, 
+    using LogCallback = std::function<void(const std::string& level,
+                                           const std::string& module,
                                            const std::string& message)>;
 
     enum class StorageResponse {
@@ -41,10 +42,13 @@ public:
     StorageResponse removeDir(const std::string& name);
     StorageResponse changeDir(const std::string& name);
 
+    StorageResponse saveToDisk(const std::string& filePath) const;
+    StorageResponse loadFromDisk(const std::string& filePath);
+    StorageResponse reset();
+
     std::vector<std::string> listDir() const;
     std::string getWorkingDir() const;
 
-private:
     struct File {
         std::string name;
         std::string content;
@@ -61,6 +65,7 @@ private:
         std::chrono::system_clock::time_point modifiedAt;
     };
 
+private:
     std::unique_ptr<Folder> root;
     Folder* currentFolder;
     LogCallback log_callback;
