@@ -74,16 +74,18 @@ std::string Kernel::process_line(const std::string& line) {
         }
     }
 
-    auto it = m_commands.find(command_name);
-    if(it != m_commands.end()) {
+    //auto it = m_commands.find(command_name);
+    //if(it != m_commands.end()) {
         // Make it a bit dynamic by passing args size as resource needs
         int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
-        if (m_proc_manager.execute_process(command_name, arg_count, arg_count, 0) != -1) {
-            string result = it->second(args);
-            return result;
+        const int cpu_required = 2;
+        const int memory_required = 64;
+        if (m_proc_manager.execute_process(command_name, cpu_required, memory_required, 0) != -1) {
+            //string result = it->second(args);
+            return "OK";
         } else {
             return "Error: Unable to execute process for command '" + command_name + "'.";
-        }
+        //}
 
     }
 
@@ -125,6 +127,11 @@ void Kernel::boot(){
             term.print(output); 
             if(output.back()!='\n') term.print("\n"); 
         }
+    });
+
+    
+    sh.setKernelCallback([this](const std::string& cmd, const std::vector<std::string>& args){
+        this->execute_command(cmd, args);
     });
     
     term.setSendCallback([&](const string& line){
