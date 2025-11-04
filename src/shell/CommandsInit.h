@@ -35,6 +35,12 @@ int cmd_meminfo(const std::vector<std::string>&,
                 const std::string&, std::ostream&, std::ostream&, SysApi&);
 int cmd_membar(const std::vector<std::string>&,
                const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_save(const std::vector<std::string>&,
+             const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_load(const std::vector<std::string>&,
+             const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_reset(const std::vector<std::string>&,
+              const std::string&, std::ostream&, std::ostream&, SysApi&);
 
 inline void init_commands(CommandRegistry& reg) {
     reg.add("cat", &cmd_cat);
@@ -54,6 +60,9 @@ inline void init_commands(CommandRegistry& reg) {
     reg.add("exit", &cmd_quit);
     reg.add("meminfo", &cmd_meminfo);
     reg.add("membar", &cmd_membar);
+    reg.add("save", &cmd_save);
+    reg.add("load", &cmd_load);
+    reg.add("reset", &cmd_reset);
 }
 
 } // namespace shell

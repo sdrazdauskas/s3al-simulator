@@ -44,6 +44,10 @@ struct SysApi {
     virtual SysResult removeDir(const std::string& name) = 0;
     virtual SysResult changeDir(const std::string& name) = 0;
 
+    virtual SysResult saveToDisk(const std::string& fileName) = 0;
+    virtual SysResult loadFromDisk(const std::string& fileName) = 0;
+    virtual SysResult resetStorage() = 0;
+
     virtual std::vector<std::string> listDir() = 0;
     virtual std::string getWorkingDir() = 0;
 

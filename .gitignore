@@ -41,6 +41,7 @@ Makefile
 *.swo
 .DS_Store
 Thumbs.db
+/data/
 
 # CI/CD artifacts
 .cache/
