@@ -5,10 +5,12 @@
 #include <cctype>
 #include <iomanip>
 #include <ctime>
+#include <fstream>
 
 namespace storage {
 
 using Response = StorageManager::StorageResponse;
+using json = nlohmann::json;
 
 std::string StorageManager::toString(StorageResponse status) {
     switch (status) {
@@ -105,7 +107,7 @@ Response StorageManager::touchFile(const std::string& name) {
     int i = findFileIndex(name);
 
     if (i == -1) {
-        log("INFO", "File does not exist, it wil be created: " + name);
+        log("INFO", "File does not exist, will be created: " + name);
         createFile(name);
         return Response::OK;
     }
@@ -244,8 +246,8 @@ std::vector<std::string> StorageManager::listDir() const {
     for (auto& f : currentFolder->subfolders) {
         std::ostringstream line;
         line << "[D] " << f->name
-            << " | created: " << formatTime(f->createdAt)
-            << " | modified: " << formatTime(f->modifiedAt);
+             << " | created: " << formatTime(f->createdAt)
+             << " | modified: " << formatTime(f->modifiedAt);
         entries.push_back(line.str());
     }
 
@@ -274,6 +276,149 @@ std::string StorageManager::getWorkingDir() const {
         if (i != 0) path << "/";
     }
     return path.str();
+}
+
+static json serializeFolder(const StorageManager::Folder& folder) {
+    json j;
+    j["name"] = folder.name;
+    j["createdAt"] = std::chrono::duration_cast<std::chrono::seconds>(
+                         folder.createdAt.time_since_epoch())
+                         .count();
+    j["modifiedAt"] = std::chrono::duration_cast<std::chrono::seconds>(
+                          folder.modifiedAt.time_since_epoch())
+                          .count();
+    j["files"] = json::array();
+    j["subfolders"] = json::array();
+
+    for (auto& f : folder.files) {
+        json jf;
+        jf["name"] = f->name;
+        jf["content"] = f->content;
+        jf["createdAt"] = std::chrono::duration_cast<std::chrono::seconds>(
+                              f->createdAt.time_since_epoch())
+                              .count();
+        jf["modifiedAt"] = std::chrono::duration_cast<std::chrono::seconds>(
+                               f->modifiedAt.time_since_epoch())
+                               .count();
+        j["files"].push_back(jf);
+    }
+
+    for (auto& sub : folder.subfolders) {
+        j["subfolders"].push_back(serializeFolder(*sub));
+    }
+
+    return j;
+}
+
+static std::unique_ptr<StorageManager::Folder> deserializeFolder(
+    const json& j, StorageManager::Folder* parent) {
+    auto folder = std::make_unique<StorageManager::Folder>();
+    folder->name = j.at("name");
+    folder->parent = parent;
+
+    if (j.contains("createdAt")) {
+        folder->createdAt = std::chrono::system_clock::time_point(
+            std::chrono::seconds(j.at("createdAt").get<long long>()));
+    } else {
+        folder->createdAt = std::chrono::system_clock::now();
+    }
+
+    if (j.contains("modifiedAt")) {
+        folder->modifiedAt = std::chrono::system_clock::time_point(
+            std::chrono::seconds(j.at("modifiedAt").get<long long>()));
+    } else {
+        folder->modifiedAt = folder->createdAt;
+    }
+
+    if (j.contains("files")) {
+        for (const auto& jf : j.at("files")) {
+            auto f = std::make_unique<StorageManager::File>();
+            f->name = jf.at("name");
+            f->content = jf.at("content");
+
+            if (jf.contains("createdAt"))
+                f->createdAt = std::chrono::system_clock::time_point(
+                    std::chrono::seconds(jf.at("createdAt").get<long long>()));
+            else
+                f->createdAt = std::chrono::system_clock::now();
+
+            if (jf.contains("modifiedAt"))
+                f->modifiedAt = std::chrono::system_clock::time_point(
+                    std::chrono::seconds(jf.at("modifiedAt").get<long long>()));
+            else
+                f->modifiedAt = f->createdAt;
+
+            folder->files.push_back(std::move(f));
+        }
+    }
+
+    if (j.contains("subfolders")) {
+        for (const auto& sub : j.at("subfolders")) {
+            folder->subfolders.push_back(deserializeFolder(sub, folder.get()));
+        }
+    }
+
+    return folder;
+}
+
+Response StorageManager::reset() {
+    try {
+        recursiveDelete(*root);
+        root = std::make_unique<Folder>();
+        root->name = "root";
+        root->parent = nullptr;
+        currentFolder = root.get();
+        log("INFO", "Storage reset to empty state");
+        return Response::OK;
+    } catch (...) {
+        return Response::Error;
+    }
+}
+
+Response StorageManager::saveToDisk(const std::string& fileName) const {
+    namespace fs = std::filesystem;
+    try {
+        fs::create_directories("data");
+
+        std::string fullPath = "data/" + fileName;
+        if (fullPath.find(".json") == std::string::npos)
+            fullPath += ".json";
+
+        json j = serializeFolder(*root);
+
+        std::ofstream out(fullPath);
+        out << std::setw(4) << j;
+        out.close();
+        return Response::OK;
+    } catch (const std::exception& e) {
+        return Response::Error;
+    }
+}
+
+Response StorageManager::loadFromDisk(const std::string& fileName) {
+    namespace fs = std::filesystem;
+    try {
+        std::string fullPath = "data/" + fileName;
+        if (fullPath.find(".json") == std::string::npos)
+            fullPath += ".json";
+
+        if (!fs::exists(fullPath)) {
+            log("ERROR", "File not found: " + fullPath);
+            return Response::NotFound;
+        }
+
+        std::ifstream in(fullPath);
+        json j;
+        in >> j;
+        root = deserializeFolder(j, nullptr);
+        currentFolder = root.get();
+
+        log("INFO", "Storage loaded from " + fullPath);
+        return Response::OK;
+    } catch (const std::exception& e) {
+        log("ERROR", e.what());
+        return Response::Error;
+    }
 }
 
 } // namespace storage

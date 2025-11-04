@@ -100,6 +100,36 @@ struct SysApiKernel : shell::SysApi {
         }
     }
 
+    shell::SysResult saveToDisk(const std::string& fileName) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.saveToDisk(fileName);
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
+            default: return shell::SysResult::Error;
+        }
+    }
+
+    shell::SysResult loadFromDisk(const std::string& fileName) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.loadFromDisk(fileName);
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
+            default: return shell::SysResult::Error;
+        }
+    }
+
+    shell::SysResult resetStorage() override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.reset();
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            default: return shell::SysResult::Error;
+        }
+    }
+
     std::vector<std::string> listDir() override {
         return fs.listDir();
     }
