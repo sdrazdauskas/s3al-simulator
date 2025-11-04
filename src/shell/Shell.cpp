@@ -164,7 +164,7 @@ std::string Shell::executeCommand(const std::string& command,
     }
 
     std::ostringstream out, err;
-    int rc = fn(args, input, out, err, sys);
+    int rc = fn(argsWithInput, input, out, err, sys);
 
     std::string result;
     if (!err.str().empty()) {
@@ -176,7 +176,6 @@ std::string Shell::executeCommand(const std::string& command,
     return result;
 }
 
-// --- NEW helper method for script file execution ---
 std::string Shell::executeScriptFile(const std::string& filename) {
     log("INFO", "Executing script file: " + filename);
 
