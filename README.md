@@ -7,6 +7,12 @@
 cmake -S . -B build
 
 cmake --build build
+
+# Run the simulator
+.\build\Debug\s3al_sim.exe
+
+# or with logging to cout
+.\build\Debug\s3al_sim.exe --verbose
 ```
 
 ## Docker image
@@ -31,6 +37,13 @@ Launch an interactive shell in the image:
 # Run without saving logs
 docker run --rm -it s3al/simulator
 
+# Run with verbose logging (logs to console and file)
+# Pass --verbose flag to the application
+docker run --rm -it s3al/simulator /app/s3al_sim --verbose
+
 # Run with persistent logs (volume mount)
 docker run --rm -it -v ./logs:/app/logs s3al/simulator
+
+# Run with both cout and persistent file logs
+docker run --rm -it -v ./logs:/app/logs s3al/simulator /app/s3al_sim --verbose
 ```

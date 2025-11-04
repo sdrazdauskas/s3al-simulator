@@ -40,13 +40,19 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
 
     std::lock_guard<std::mutex> lock(mutex);
 
-    if (!file.is_open()) return;
+    std::string log_entry = getCurrentTime() + " " +
+                            "[" + levelToString(level) + "] " +
+                            "[" + module + "] " +
+                            message;
 
-    file << getCurrentTime() << " "
-         << "[" << levelToString(level) << "] "
-         << "[" << module << "] "
-         << message << "\n";
-    file.flush();
+    if (file.is_open()) {
+        file << log_entry << "\n";
+        file.flush();
+    }
+
+    if (log_to_console) {
+        std::cout << log_entry << std::endl;
+    }
 }
 
 void Logger::log(const std::string& level, const std::string& module, const std::string& message) {
