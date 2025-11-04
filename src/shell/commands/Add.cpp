@@ -17,7 +17,7 @@ int cmd_add(const std::vector<std::string>& args,
     for (const auto& a : args) {
         try { sum += std::stod(a); } catch(...) { err << "Error: '" << a << "' is not a number\n"; return 1; }
     }
-    out << "Sum: " << sum << "\n";
+    out << sum << "\n";
     return 0;
 }
 
