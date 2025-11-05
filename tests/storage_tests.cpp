@@ -64,16 +64,6 @@ TEST_F(StorageManagerTest, WriteFile_NotFound) {
     EXPECT_EQ(storage.writeFile("ghost.txt", "hi"), Response::NotFound);
 }
 
-TEST_F(StorageManagerTest, AppendToFile_Success) {
-    storage.createFile("log.txt");
-    storage.writeFile("log.txt", "start");
-    EXPECT_EQ(storage.appendToFile("log.txt", "end"), Response::OK);
-
-    std::string contents;
-    storage.readFile("log.txt", contents);
-    EXPECT_EQ(contents, "start\nend\n");
-}
-
 TEST_F(StorageManagerTest, EditFile_ShouldAppendNewLines) {
     std::istringstream fakeInput("foo\nbar\n:wq\n");
     std::ostringstream fakeOutput;

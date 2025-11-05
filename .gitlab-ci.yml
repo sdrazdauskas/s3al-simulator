@@ -1,5 +1,6 @@
 stages:
   - build
+  - test
   - deploy
 
 build:
@@ -10,19 +11,44 @@ build:
   script:
     - cmake -B build -G Ninja
     - cmake --build build
+    - chmod +x build/s3al_sim
   artifacts:
     paths:
       - build/s3al_sim
+      - build/*_tests
     expire_in: 6 hour
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
 
-deploy:
+test:
+  stage: test
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update && apt-get install -y libstdc++6
+  script:
+    - chmod +x build/*_tests
+    - for test in build/*_tests; do echo "Running $test"; ./"$test" || exit 1; done
+  needs:
+    - job: build
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+.deploy_template: &deploy_template
   stage: deploy
   image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - job: build
+      artifacts: true
+
+deploy:dated:
+  <<: *deploy_template
   script:
-    - echo "Creating release from commit $CI_COMMIT_SHORT_SHA"
+    - echo "Creating dated release from commit $CI_COMMIT_SHORT_SHA"
   release:
     tag_name: 'v$(date +%Y.%m.%d-%H%M%S)'
     name: 'Release $(date +%Y-%m-%d) - $CI_COMMIT_SHORT_SHA'
@@ -37,8 +63,17 @@ deploy:
         - name: 's3al_sim (Linux binary)'
           url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_SHA}/raw/build/s3al_sim?job=build'
           link_type: 'package'
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-  needs:
-    - job: build
-      artifacts: true
+
+deploy:latest:
+  <<: *deploy_template
+  script:
+    - echo "Updating latest release from commit $CI_COMMIT_SHORT_SHA"
+  release:
+    tag_name: 'latest'
+    name: 'Latest Release'
+    description: 'Latest stable release from main branch. Commit: $CI_COMMIT_SHORT_SHA'
+    assets:
+      links:
+        - name: 's3al_sim (Linux binary)'
+          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_SHA}/raw/build/s3al_sim?job=build'
+          link_type: 'package'

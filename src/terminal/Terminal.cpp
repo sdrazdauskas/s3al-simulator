@@ -14,10 +14,11 @@ namespace {
     }
 }
 
-
 void Terminal::setSendCallback(sendCallback cb) { sendCb = std::move(cb); }
 
 void Terminal::setSignalCallback(signalCallback cb) { sigCb = std::move(cb); }
+
+void Terminal::setPromptCallback(promptCallback cb) { promptCb = std::move(cb); }
 
 void Terminal::setLogCallback(LogCallback callback) {
     log_callback = callback;
@@ -33,6 +34,10 @@ void Terminal::print(const std::string& output) {
     std::cout << output << std::flush;
 }
 
+void Terminal::requestShutdown() {
+    should_shutdown = true;
+}
+
 void Terminal::runBlockingStdioLoop() {
     std::string line;
     auto prev = std::signal(SIGINT, terminalSigintHandler);
@@ -45,18 +50,33 @@ void Terminal::runBlockingStdioLoop() {
             log("DEBUG", "Received SIGINT (Ctrl+C)");
             if (sigCb) sigCb(SIGINT);
             else if (sendCb) sendCb("\x03");
+            
+            // Check if shutdown was requested by the callback
+            if (should_shutdown) {
+                log("INFO", "Shutdown requested via signal");
+                break;
+            }
             continue;
         }
 
+        // Print prompt if callback is set
+        if (promptCb) {
+            std::cout << promptCb() << std::flush;
+        }
+        
         if (!std::getline(std::cin, line)) {
             log("INFO", "Terminal input stream closed (EOF)");
             break; // EOF or error
         }
         
         log("DEBUG", "Received input line: " + line);
-        // std::getline removes the newline; add it back for the shell
-        line.push_back('\n');
         if (sendCb) sendCb(line);
+        
+        // Check if shutdown was requested after processing command
+        if (should_shutdown) {
+            log("INFO", "Shutdown requested via command");
+            break;
+        }
     }
 
     std::signal(SIGINT, prev);
