@@ -38,12 +38,17 @@ Launch an interactive shell in the image:
 docker run --rm -it s3al/simulator
 
 # Run with verbose logging (logs to console and file)
-# Pass --verbose flag to the application
 docker run --rm -it s3al/simulator /app/s3al_sim --verbose
 
 # Run with persistent logs (volume mount)
 docker run --rm -it -v ./logs:/app/logs s3al/simulator
 
-# Run with both cout and persistent file logs
-docker run --rm -it -v ./logs:/app/logs s3al/simulator /app/s3al_sim --verbose
+# Run with persistent data (saves/loads storage state)
+docker run --rm -it -v ./data:/app/data s3al/simulator
+
+# Run with both persistent logs and data
+docker run --rm -it -v ./logs:/app/logs -v ./data:/app/data s3al/simulator
+
+# Run with verbose logging and persistent data
+docker run --rm -it -v ./logs:/app/logs -v ./data:/app/data s3al/simulator /app/s3al_sim --verbose
 ```
