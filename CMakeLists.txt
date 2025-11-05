@@ -9,9 +9,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_library(terminal STATIC src/terminal/Terminal.cpp)
 target_include_directories(terminal PUBLIC src/terminal)
 
-# Shell library
-add_library(shell STATIC src/shell/Shell.cpp)
-target_include_directories(shell PUBLIC src/shell)
+
+# Shell library. command cmake maintained in src/shell/commands/CMakeLists.txt
+add_subdirectory(src/shell/commands)
+add_library(shell STATIC src/shell/Shell.cpp ${SHELL_COMMAND_SOURCES})
+target_include_directories(shell PUBLIC src src/kernel src/shell)
 
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
@@ -20,7 +22,10 @@ target_link_libraries(kernel PUBLIC terminal shell logging memory process storag
 
 # Storage library
 add_library(storage STATIC src/storage/Storage.cpp)
-target_include_directories(storage PUBLIC src/storage)
+target_include_directories(storage 
+    PUBLIC src/storage
+    PUBLIC ${CMAKE_SOURCE_DIR}/include
+)
 
 # Process library
 add_library(process STATIC src/process/ProcessManager.cpp)
@@ -31,7 +36,7 @@ add_library(memory STATIC src/memory/MemoryManager.cpp)
 target_include_directories(memory PUBLIC src/memory)
 
 # Scheduler library
-add_library(scheduler STATIC src/scheduler/scheduler.cpp)
+add_library(scheduler STATIC src/scheduler/Scheduler.cpp)
 target_include_directories(scheduler PUBLIC src/scheduler)
 
 # Logging library
@@ -41,6 +46,7 @@ target_include_directories(logging PUBLIC src/logger)
 # Main executable
 add_executable(s3al_sim src/main.cpp)
 target_link_libraries(s3al_sim PRIVATE kernel logging)
+target_include_directories(s3al_sim PRIVATE src)
 
 # --- Unit Tests ---
 include(FetchContent)

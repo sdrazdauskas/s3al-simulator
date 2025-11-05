@@ -22,7 +22,11 @@ public:
     
     void init(const std::string& filename, LogLevel min_level = LogLevel::INFO);
     void log(LogLevel level, const std::string& module, const std::string& message);
+    void log(const std::string& level, const std::string& module, const std::string& message);
     void flush();
+    
+    void setConsoleOutput(bool enabled) { log_to_console = enabled; }
+    bool getConsoleOutput() const { return log_to_console; }
     
     // Disable copy/move, enforce existence of single instance
     Logger(const Logger&) = delete;
@@ -35,6 +39,7 @@ private:
     std::ofstream file;
     LogLevel min_level = LogLevel::INFO;
     std::mutex mutex;
+    bool log_to_console = false;
     
     std::string levelToString(LogLevel level);
     std::string getCurrentTime();

@@ -1,13 +1,18 @@
 #include "Shell.h"
 #include <sstream>
+#include <iostream>
 
 namespace shell {
 
-Shell::Shell(KernelCallback cb)
-    : kernelCallback(std::move(cb)) {}
+Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
+    : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)) {}
 
 void Shell::setLogCallback(LogCallback callback) {
     log_callback = callback;
+}
+
+void Shell::setOutputCallback(OutputCallback callback) {
+    outputCallback = callback;
 }
 
 void Shell::log(const std::string& level, const std::string& message) {
@@ -73,13 +78,28 @@ std::vector<std::string> Shell::splitByPipeOperator(const std::string& commandLi
     return parts;
 }
 
-std::string Shell::processCommandLine(const std::string& commandLine) {
+void Shell::processCommandLine(const std::string& commandLine) {
     if (commandLine.empty()) {
         log("DEBUG", "Empty command line received");
-        return "Error: No command entered";
+        if (outputCallback) outputCallback("Error: No command entered");
+        return;
     }
 
     log("DEBUG", "Processing command: " + commandLine);
+
+    std::istringstream checkStream(commandLine);
+    std::string firstWord;
+    checkStream >> firstWord;
+
+    if (firstWord == "write" || firstWord == "edit") {
+        std::string command;
+        std::vector<std::string> args;
+        parseCommand(commandLine, command, args);
+        std::string result = executeCommand(command, args, "");
+        if (outputCallback && !result.empty())
+            outputCallback(result);
+        return;
+    }
 
     std::vector<std::string> andCommands = splitByAndOperator(commandLine);
     std::string combinedOutput;
@@ -109,15 +129,14 @@ std::string Shell::processCommandLine(const std::string& commandLine) {
             break;
     }
 
-    return combinedOutput;
+    if (outputCallback && !combinedOutput.empty()) {
+        outputCallback(combinedOutput);
+    }
 }
 
-std::string Shell::executeCommand(const std::string& command, const std::vector<std::string>& args, const std::string& input) {
-    if (!kernelCallback) {
-        log("ERROR", "No kernel handler available");
-        return "Error: No kernel handler available";
-    }
-
+std::string Shell::executeCommand(const std::string& command,
+                                  const std::vector<std::string>& args,
+                                  const std::string& input) {
     if (command.empty()) {
         log("ERROR", "No command specified");
         return "Error: No command specified";
@@ -125,11 +144,81 @@ std::string Shell::executeCommand(const std::string& command, const std::vector<
 
     log("INFO", "Executing command: " + command);
 
+    if (command.rfind("./", 0) == 0) {
+        std::string filename = command.substr(2);
+        return executeScriptFile(filename);
+    }
+
     std::vector<std::string> argsWithInput = args;
     if (!input.empty())
         argsWithInput.push_back(input);
 
-    return kernelCallback(command, argsWithInput);
+    CommandFn fn = registry.find(command);
+    if (!fn) {
+        log("ERROR", "Unknown command: " + command);
+        return "Error: Unknown command: " + command;
+    }
+
+    if (kernelCallback) {
+        kernelCallback(command, argsWithInput);
+    }
+
+    std::ostringstream out, err;
+    int rc = fn(argsWithInput, input, out, err, sys);
+
+    std::string result;
+    if (!err.str().empty()) {
+        log("ERROR", err.str());
+        result += err.str();
+    }
+    result += out.str();
+
+    return result;
+}
+
+std::string Shell::executeScriptFile(const std::string& filename) {
+    log("INFO", "Executing script file: " + filename);
+
+    std::ostringstream out, err;
+    std::vector<std::string> readArgs = { filename };
+    std::string fileContent;
+
+    CommandFn catFn = registry.find("cat");
+    if (catFn) {
+        int rc = catFn(readArgs, "", out, err, sys);
+        if (!err.str().empty()) {
+            log("ERROR", err.str());
+            return "Error: Failed to read script: " + filename + "\n" + err.str();
+        }
+        fileContent = out.str();
+    } else {
+        log("ERROR", "No 'cat' command available to read script file");
+        return "Error: Missing 'cat' command to read file";
+    }
+
+    std::istringstream file(fileContent);
+    std::string line;
+    std::string output;
+
+    auto originalOutputCB = outputCallback;
+    outputCallback = [&](const std::string& outStr) {
+        if (!output.empty()) output += "\n";
+        output += outStr;
+    };
+
+    while (std::getline(file, line)) {
+        auto l = line.find_first_not_of(" \t\r\n");
+        if (l == std::string::npos) continue;
+        auto r = line.find_last_not_of(" \t\r\n");
+        std::string trimmed = line.substr(l, r - l + 1);
+        if (trimmed.empty() || trimmed.front() == '#') continue;
+
+        log("DEBUG", "Script line: " + trimmed);
+        processCommandLine(trimmed);
+    }
+
+    outputCallback = originalOutputCB;
+    return output;
 }
 
 void Shell::parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args) {

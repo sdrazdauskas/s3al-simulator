@@ -1,9 +1,10 @@
 ## Total hours spent
 
-| Period      | Total Hours |
+| Period      | Hours spent |
 |----------------|-------------|
-| Previous        | 20       |
-| 10-16 to 10-29  | 14.5       |
+| Previous        | 34       |
+| 10-30 to 11-04  | 8       |
+|  Total hours spent   | 42       |
 
 
 ---
