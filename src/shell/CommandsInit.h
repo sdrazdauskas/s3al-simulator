@@ -24,9 +24,7 @@ std::unique_ptr<ICommand> create_membar_command();
 std::unique_ptr<ICommand> create_save_command();
 std::unique_ptr<ICommand> create_load_command();
 std::unique_ptr<ICommand> create_reset_command();
-
-// Special function to create help command with registry
-std::unique_ptr<ICommand> create_help_command_with_registry(CommandRegistry* reg);
+std::unique_ptr<ICommand> create_help_command(CommandRegistry* reg);
 
 inline void init_commands(CommandRegistry& reg) {
     reg.add(create_cat_command());
@@ -42,8 +40,7 @@ inline void init_commands(CommandRegistry& reg) {
     reg.add(create_ls_command());
     reg.add(create_pwd_command());
     
-    // Help needs registry access
-    reg.add(create_help_command_with_registry(&reg));
+    reg.add(create_help_command(&reg));
     
     reg.add(create_quit_command());
     reg.add(create_meminfo_command());

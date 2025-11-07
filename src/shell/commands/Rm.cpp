@@ -12,7 +12,7 @@ public:
                 SysApi& sys) override
     {
         if (args.empty()) {
-            err << "Usage: rm <filename> [filename...]\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
         int rc = 0;
