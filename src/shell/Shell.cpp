@@ -153,8 +153,8 @@ std::string Shell::executeCommand(const std::string& command,
     if (!input.empty())
         argsWithInput.push_back(input);
 
-    CommandFn fn = registry.find(command);
-    if (!fn) {
+    ICommand* cmd = registry.find(command);
+    if (!cmd) {
         log("ERROR", "Unknown command: " + command);
         return "Error: Unknown command: " + command;
     }
@@ -164,7 +164,7 @@ std::string Shell::executeCommand(const std::string& command,
     }
 
     std::ostringstream out, err;
-    int rc = fn(argsWithInput, input, out, err, sys);
+    int rc = cmd->execute(argsWithInput, input, out, err, sys);
 
     std::string result;
     if (!err.str().empty()) {
@@ -183,9 +183,9 @@ std::string Shell::executeScriptFile(const std::string& filename) {
     std::vector<std::string> readArgs = { filename };
     std::string fileContent;
 
-    CommandFn catFn = registry.find("cat");
-    if (catFn) {
-        int rc = catFn(readArgs, "", out, err, sys);
+    ICommand* catCmd = registry.find("cat");
+    if (catCmd) {
+        int rc = catCmd->execute(readArgs, "", out, err, sys);
         if (!err.str().empty()) {
             log("ERROR", err.str());
             return "Error: Failed to read script: " + filename + "\n" + err.str();

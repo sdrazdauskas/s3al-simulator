@@ -76,19 +76,15 @@ std::string Kernel::process_line(const std::string& line) {
         }
     }
 
-    //auto it = m_commands.find(command_name);
-    //if(it != m_commands.end()) {
-        // Make it a bit dynamic by passing args size as resource needs
-        int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
-        const int cpu_required = 2;
-        const int memory_required = 64;
-        if (m_proc_manager.execute_process(command_name, cpu_required, memory_required, 0) != -1) {
-            //string result = it->second(args);
-            return "OK";
-        } else {
-            return "Error: Unable to execute process for command '" + command_name + "'.";
-        //}
-
+    // Make it a bit dynamic by passing args size as resource needs
+    const int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
+    const int cpu_required = 2 * arg_count;
+    const int memory_required = 64 * arg_count;
+    if (m_proc_manager.execute_process(command_name, cpu_required, memory_required, 0) != -1) {
+        //string result = it->second(args);
+        return "OK";
+    } else {
+        return "Error: Unable to execute process for command '" + command_name + "'.";
     }
 
     return "Unknown command: '" + command_name + "'.";
@@ -103,15 +99,17 @@ std::string Kernel::handle_quit(const std::vector<std::string>& args){
 void Kernel::boot(){
     LOG_INFO("KERNEL", "Booting s3al OS...");
     
+    // Initialize command registry
+    shell::CommandRegistry registry;
+    shell::init_commands(registry);
+    
     auto logger_callback = [](const std::string& level, const std::string& module, const std::string& message){
         logging::Logger::getInstance().log(level, module, message);
     };
     
 
-    SysApiKernel sys(m_storage, this);//build sysclals
-    shell::CommandRegistry reg;//build command REGISTRY
-    init_commands(reg); // register commands
-    shell::Shell sh(sys, reg);
+    SysApiKernel sys(m_storage, this);//build syscalls 
+    shell::Shell sh(sys, registry);
 
     sh.setLogCallback(logger_callback); 
     
