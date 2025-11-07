@@ -12,7 +12,7 @@ public:
                 SysApi& sys) override
     {
         if (args.empty()) {
-            err << "Usage: rmdir <foldername>\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
         auto res = sys.removeDir(args[0]);

@@ -12,7 +12,7 @@ public:
                 SysApi& sys) override
     {
         if (args.size() < 2) {
-            err << "Usage: write <filename> <content>\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
         std::string content;

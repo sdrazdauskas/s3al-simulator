@@ -12,7 +12,7 @@ public:
                 SysApi& sys) override
     {
         if (args.empty()) {
-            err << "Usage: cat <filename> [filename...]\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
 

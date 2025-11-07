@@ -13,7 +13,7 @@ public:
                 SysApi& sys) override
     {
         if (args.empty()) {
-            err << "Usage: touch <filename>\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
 

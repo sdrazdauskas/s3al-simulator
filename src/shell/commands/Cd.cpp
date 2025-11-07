@@ -12,7 +12,7 @@ public:
                 SysApi& sys) override
     {
         if (args.empty()) {
-            err << "Usage: cd <foldername|..>\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
         auto res = sys.changeDir(args[0]);

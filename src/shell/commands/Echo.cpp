@@ -12,7 +12,7 @@ public:
                 SysApi& /*sys*/) override
     {
         if (args.empty()) {
-            err << "Usage: echo [text]\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
         for (size_t i = 0; i < args.size(); ++i) {

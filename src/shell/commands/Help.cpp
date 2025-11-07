@@ -86,11 +86,8 @@ public:
     const char* getUsage() const override { return "help [command]"; }
 };
 
-std::unique_ptr<ICommand> create_help_command() {
-    return std::make_unique<HelpCommand>();
-}
 
-std::unique_ptr<ICommand> create_help_command_with_registry(CommandRegistry* reg) {
+std::unique_ptr<ICommand> create_help_command(CommandRegistry* reg) {
     auto cmd = std::make_unique<HelpCommand>();
     cmd->setRegistry(reg);
     return cmd;

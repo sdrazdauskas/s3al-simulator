@@ -12,7 +12,7 @@ public:
                 SysApi& sys) override
     {
         if (args.size() < 1) {
-            err << "Usage: edit <filename>\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
 

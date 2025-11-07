@@ -12,7 +12,7 @@ public:
                 SysApi& /*sys*/) override
     {
         if (args.empty()) {
-            err << "Usage: add [number1] [number2] ...\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
         double sum = 0.0;
