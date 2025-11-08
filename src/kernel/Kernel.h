@@ -1,9 +1,33 @@
 #pragma once
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#define NOMINMAX
+#include <windows.h>
+// Forward declare _beginthreadex to help MSVC
+extern "C" {
+    uintptr_t __cdecl _beginthreadex(
+        void* _Security,
+        unsigned _StackSize,
+        unsigned(__stdcall* _StartAddress)(void*),
+        void* _ArgList,
+        unsigned _InitFlag,
+        unsigned* _ThrdAddr
+    );
+}
+#undef ERROR
+#endif
+
 #include <string>
 #include <vector>
 #include <map>
 #include <functional>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <atomic>
 #include <Storage.h>
 #include <MemoryManager.h>
 #include <ProcessManager.h>
@@ -47,7 +71,33 @@ public:
 
     std::string handle_quit(const std::vector<std::string>& args);
 
+    // Kernel event loop - runs background tasks
+    void run_event_loop();
+    
+    // Submit a command to be processed by the kernel
+    void submit_command(const std::string& line);
+
 private:
+    struct KernelEvent {
+        enum class Type {
+            COMMAND,
+            TIMER_TICK,
+            SHUTDOWN
+        };
+        
+        Type type;
+        std::string data;
+    };
+    
+    void process_event(const KernelEvent& event);
+    void handle_timer_tick();
+    
+    std::queue<KernelEvent> event_queue;
+    std::mutex queue_mutex;
+    std::condition_variable queue_cv;
+    std::atomic<bool> kernel_running{true};
+    std::thread kernel_thread;
+    
     std::string process_line(const std::string& line);
     std::string handle_meminfo(const std::vector<std::string>& args);
     std::string handle_membar(const std::vector<std::string>& args);
