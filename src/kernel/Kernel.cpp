@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <chrono>
 #include "Terminal.h"
 #include "Shell.h"
 #include "Logger.h"
@@ -93,7 +94,107 @@ std::string Kernel::process_line(const std::string& line) {
 std::string Kernel::handle_quit(const std::vector<std::string>& args){
     (void)args;
     m_is_running = false;
+    kernel_running.store(false);
+    
+    // Submit shutdown event to wake up kernel thread
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        event_queue.push({KernelEvent::Type::SHUTDOWN, ""});
+    }
+    queue_cv.notify_one();
+    
     return "Shutting down kernel.";
+}
+
+void Kernel::submit_command(const std::string& line) {
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    event_queue.push({KernelEvent::Type::COMMAND, line});
+    queue_cv.notify_one();
+}
+
+void Kernel::process_event(const KernelEvent& event) {
+    switch (event.type) {
+        case KernelEvent::Type::COMMAND:
+            LOG_DEBUG("KERNEL", "Processing command: " + event.data);
+            // Command processing happens in shell, we just logged it
+            break;
+            
+        case KernelEvent::Type::TIMER_TICK:
+            handle_timer_tick();
+            break;
+            
+        case KernelEvent::Type::SHUTDOWN:
+            LOG_INFO("KERNEL", "Shutdown event received");
+            break;
+    }
+}
+
+void Kernel::handle_timer_tick() {
+    // This is where background tasks would run:
+    // - Process scheduling
+    // - Memory garbage collection
+    // - I/O completion checks
+    // - System monitoring
+    
+    // Example: Log system status periodically
+    static int tick_count = 0;
+    static int last_logged_tick = 0;
+    tick_count++;
+    
+    // Log less frequently to avoid spam (every 50 ticks = ~5 seconds)
+    if (tick_count - last_logged_tick >= 50) {
+        size_t used_mem = m_mem_mgr.get_used_memory();
+        size_t total_mem = m_mem_mgr.get_total_memory();
+        double mem_usage = (double)used_mem / total_mem * 100.0;
+        
+        LOG_DEBUG("KERNEL", "Heartbeat [tick:" + std::to_string(tick_count) + 
+                  ", mem:" + std::to_string((int)mem_usage) + "%]");
+        last_logged_tick = tick_count;
+    }
+    
+    // Here you could add:
+    // - Process scheduler time slice expiration
+    // - Disk I/O completion polling
+    // - Network packet processing
+    // - Timer-based events (cron-like tasks)
+}
+
+void Kernel::run_event_loop() {
+    LOG_INFO("KERNEL", "Kernel event loop started");
+    
+    auto last_tick = std::chrono::steady_clock::now();
+    const auto tick_interval = std::chrono::milliseconds(100); // 10 Hz tick rate
+    
+    while (kernel_running.load()) {
+        std::unique_lock<std::mutex> lock(queue_mutex);
+        
+        // Wait for event or timeout
+        if (queue_cv.wait_for(lock, tick_interval, [this] { 
+            return !event_queue.empty() || !kernel_running.load(); 
+        })) {
+            // Process all pending events
+            while (!event_queue.empty()) {
+                auto event = event_queue.front();
+                event_queue.pop();
+                lock.unlock();
+                
+                process_event(event);
+                
+                lock.lock();
+            }
+        } else {
+            // Timeout - generate timer tick
+            lock.unlock();
+            
+            auto now = std::chrono::steady_clock::now();
+            if (now - last_tick >= tick_interval) {
+                process_event({KernelEvent::Type::TIMER_TICK, ""});
+                last_tick = now;
+            }
+        }
+    }
+    
+    LOG_INFO("KERNEL", "Kernel event loop stopped");
 }
 
 void Kernel::boot(){
@@ -149,7 +250,28 @@ void Kernel::boot(){
     });
 
     LOG_INFO("KERNEL", "Init process started");
-    term.runBlockingStdioLoop();
+    
+    // Start kernel event loop in a separate thread
+    kernel_running.store(true);
+    kernel_thread = std::thread([this]() {
+        this->run_event_loop();
+    });
+    
+    // Start terminal in a separate thread
+    term.start();
+    
+    // Main thread waits for terminal to finish
+    // The kernel continues to run in its own thread, handling background tasks
+    term.join();
+    
+    // After terminal exits, stop kernel event loop
+    kernel_running.store(false);
+    queue_cv.notify_one();
+    
+    if (kernel_thread.joinable()) {
+        kernel_thread.join();
+    }
+    
     LOG_INFO("KERNEL", "Shutdown complete");
 }
 

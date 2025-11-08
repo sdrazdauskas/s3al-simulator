@@ -24,6 +24,7 @@ std::unique_ptr<ICommand> create_membar_command();
 std::unique_ptr<ICommand> create_save_command();
 std::unique_ptr<ICommand> create_load_command();
 std::unique_ptr<ICommand> create_reset_command();
+std::unique_ptr<ICommand> create_sleep_command();
 std::unique_ptr<ICommand> create_help_command(CommandRegistry* reg);
 
 inline void init_commands(CommandRegistry& reg) {
@@ -48,6 +49,7 @@ inline void init_commands(CommandRegistry& reg) {
     reg.add(create_save_command());
     reg.add(create_load_command());
     reg.add(create_reset_command());
+    reg.add(create_sleep_command());
     
     // Add alias for exit -> quit
     auto exit_cmd = create_quit_command();

@@ -14,6 +14,11 @@ namespace {
     }
 }
 
+Terminal::~Terminal() {
+    stop();
+    join();
+}
+
 void Terminal::setSendCallback(sendCallback cb) { sendCb = std::move(cb); }
 
 void Terminal::setSignalCallback(signalCallback cb) { sigCb = std::move(cb); }
@@ -35,7 +40,28 @@ void Terminal::print(const std::string& output) {
 }
 
 void Terminal::requestShutdown() {
-    should_shutdown = true;
+    should_shutdown.store(true);
+}
+
+void Terminal::start() {
+    log("INFO", "Starting terminal thread");
+    should_shutdown.store(false);
+    terminal_thread = std::thread([this]() {
+        this->runBlockingStdioLoop();
+    });
+}
+
+void Terminal::stop() {
+    log("INFO", "Stopping terminal thread");
+    should_shutdown.store(true);
+}
+
+void Terminal::join() {
+    if (terminal_thread.joinable()) {
+        log("INFO", "Waiting for terminal thread to finish");
+        terminal_thread.join();
+        log("INFO", "Terminal thread finished");
+    }
 }
 
 void Terminal::runBlockingStdioLoop() {
@@ -44,7 +70,7 @@ void Terminal::runBlockingStdioLoop() {
     
     log("INFO", "Terminal started, listening for input");
 
-    while (true) {
+    while (!should_shutdown.load()) {
         if (sigintReceived.load()) {
             sigintReceived.store(false);
             log("DEBUG", "Received SIGINT (Ctrl+C)");
@@ -52,7 +78,7 @@ void Terminal::runBlockingStdioLoop() {
             else if (sendCb) sendCb("\x03");
             
             // Check if shutdown was requested by the callback
-            if (should_shutdown) {
+            if (should_shutdown.load()) {
                 log("INFO", "Shutdown requested via signal");
                 break;
             }
@@ -73,7 +99,7 @@ void Terminal::runBlockingStdioLoop() {
         if (sendCb) sendCb(line);
         
         // Check if shutdown was requested after processing command
-        if (should_shutdown) {
+        if (should_shutdown.load()) {
             log("INFO", "Shutdown requested via command");
             break;
         }
