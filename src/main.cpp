@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 
     LOG_INFO("MAIN", "Starting s3al OS simulator");
 
-    Kernel kernel;
+    kernel::Kernel kernel;
     kernel.boot();
 
     LOG_INFO("MAIN", "Shutdown complete");

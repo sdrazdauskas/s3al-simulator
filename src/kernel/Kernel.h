@@ -16,6 +16,8 @@
 #include <Scheduler.h>
 #include "SysCallsAPI.h"
 
+namespace kernel {
+
 class Kernel {
 public:
     using CommandHandler = std::function<std::string(const std::vector<std::string>&)>;
@@ -92,3 +94,5 @@ private:
     scheduler::CPUScheduler m_scheduler;
     process::ProcessManager m_proc_manager;
 };
+
+} // namespace kernel

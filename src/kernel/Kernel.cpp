@@ -10,7 +10,7 @@
 #include "SysCalls.h"
 #include "CommandsInit.h"
 
-using namespace std;
+namespace kernel {
 
 Kernel::Kernel()
     : m_is_running(true),
@@ -57,15 +57,15 @@ bool Kernel::is_running() const { return m_is_running; }
 std::string Kernel::process_line(const std::string& line) {
     if(line.empty()) return "";
 
-    istringstream iss(line);
-    string command_name;
+    std::istringstream iss(line);
+    std::string command_name;
     iss >> command_name;
 
-    vector<string> args;
-    string token;
+    std::vector<std::string> args;
+    std::string token;
     while(iss >> token) {
         if(!token.empty() && token.front()=='"') {
-            string quoted = token.substr(1);
+            std::string quoted = token.substr(1);
             while(iss && (quoted.empty() || quoted.back()!='"')) {
                 if(!(iss>>token)) break;
                 quoted += " "+token;
@@ -223,7 +223,7 @@ void Kernel::boot(){
     });
     
     // Shell's output callback - prints results to terminal
-    sh.setOutputCallback([&term](const string& output){
+    sh.setOutputCallback([&term](const std::string& output){
         if(!output.empty()){ 
             term.print(output); 
             if(output.back()!='\n') term.print("\n"); 
@@ -235,7 +235,7 @@ void Kernel::boot(){
         this->execute_command(cmd, args);
     });
     
-    term.setSendCallback([&](const string& line){
+    term.setSendCallback([&](const std::string& line){
         sh.processCommandLine(line);
         
         // If kernel wants to shutdown, signal terminal to exit
@@ -275,32 +275,4 @@ void Kernel::boot(){
     LOG_INFO("KERNEL", "Shutdown complete");
 }
 
-std::string Kernel::handle_meminfo(const std::vector<std::string>& args) {
-    (void)args;
-    size_t total = m_mem_mgr.get_total_memory();
-    size_t used  = m_mem_mgr.get_used_memory();
-    size_t free  = total - used;
-
-    std::ostringstream oss;
-    oss << "=== Memory Info ===\n";
-    oss << "Total: " << total / 1024 << " KB\n";
-    oss << "Used : " << used / 1024 << " KB\n";
-    oss << "Free : " << free / 1024 << " KB\n";
-    return oss.str();
-}
-
-std::string Kernel::handle_membar(const std::vector<std::string>& args) {
-    (void)args;
-    size_t total = m_mem_mgr.get_total_memory();
-    size_t used  = m_mem_mgr.get_used_memory();
-    int bar_width = 40;
-    int used_blocks = static_cast<int>((double)used / total * bar_width);
-
-    std::ostringstream oss;
-    oss << "[Memory] [";
-    for (int i = 0; i < bar_width; ++i) {
-        oss << (i < used_blocks ? '#' : '-');
-    }
-    oss << "] " << (used * 100 / total) << "% used\n";
-    return oss.str();
-}
+} // namespace kernel

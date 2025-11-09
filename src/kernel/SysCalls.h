@@ -6,8 +6,8 @@
 
 struct SysApiKernel : shell::SysApi {
     storage::StorageManager& fs;
-    Kernel* kernel_owner{nullptr};
-    explicit SysApiKernel(storage::StorageManager& sm, Kernel* owner = nullptr)
+    kernel::Kernel* kernel_owner{nullptr};
+    explicit SysApiKernel(storage::StorageManager& sm, kernel::Kernel* owner = nullptr)
         : fs(sm), kernel_owner(owner) {}
 
     shell::SysResult readFile(const std::string& name, std::string& out) override {
