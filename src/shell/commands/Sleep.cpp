@@ -38,7 +38,6 @@ public:
             }
             
             out << "Sleeping for " << seconds << " seconds...\n";
-            out << "(Kernel continues running background tasks)\n";
             out << "(Press Ctrl+C to interrupt)\n";
             out << std::flush;
             
@@ -48,6 +47,7 @@ public:
                 for (int j = 0; j < 10; ++j) {
                     if (g_interrupt_requested.load()) {
                         out << "\nInterrupted after " << i << " seconds\n";
+                        out << std::flush;
                         return 130; // Standard exit code for SIGINT
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -55,6 +55,7 @@ public:
             }
             
             out << "Wake up!\n";
+            out << std::flush;
             return 0;
             
         } catch (const std::exception& e) {
