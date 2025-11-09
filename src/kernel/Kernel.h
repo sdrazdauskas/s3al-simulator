@@ -22,7 +22,7 @@ class Kernel {
 public:
     using CommandHandler = std::function<std::string(const std::vector<std::string>&)>;
 
-    Kernel();
+    explicit Kernel(size_t memory_size = 1024 * 1024);
 
     /**
      * @brief Processes a single line of input as a command and returns the result.
