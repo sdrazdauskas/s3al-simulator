@@ -1,10 +1,5 @@
 #pragma once
 
-// MSVC requires this for std::thread support
-#if defined(_MSC_VER) && !defined(_MT)
-    #define _MT
-#endif
-
 #include <string>
 #include <vector>
 #include <map>
