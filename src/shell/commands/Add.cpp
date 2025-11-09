@@ -10,7 +10,7 @@ int cmd_add(const std::vector<std::string>& args,
             SysApi& /*sys*/)
 {
     if (args.empty()) {
-        err << "Usage: add [number1] [number2] ...\n";
+        err << "Usage: add <num1> [num2] [num...]\n";
         return 1;
     }
     double sum = 0.0;

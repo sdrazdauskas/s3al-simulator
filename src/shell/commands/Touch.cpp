@@ -1,4 +1,3 @@
-// shell/cmd_touch.cpp
 #include "CommandAPI.h"
 
 namespace shell {
@@ -10,7 +9,7 @@ int cmd_touch(const std::vector<std::string>& args,
               SysApi& sys)
 {
     if (args.empty()) {
-        err << "Usage: touch <filename>\n";
+        err << "Usage: touch <filename> [filename...]\n";
         return 1;
     }
 
@@ -21,7 +20,7 @@ int cmd_touch(const std::vector<std::string>& args,
             err << "touch: " << name << ": " << shell::toString(res) << "\n";
             rc = 1;
         } else {
-            out << "[Shell] touch: " << name << ": " << shell::toString(res) << "\n";
+            out << "touch: " << name << ": " << shell::toString(res) << "\n";
         }
     }
     return rc;
