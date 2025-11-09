@@ -220,6 +220,13 @@ std::string Shell::executeScriptFile(const std::string& filename) {
     };
 
     while (std::getline(file, line)) {
+        // Check if script execution was interrupted
+        if (g_interrupt_requested.load()) {
+            log("INFO", "Script execution interrupted by user");
+            output += "\n^C\nScript interrupted";
+            break;
+        }
+        
         auto l = line.find_first_not_of(" \t\r\n");
         if (l == std::string::npos) continue;
         auto r = line.find_last_not_of(" \t\r\n");
