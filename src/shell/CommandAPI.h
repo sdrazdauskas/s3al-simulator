@@ -5,9 +5,14 @@
 #include <unordered_map>
 #include <memory>
 #include <ostream>
+#include <atomic>
 #include "SysCallsAPI.h"
 
 namespace shell {
+
+// Global interrupt flag for Ctrl+C handling
+// Commands should check this periodically and exit gracefully if set
+extern std::atomic<bool> g_interrupt_requested;
 
 // Abstract base class for all commands
 class ICommand {

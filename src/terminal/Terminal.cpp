@@ -7,9 +7,16 @@ namespace terminal {
 
 namespace {
     std::atomic<bool> sigintReceived{false};
+    // Store the signal callback globally so signal handler can access it
+    std::function<void(int)>* g_signalCallback = nullptr;
 
-    extern "C" void terminalSigintHandler(int) {
+    extern "C" void terminalSigintHandler(int sig) {
         sigintReceived.store(true);
+        // Call the callback immediately from signal handler
+        // This is safe if the callback only sets atomic flags
+        if (g_signalCallback && *g_signalCallback) {
+            (*g_signalCallback)(sig);
+        }
     }
 }
 
@@ -20,7 +27,11 @@ Terminal::~Terminal() {
 
 void Terminal::setSendCallback(sendCallback cb) { sendCb = std::move(cb); }
 
-void Terminal::setSignalCallback(signalCallback cb) { sigCb = std::move(cb); }
+void Terminal::setSignalCallback(signalCallback cb) { 
+    sigCb = std::move(cb);
+    // Store pointer to callback for signal handler
+    g_signalCallback = &sigCb;
+}
 
 void Terminal::setPromptCallback(promptCallback cb) { promptCb = std::move(cb); }
 
@@ -72,9 +83,7 @@ void Terminal::runBlockingStdioLoop() {
     while (!should_shutdown.load()) {
         if (sigintReceived.load()) {
             sigintReceived.store(false);
-            log("DEBUG", "Received SIGINT (Ctrl+C)");
-            if (sigCb) sigCb(SIGINT);
-            else if (sendCb) sendCb("\x03");
+            log("DEBUG", "Received SIGINT (Ctrl+C) - already handled in signal handler");
             
             // Check if shutdown was requested by the callback
             if (should_shutdown.load()) {

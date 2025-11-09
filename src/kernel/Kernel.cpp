@@ -9,6 +9,7 @@
 #include "Logger.h"
 #include "SysCalls.h"
 #include "CommandsInit.h"
+#include "CommandAPI.h"
 
 namespace kernel {
 
@@ -112,6 +113,24 @@ void Kernel::submit_command(const std::string& line) {
     queue_cv.notify_one();
 }
 
+void Kernel::handle_interrupt_signal(int signal) {
+    LOG_INFO("KERNEL", "Received interrupt signal: " + std::to_string(signal));
+    
+    // Set interrupt flag immediately for responsiveness
+    // Commands check this flag and should exit promptly
+    shell::g_interrupt_requested.store(true);
+    
+    // Also submit to kernel queue for proper processing
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        KernelEvent event;
+        event.type = KernelEvent::Type::INTERRUPT_SIGNAL;
+        event.signal_number = signal;
+        event_queue.push(event);
+    }
+    queue_cv.notify_one();
+}
+
 void Kernel::process_event(const KernelEvent& event) {
     switch (event.type) {
         case KernelEvent::Type::COMMAND:
@@ -121,6 +140,17 @@ void Kernel::process_event(const KernelEvent& event) {
             
         case KernelEvent::Type::TIMER_TICK:
             handle_timer_tick();
+            break;
+            
+        case KernelEvent::Type::INTERRUPT_SIGNAL:
+            LOG_DEBUG("KERNEL", "Processing interrupt signal: " + std::to_string(event.signal_number));
+            // In a real OS, the kernel would:
+            // 1. Identify the foreground process
+            // 2. Send the signal to that process
+            // 3. Let the process handle it or terminate it
+            
+            // Flag was already set immediately in handle_interrupt_signal()
+            // This event is for kernel bookkeeping and future process management
             break;
             
         case KernelEvent::Type::SHUTDOWN:
@@ -243,10 +273,12 @@ void Kernel::boot(){
             term.requestShutdown();
         }
     });
-    term.setSignalCallback([&term](int){ 
-        std::cout << "^C\n" << std::flush;
-        // TODO: Interrupt currently running process
-        // For now, just print ^C and continue
+    
+    // Terminal sends signals to kernel (like real hardware interrupt)
+    term.setSignalCallback([this](int sig){ 
+        // Hardware interrupt goes to kernel first
+        this->handle_interrupt_signal(sig);
+        std::cout << "^C" << std::flush;
     });
 
     LOG_INFO("KERNEL", "Init process started");

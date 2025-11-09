@@ -54,6 +54,9 @@ public:
     shell::SysApi::SysInfo get_sysinfo() const;
 
     std::string handle_quit(const std::vector<std::string>& args);
+    
+    // Signal handling - kernel receives interrupts from hardware/terminal
+    void handle_interrupt_signal(int signal);
 
     // Kernel event loop - runs background tasks
     void run_event_loop();
@@ -66,11 +69,13 @@ private:
         enum class Type {
             COMMAND,
             TIMER_TICK,
+            INTERRUPT_SIGNAL,
             SHUTDOWN
         };
         
         Type type;
         std::string data;
+        int signal_number{0}; // For INTERRUPT_SIGNAL events
     };
     
     void process_event(const KernelEvent& event);
