@@ -83,7 +83,6 @@ std::string Kernel::process_line(const std::string& line) {
     const int cpu_required = 2 * arg_count;
     const int memory_required = 64 * arg_count;
     if (m_proc_manager.execute_process(command_name, cpu_required, memory_required, 0) != -1) {
-        //string result = it->second(args);
         return "OK";
     } else {
         return "Error: Unable to execute process for command '" + command_name + "'.";
@@ -144,11 +143,7 @@ void Kernel::process_event(const KernelEvent& event) {
             
         case KernelEvent::Type::INTERRUPT_SIGNAL:
             LOG_DEBUG("KERNEL", "Processing interrupt signal: " + std::to_string(event.signal_number));
-            // In a real OS, the kernel would:
-            // 1. Identify the foreground process
-            // 2. Send the signal to that process
-            // 3. Let the process handle it or terminate it
-            
+
             // Flag was already set immediately in handle_interrupt_signal()
             // This event is for kernel bookkeeping and future process management
             break;
@@ -163,30 +158,24 @@ void Kernel::handle_timer_tick() {
     // This is where background tasks would run:
     // - Process scheduling
     // - Memory garbage collection
-    // - I/O completion checks
     // - System monitoring
     
-    // Example: Log system status periodically
+    // Example: Timer tick counter
     static int tick_count = 0;
     static int last_logged_tick = 0;
     tick_count++;
     
-    // Log less frequently to avoid spam (every 50 ticks = ~5 seconds)
+    // Log system status periodically (every 50 ticks = ~5 seconds)
+    // In a real OS, this would be dmesg or system monitoring tools
     if (tick_count - last_logged_tick >= 50) {
         size_t used_mem = m_mem_mgr.get_used_memory();
         size_t total_mem = m_mem_mgr.get_total_memory();
         double mem_usage = (double)used_mem / total_mem * 100.0;
         
-        LOG_DEBUG("KERNEL", "Heartbeat [tick:" + std::to_string(tick_count) + 
+        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count) + 
                   ", mem:" + std::to_string((int)mem_usage) + "%]");
         last_logged_tick = tick_count;
     }
-    
-    // Here you could add:
-    // - Process scheduler time slice expiration
-    // - Disk I/O completion polling
-    // - Network packet processing
-    // - Timer-based events (cron-like tasks)
 }
 
 void Kernel::run_event_loop() {
@@ -239,7 +228,7 @@ void Kernel::boot(){
     };
     
 
-    SysApiKernel sys(m_storage, this);//build syscalls 
+    SysApiKernel sys(m_storage, this); //build syscalls 
     shell::Shell sh(sys, registry);
 
     sh.setLogCallback(logger_callback); 

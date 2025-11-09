@@ -5,6 +5,7 @@
 
 namespace terminal {
 
+// Anonymous namespace for helpers
 namespace {
     std::atomic<bool> sigintReceived{false};
     // Store the signal callback globally so signal handler can access it
