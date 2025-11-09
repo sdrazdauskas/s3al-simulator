@@ -60,7 +60,7 @@ public:
     StorageResponse deleteFile(const std::string& name);
     StorageResponse writeFile(const std::string& name, const std::string& content);
     StorageResponse readFile(const std::string& name, std::string& outContent) const;
-    StorageResponse editFile(const std::string& name);
+    StorageResponse editFile(const std::string& name, const std::string& newContent);
 
     // FOLDER OPERATIONS
     StorageResponse makeDir(const std::string& name);

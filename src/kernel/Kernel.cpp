@@ -108,7 +108,7 @@ void Kernel::boot(){
     };
     
 
-    SysApiKernel sys(m_storage, this);//build sysclals
+    SysApiKernel sys(m_storage, this);//build syscalls
     shell::CommandRegistry reg;//build command REGISTRY
     init_commands(reg); // register commands
     shell::Shell sh(sys, reg);

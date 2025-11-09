@@ -22,7 +22,13 @@ int cmd_cat(const std::vector<std::string>& args,
             rc = 1;
             continue;
         }
-        out << content;
+
+        out << "=== contents of " << name << " ===\n";
+        if (content.empty())
+            out << "(empty)\n";
+        else
+            out << content;
+        out << "=============================\n";
     }
     return rc;
 }

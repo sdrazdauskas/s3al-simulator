@@ -65,20 +65,12 @@ TEST_F(StorageManagerTest, WriteFile_NotFound) {
 }
 
 TEST_F(StorageManagerTest, EditFile_ShouldAppendNewLines) {
-    std::istringstream fakeInput("foo\nbar\n:wq\n");
-    std::ostringstream fakeOutput;
-
-    std::streambuf* originalCin = std::cin.rdbuf(fakeInput.rdbuf());
-    std::streambuf* originalCout = std::cout.rdbuf(fakeOutput.rdbuf());
-
     EXPECT_EQ(storage.createFile("test.txt"), Response::OK);
     EXPECT_EQ(storage.writeFile("test.txt", "test"), Response::OK);
 
-    const auto response = storage.editFile("test.txt");
+    const std::string newContent = "foo\nbar\n";
 
-    std::cin.rdbuf(originalCin);
-    std::cout.rdbuf(originalCout);
-
+    const auto response = storage.editFile("test.txt", newContent);
     EXPECT_EQ(response, StorageManager::StorageResponse::OK);
 
     std::string contents;
@@ -87,17 +79,14 @@ TEST_F(StorageManagerTest, EditFile_ShouldAppendNewLines) {
 }
 
 TEST_F(StorageManagerTest, EditFile_ShouldReturnNotFoundForMissingFile) {
-    std::istringstream fakeInput(":wq\n");
-    std::streambuf* originalCin = std::cin.rdbuf(fakeInput.rdbuf());
-
-    const auto response = storage.editFile("ghost.txt");
-    std::cin.rdbuf(originalCin);
-
+    const std::string newContent = "some text\n";
+    const auto response = storage.editFile("ghost.txt", newContent);
     EXPECT_EQ(response, StorageManager::StorageResponse::NotFound);
 }
 
 TEST_F(StorageManagerTest, EditFile_ShouldReturnInvalidArgumentForEmptyName) {
-    const auto response = storage.editFile("");
+    const std::string newContent = "anything\n";
+    const auto response = storage.editFile("", newContent);
     EXPECT_EQ(response, StorageManager::StorageResponse::InvalidArgument);
 }
 
