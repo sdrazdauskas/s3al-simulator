@@ -21,7 +21,13 @@ target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal)
 target_link_libraries(kernel PUBLIC terminal shell logging memory process storage scheduler)
 
 # Storage library
-add_library(storage STATIC src/storage/Storage.cpp)
+add_library(storage STATIC
+    src/storage/Storage.cpp
+    src/storage/StorageFileOps.cpp
+    src/storage/StorageFolderOps.cpp
+    src/storage/StorageIO.cpp
+    src/storage/StorageUtils.cpp
+)
 target_include_directories(storage 
     PUBLIC src/storage
     PUBLIC ${CMAKE_SOURCE_DIR}/include
