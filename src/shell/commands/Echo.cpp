@@ -10,7 +10,7 @@ int cmd_echo(const std::vector<std::string>& args,
              SysApi& /*sys*/)
 {
     if (args.empty()) {
-        err << "Usage: echo [text]\n";
+        err << "Usage: echo <text>\n";
         return 1;
     }
     for (size_t i = 0; i < args.size(); ++i) {

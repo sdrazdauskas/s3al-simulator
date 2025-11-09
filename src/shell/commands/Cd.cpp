@@ -10,7 +10,7 @@ int cmd_cd(const std::vector<std::string>& args,
            SysApi& sys)
 {
     if (args.empty()) {
-        err << "Usage: cd <foldername|..>\n";
+        err << "Usage: cd <foldername> | ..\n";
         return 1;
     }
     auto res = sys.changeDir(args[0]);
