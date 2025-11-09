@@ -111,15 +111,17 @@ void Shell::processCommandLine(const std::string& commandLine) {
         std::vector<std::string> pipeCommands = splitByPipeOperator(andCmd);
         std::string pipeInput;
 
-        for (const auto& segment : pipeCommands) {
+        for (size_t i = 0; i < pipeCommands.size(); ++i) {
             std::string command;
             std::vector<std::string> args;
-            parseCommand(segment, command, args);
+            parseCommand(pipeCommands[i], command, args);
 
             if (command.empty())
                 continue;
 
-            std::string result = executeCommand(command, args, pipeInput);
+            // We're in a pipe chain if there's a next command
+            bool inPipeChain = (i < pipeCommands.size() - 1);
+            std::string result = executeCommand(command, args, pipeInput, inPipeChain);
             pipeInput = result;
         }
 
@@ -139,7 +141,8 @@ void Shell::processCommandLine(const std::string& commandLine) {
 
 std::string Shell::executeCommand(const std::string& command,
                                   const std::vector<std::string>& args,
-                                  const std::string& input) {
+                                  const std::string& input,
+                                  bool inPipeChain) {
     if (command.empty()) {
         log("ERROR", "No command specified");
         return "Error: No command specified";
@@ -169,22 +172,43 @@ std::string Shell::executeCommand(const std::string& command,
     // Reset interrupt flag before executing command
     g_interrupt_requested.store(false);
 
-    std::ostringstream out, err;
-    int rc = cmd->execute(argsWithInput, input, out, err, sys);
+    int rc;
+    std::string result;
+    
+    // Buffer output if we're in a pipe chain (need to pass to next command)
+    if (inPipeChain) {
+        // Buffer for pipes
+        std::ostringstream out, err;
+        rc = cmd->execute(argsWithInput, input, out, err, sys);
+        
+        if (!err.str().empty()) {
+            log("ERROR", err.str());
+            result += err.str();
+        }
+        result += out.str();
+    } else {
+        // Stream output directly to terminal (no buffering)
+        CallbackStreamBuf out_buf(outputCallback);
+        CallbackStreamBuf err_buf(outputCallback);
+        std::ostream out(&out_buf);
+        std::ostream err(&err_buf);
+        
+        rc = cmd->execute(argsWithInput, input, out, err, sys);
+        
+        // Flush any remaining output
+        out.flush();
+        err.flush();
+    }
 
     // Check if command was interrupted
     if (g_interrupt_requested.load()) {
         log("INFO", "Command interrupted by user");
         g_interrupt_requested.store(false);
-        return "^C\nCommand interrupted";
+        if (outputCallback && !inPipeChain) {
+            outputCallback("^C\nCommand interrupted\n");
+        }
+        return "";
     }
-
-    std::string result;
-    if (!err.str().empty()) {
-        log("ERROR", err.str());
-        result += err.str();
-    }
-    result += out.str();
 
     return result;
 }
