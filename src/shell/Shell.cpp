@@ -4,6 +4,9 @@
 
 namespace shell {
 
+// Global interrupt flag for Ctrl+C handling
+std::atomic<bool> g_interrupt_requested{false};
+
 Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
     : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)) {}
 
@@ -163,8 +166,18 @@ std::string Shell::executeCommand(const std::string& command,
         kernelCallback(command, argsWithInput);
     }
 
+    // Reset interrupt flag before executing command
+    g_interrupt_requested.store(false);
+
     std::ostringstream out, err;
     int rc = cmd->execute(argsWithInput, input, out, err, sys);
+
+    // Check if command was interrupted
+    if (g_interrupt_requested.load()) {
+        log("INFO", "Command interrupted by user");
+        g_interrupt_requested.store(false);
+        return "^C\nCommand interrupted";
+    }
 
     std::string result;
     if (!err.str().empty()) {
