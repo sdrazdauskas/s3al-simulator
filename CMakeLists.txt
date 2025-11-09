@@ -5,9 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# MSVC specific settings for threading support
+# Ensure system headers are searched first (fixes Process.h vs process.h conflict on Windows)
 if(MSVC)
-    add_compile_options(/MT$<$<CONFIG:Debug>:d>)  # Use multithreaded runtime
+    set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "/external:I ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /external:W0")
 endif()
 
 # Find Threads package (required for std::thread)

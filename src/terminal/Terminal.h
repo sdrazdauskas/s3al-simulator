@@ -1,30 +1,14 @@
 #pragma once
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOGDI
-#define NOMINMAX
-#include <windows.h>
-// Forward declare _beginthreadex to help MSVC
-extern "C" {
-    uintptr_t __cdecl _beginthreadex(
-        void* _Security,
-        unsigned _StackSize,
-        unsigned(__stdcall* _StartAddress)(void*),
-        void* _ArgList,
-        unsigned _InitFlag,
-        unsigned* _ThrdAddr
-    );
-}
-#undef ERROR
+// MSVC requires this for std::thread support
+#if defined(_MSC_VER) && !defined(_MT)
+    #define _MT
 #endif
 
 #include <memory>
 #include <string>
 #include <utility>
-
 #include <functional>
-#include <string>
 #include <thread>
 #include <atomic>
 
