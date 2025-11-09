@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <iostream>
 #include <csignal>
-#include <atomic>
 
 namespace terminal {
 
