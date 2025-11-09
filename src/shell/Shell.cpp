@@ -95,9 +95,14 @@ void Shell::processCommandLine(const std::string& commandLine) {
         std::string command;
         std::vector<std::string> args;
         parseCommand(commandLine, command, args);
-        std::string result = executeCommand(command, args, "");
-        if (outputCallback && !result.empty())
-            outputCallback(result);
+
+        CommandFn fn = registry.find(command);
+        if (fn) {
+            fn(args, "", std::cout, std::cerr, sys);
+
+            std::cout.flush();
+            std::cerr.flush();
+        }
         return;
     }
 

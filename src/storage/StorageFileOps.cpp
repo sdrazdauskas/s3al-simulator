@@ -89,27 +89,14 @@ Response StorageManager::readFile(const std::string& name,
     return Response::OK;
 }
 
-Response StorageManager::editFile(const std::string& name) {
+Response StorageManager::editFile(const std::string& name,
+                                  const std::string& newContent) {
     if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFileIndex(name);
     if (i == -1) return Response::NotFound;
 
     File& f = *currentFolder->files[i];
-    std::cout << "=== Editing " << name << " ===\n";
-    if (f.content.empty()) std::cout << "(empty)\n";
-    else std::cout << f.content;
-    std::cout << "--------------------------------------\n";
-    std::cout << "Type new content below to ADD to the file.\n";
-    std::cout << "Type ':wq' on a new line to save and exit.\n";
-    std::cout << "--------------------------------------\n";
-
-    std::string newLines, line;
-    while (true) {
-        std::getline(std::cin, line);
-        if (line == ":wq") break;
-        newLines += line + "\n";
-    }
-    f.content += newLines;
+    f.content += newContent;
     f.modifiedAt = std::chrono::system_clock::now();
     currentFolder->modifiedAt = std::chrono::system_clock::now();
     return Response::OK;

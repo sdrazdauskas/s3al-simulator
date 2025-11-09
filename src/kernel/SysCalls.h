@@ -34,9 +34,9 @@ struct SysApiKernel : shell::SysApi {
         }
     }
 
-    shell::SysResult editFile(const std::string& name) override {
+    shell::SysResult editFile(const std::string& name, const std::string& newContent) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.editFile(name);
+        auto res = fs.editFile(name, newContent);
         switch (res) {
             case Resp::OK: return shell::SysResult::OK;
             case Resp::NotFound: return shell::SysResult::NotFound;
@@ -94,6 +94,7 @@ struct SysApiKernel : shell::SysApi {
         auto res = fs.changeDir(name);
         switch(res) {
             case Resp::OK: return shell::SysResult::OK;
+            case Resp::AtRoot: return shell::SysResult::AtRoot;
             case Resp::NotFound: return shell::SysResult::NotFound;
             case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
             default: return shell::SysResult::Error;
