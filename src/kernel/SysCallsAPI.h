@@ -54,7 +54,7 @@ struct SysApi {
     virtual SysResult moveFile(const std::string& src, const std::string& dest) = 0;
     virtual SysResult moveDir(const std::string& src, const std::string& dest) = 0;
 
-    virtual std::vector<std::string> listDir() = 0;
+    virtual SysResult listDir(const std::string& path, std::vector<std::string>& out) = 0;
     virtual std::string getWorkingDir() = 0;
 
     virtual SysInfo get_sysinfo() = 0;

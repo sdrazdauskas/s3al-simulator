@@ -192,8 +192,14 @@ struct SysApiKernel : shell::SysApi {
         }
     }
 
-    std::vector<std::string> listDir() override {
-        return fs.listDir();
+    shell::SysResult listDir(const std::string& path, std::vector<std::string>& out) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.listDir(path, out);
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            default: return shell::SysResult::Error;
+        }
     }
 
     std::string getWorkingDir() override {
