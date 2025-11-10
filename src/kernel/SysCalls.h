@@ -131,6 +131,54 @@ struct SysApiKernel : shell::SysApi {
         }
     }
 
+    shell::SysResult copyFile(const std::string& src, const std::string& dest) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.copyFile(src, dest);
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
+            default: return shell::SysResult::Error;
+        }
+    }
+
+    shell::SysResult copyDir(const std::string& src, const std::string& dest) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.copyDir(src, dest);
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
+            default: return shell::SysResult::Error;
+        }
+    }
+
+    shell::SysResult moveFile(const std::string& src, const std::string& dest) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.moveFile(src, dest);
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
+            default: return shell::SysResult::Error;
+        }
+    }
+
+    shell::SysResult moveDir(const std::string& src, const std::string& dest) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.moveDir(src, dest);
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
+            default: return shell::SysResult::Error;
+        }
+    }
+
     std::vector<std::string> listDir() override {
         return fs.listDir();
     }

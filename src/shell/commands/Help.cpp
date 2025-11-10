@@ -31,7 +31,11 @@ int cmd_help(const std::vector<std::string>& /*args*/,
         {"load", "<name>", "Load storage state from 'data/<name>.json'"},
         {"reset", "", "Clear current storage and start fresh"},
         {"membar", "", "Display memory usage bar"},
-        {"meminfo", "", "Display memory info summary"}
+        {"meminfo", "", "Display memory info summary"},
+        {"cp", "<source> <destination>", "Copy a file from source to destination"},
+        {"cpdir", "<srcDir> <destDir>", "Recursively copy a directory"},
+        {"mv", "<oldName> <newName>", "Move or rename a file"},
+        {"mvdir", "<oldDir> <newDir>", "Move or rename a directory"}
     };
 
     size_t max_name_len=4, max_param_len=9, max_desc_len = 11;

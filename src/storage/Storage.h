@@ -61,6 +61,8 @@ public:
     StorageResponse writeFile(const std::string& name, const std::string& content);
     StorageResponse readFile(const std::string& name, std::string& outContent) const;
     StorageResponse editFile(const std::string& name, const std::string& newContent);
+    StorageResponse copyFile(const std::string& srcName, const std::string& destName);
+    StorageResponse moveFile(const std::string& oldName, const std::string& newName);
 
     // FOLDER OPERATIONS
     StorageResponse makeDir(const std::string& name);
@@ -68,6 +70,8 @@ public:
     StorageResponse changeDir(const std::string& path);
     std::vector<std::string> listDir() const;
     std::string getWorkingDir() const;
+    StorageResponse copyDir(const std::string& srcName, const std::string& destName);
+    StorageResponse moveDir(const std::string& oldName, const std::string& newName);
 
     // DISK IO OPERATIONS
     StorageResponse saveToDisk(const std::string& fileName) const;
@@ -81,6 +85,7 @@ private:
     int findFileIndex(const std::string& name) const;
     int findFolderIndex(const std::string& name) const;
     void recursiveDelete(Folder& folder);
+    void recursiveCopyDir(const Folder& src, Folder& destParent);
 
     // DATA MEMBERS
     std::unique_ptr<Folder> root;

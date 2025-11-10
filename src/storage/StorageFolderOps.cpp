@@ -103,4 +103,97 @@ std::string StorageManager::getWorkingDir() const {
     return path.str();
 }
 
+void StorageManager::recursiveCopyDir(const Folder& src, Folder& destParent) {
+    auto target = std::make_unique<Folder>();
+    target->name = src.name;
+    target->parent = &destParent;
+    target->createdAt = std::chrono::system_clock::now();
+    target->modifiedAt = std::chrono::system_clock::now();
+
+    for (const auto& f : src.files) {
+        auto fileCopy = std::make_unique<File>(*f);
+        fileCopy->createdAt = std::chrono::system_clock::now();
+        fileCopy->modifiedAt = std::chrono::system_clock::now();
+        target->files.push_back(std::move(fileCopy));
+    }
+
+    for (const auto& sub : src.subfolders) {
+        recursiveCopyDir(*sub, *target);
+    }
+
+    destParent.subfolders.push_back(std::move(target));
+}
+
+Response StorageManager::copyDir(const std::string& srcName,
+                                 const std::string& destName) {
+    int srcIndex = findFolderIndex(srcName);
+    if (srcIndex == -1)
+        return Response::NotFound;
+
+    Folder* srcFolder = currentFolder->subfolders[srcIndex].get();
+
+    // if destName is an existing dir, copy src inside it
+    int destDirIndex = findFolderIndex(destName);
+    if (destDirIndex != -1) {
+        Folder* destDir = currentFolder->subfolders[destDirIndex].get();
+
+        // prevent same name conflict inside destination dir
+        for (const auto& sub : destDir->subfolders)
+            if (sub->name == srcFolder->name)
+                return Response::AlreadyExists;
+
+        // copy inside destination dir
+        recursiveCopyDir(*srcFolder, *destDir);
+        log("INFO", "Copied '" + srcName + "' into directory '" + destName + "'");
+        return Response::OK;
+    }
+
+    // or else copy and rename to destName
+    if (findFolderIndex(destName) != -1)
+        return Response::AlreadyExists;
+
+    recursiveCopyDir(*srcFolder, *currentFolder);
+    currentFolder->subfolders.back()->name = destName;
+
+    log("INFO", "Copied directory '" + srcName + "' to '" + destName + "'");
+    return Response::OK;
+}
+
+Response StorageManager::moveDir(const std::string& oldName,
+                                 const std::string& newName) {
+    int srcIndex = findFolderIndex(oldName);
+    if (srcIndex == -1)
+        return Response::NotFound;
+
+    // destination is an existing dir, move inside
+    int destDirIndex = findFolderIndex(newName);
+    if (destDirIndex != -1) {
+        Folder* destDir = currentFolder->subfolders[destDirIndex].get();
+
+        // prevent same name conflict inside destination dir
+        for (const auto& sub : destDir->subfolders)
+            if (sub->name == oldName)
+                return Response::AlreadyExists;
+
+        // move folder pointer
+        auto folderPtr = std::move(currentFolder->subfolders[srcIndex]);
+        currentFolder->subfolders.erase(currentFolder->subfolders.begin() + srcIndex);
+        folderPtr->parent = destDir;
+        destDir->subfolders.push_back(std::move(folderPtr));
+
+        log("INFO", "Moved folder '" + oldName + "' into directory '" + newName + "'");
+        return Response::OK;
+    }
+
+    // or else destination is a new name, rename folder
+    if (findFolderIndex(newName) != -1)
+        return Response::AlreadyExists;
+
+    currentFolder->subfolders[srcIndex]->name = newName;
+    currentFolder->subfolders[srcIndex]->modifiedAt = std::chrono::system_clock::now();
+
+    log("INFO", "Renamed folder from '" + oldName + "' to '" + newName + "'");
+    return Response::OK;
+}
+
 }  // namespace storage
