@@ -93,22 +93,30 @@ Response StorageManager::editFile(const std::string& name,
                                   const std::string& newContent) {
     if (isNameInvalid(name)) return Response::InvalidArgument;
     int i = findFileIndex(name);
-    if (i == -1) return Response::NotFound;
-
+    if (i == -1) {
+        log("ERROR", "File not found: " + name);
+        return Response::NotFound;
+    }
     File& f = *currentFolder->files[i];
     f.content += newContent;
     f.modifiedAt = std::chrono::system_clock::now();
     currentFolder->modifiedAt = std::chrono::system_clock::now();
+    log("INFO", "Edited file: " + name);
     return Response::OK;
 }
 
 Response StorageManager::copyFile(const std::string& srcName,
                                   const std::string& destName) {
     int i = findFileIndex(srcName);
-    if (i == -1) return Response::NotFound;
+    if (i == -1) {
+        log("ERROR", "File not found: " + srcName);
+        return Response::NotFound;
+    }
 
-    if (findFileIndex(destName) != -1) return Response::AlreadyExists;
-
+    if (findFileIndex(destName) != -1) {
+        log("ERROR", "File already exists: " + destName);
+        return Response::AlreadyExists;
+    }
     const File& src = *currentFolder->files[i];
     auto newFile = std::make_unique<File>(src);
     newFile->name = destName;
@@ -123,7 +131,10 @@ Response StorageManager::copyFile(const std::string& srcName,
 Response StorageManager::moveFile(const std::string& srcName,
                                   const std::string& destName) {
     int srcIndex = findFileIndex(srcName);
-    if (srcIndex == -1) return Response::NotFound;
+    if (srcIndex == -1) {
+        log("ERROR", "File not found: " + srcName);
+        return Response::NotFound;
+    }
 
     // check if destName is a dir
     int destDirIndex = findFolderIndex(destName);
@@ -133,7 +144,10 @@ Response StorageManager::moveFile(const std::string& srcName,
 
         // check for same file name in destination dir
         for (const auto& f : destFolder->files)
-            if (f->name == srcName) return Response::AlreadyExists;
+            if (f->name == srcName) {
+                log("ERROR", "File already exists: " + srcName);
+                return Response::AlreadyExists;
+            }
 
         // move the file
         auto filePtr = std::move(currentFolder->files[srcIndex]);
@@ -145,8 +159,10 @@ Response StorageManager::moveFile(const std::string& srcName,
     }
 
     // or else rename the file
-    if (findFileIndex(destName) != -1)
+    if (findFileIndex(destName) != -1) {
+        log("ERROR", "File already exists: " + destName);
         return Response::AlreadyExists;
+    }
 
     currentFolder->files[srcIndex]->name = destName;
     currentFolder->files[srcIndex]->modifiedAt = std::chrono::system_clock::now();
