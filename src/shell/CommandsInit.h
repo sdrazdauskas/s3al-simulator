@@ -41,6 +41,14 @@ int cmd_load(const std::vector<std::string>&,
              const std::string&, std::ostream&, std::ostream&, SysApi&);
 int cmd_reset(const std::vector<std::string>&,
               const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_cp(const std::vector<std::string>&,
+            const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_cpdir(const std::vector<std::string>&,
+              const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_mv(const std::vector<std::string>&,
+            const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_mvdir(const std::vector<std::string>&,
+              const std::string&, std::ostream&, std::ostream&, SysApi&);
 
 inline void init_commands(CommandRegistry& reg) {
     reg.add("cat", &cmd_cat);
@@ -63,6 +71,10 @@ inline void init_commands(CommandRegistry& reg) {
     reg.add("save", &cmd_save);
     reg.add("load", &cmd_load);
     reg.add("reset", &cmd_reset);
+    reg.add("cp", &cmd_cp);
+    reg.add("cpdir", &cmd_cpdir);
+    reg.add("mv", &cmd_mv);
+    reg.add("mvdir", &cmd_mvdir);
 }
 
 } // namespace shell

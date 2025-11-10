@@ -102,4 +102,56 @@ Response StorageManager::editFile(const std::string& name,
     return Response::OK;
 }
 
+Response StorageManager::copyFile(const std::string& srcName,
+                                  const std::string& destName) {
+    int i = findFileIndex(srcName);
+    if (i == -1) return Response::NotFound;
+
+    if (findFileIndex(destName) != -1) return Response::AlreadyExists;
+
+    const File& src = *currentFolder->files[i];
+    auto newFile = std::make_unique<File>(src);
+    newFile->name = destName;
+    newFile->createdAt = std::chrono::system_clock::now();
+    newFile->modifiedAt = std::chrono::system_clock::now();
+    currentFolder->files.push_back(std::move(newFile));
+
+    log("INFO", "Copied file '" + srcName + "' to '" + destName + "'");
+    return Response::OK;
+}
+
+Response StorageManager::moveFile(const std::string& srcName,
+                                  const std::string& destName) {
+    int srcIndex = findFileIndex(srcName);
+    if (srcIndex == -1) return Response::NotFound;
+
+    // check if destName is a dir
+    int destDirIndex = findFolderIndex(destName);
+    if (destDirIndex != -1) {
+        // destination is a dir, move file inside it
+        Folder* destFolder = currentFolder->subfolders[destDirIndex].get();
+
+        // check for same file name in destination dir
+        for (const auto& f : destFolder->files)
+            if (f->name == srcName) return Response::AlreadyExists;
+
+        // move the file
+        auto filePtr = std::move(currentFolder->files[srcIndex]);
+        currentFolder->files.erase(currentFolder->files.begin() + srcIndex);
+        destFolder->files.push_back(std::move(filePtr));
+
+        log("INFO", "Moved file '" + srcName + "' into directory '" + destName + "'");
+        return Response::OK;
+    }
+
+    // or else rename the file
+    if (findFileIndex(destName) != -1)
+        return Response::AlreadyExists;
+
+    currentFolder->files[srcIndex]->name = destName;
+    currentFolder->files[srcIndex]->modifiedAt = std::chrono::system_clock::now();
+    log("INFO", "Renamed file from '" + srcName + "' to '" + destName + "'");
+    return Response::OK;
+}
+
 }  // namespace storage

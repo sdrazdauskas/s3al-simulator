@@ -48,6 +48,11 @@ struct SysApi {
     virtual SysResult loadFromDisk(const std::string& fileName) = 0;
     virtual SysResult resetStorage() = 0;
 
+    virtual SysResult copyFile(const std::string& src, const std::string& dest) = 0;
+    virtual SysResult copyDir(const std::string& src, const std::string& dest) = 0;
+    virtual SysResult moveFile(const std::string& src, const std::string& dest) = 0;
+    virtual SysResult moveDir(const std::string& src, const std::string& dest) = 0;
+
     virtual std::vector<std::string> listDir() = 0;
     virtual std::string getWorkingDir() = 0;
 
