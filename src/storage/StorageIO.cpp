@@ -102,4 +102,28 @@ Response StorageManager::loadFromDisk(const std::string& fileName) {
     }
 }
 
+Response StorageManager::listDataFiles(std::vector<std::string>& outFiles) const {
+    try {
+        std::filesystem::path dataDir{"data"};
+        if (!std::filesystem::exists(dataDir)) {
+            return Response::NotFound;
+        }
+
+        outFiles.clear();
+
+        for (auto& entry : std::filesystem::directory_iterator(dataDir)) {
+            if (entry.is_regular_file() &&
+                entry.path().extension() == ".json") {
+                std::string filename = entry.path().stem().string();
+                outFiles.push_back(filename);
+            }
+        }
+
+        if (outFiles.empty()) return Response::NotFound;
+        return Response::OK;
+    } catch (...) {
+        return Response::Error;
+    }
+}
+
 }  // namespace storage
