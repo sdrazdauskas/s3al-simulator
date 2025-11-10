@@ -76,6 +76,7 @@ public:
     // DISK IO OPERATIONS
     StorageResponse saveToDisk(const std::string& fileName) const;
     StorageResponse loadFromDisk(const std::string& fileName);
+    StorageResponse listDataFiles(std::vector<std::string>& outFiles) const;
 
     // RESET
     StorageResponse reset();

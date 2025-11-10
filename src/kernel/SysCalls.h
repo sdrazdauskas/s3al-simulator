@@ -122,6 +122,19 @@ struct SysApiKernel : shell::SysApi {
         }
     }
 
+    shell::SysResult listDataFiles(std::vector<std::string>& out) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.listDataFiles(out);
+        switch (res) {
+            case Resp::OK:
+                return shell::SysResult::OK;
+            case Resp::NotFound:
+                return shell::SysResult::NotFound;
+            default:
+                return shell::SysResult::Error;
+        }
+    }
+
     shell::SysResult resetStorage() override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = fs.reset();

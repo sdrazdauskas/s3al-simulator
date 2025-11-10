@@ -46,6 +46,7 @@ struct SysApi {
 
     virtual SysResult saveToDisk(const std::string& fileName) = 0;
     virtual SysResult loadFromDisk(const std::string& fileName) = 0;
+    virtual SysResult listDataFiles(std::vector<std::string>& out) = 0;
     virtual SysResult resetStorage() = 0;
 
     virtual SysResult copyFile(const std::string& src, const std::string& dest) = 0;

@@ -39,6 +39,8 @@ int cmd_save(const std::vector<std::string>&,
              const std::string&, std::ostream&, std::ostream&, SysApi&);
 int cmd_load(const std::vector<std::string>&,
              const std::string&, std::ostream&, std::ostream&, SysApi&);
+int cmd_listdata(const std::vector<std::string>&,
+                 const std::string&, std::ostream&, std::ostream&, SysApi&);
 int cmd_reset(const std::vector<std::string>&,
               const std::string&, std::ostream&, std::ostream&, SysApi&);
 int cmd_cp(const std::vector<std::string>&,
@@ -71,6 +73,7 @@ inline void init_commands(CommandRegistry& reg) {
     reg.add("save", &cmd_save);
     reg.add("load", &cmd_load);
     reg.add("reset", &cmd_reset);
+    reg.add("listdata", &cmd_listdata);
     reg.add("cp", &cmd_cp);
     reg.add("cpdir", &cmd_cpdir);
     reg.add("mv", &cmd_mv);

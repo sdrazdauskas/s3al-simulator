@@ -29,13 +29,14 @@ int cmd_help(const std::vector<std::string>& /*args*/,
         {"pwd","","Show current directory path"},
         {"save", "<name>", "Save current storage state to 'data/<name>.json'"},
         {"load", "<name>", "Load storage state from 'data/<name>.json'"},
+        {"listdata", "", "List all saved .json data files available for load"},
         {"reset", "", "Clear current storage and start fresh"},
         {"membar", "", "Display memory usage bar"},
         {"meminfo", "", "Display memory info summary"},
-        {"cp", "<source> <destination>", "Copy a file from source to destination"},
-        {"cpdir", "<srcDir> <destDir>", "Recursively copy a directory"},
-        {"mv", "<oldName> <newName>", "Move or rename a file"},
-        {"mvdir", "<oldDir> <newDir>", "Move or rename a directory"}
+        {"cp", "<srcfile> <destfile>", "Copy a file from source to destination"},
+        {"cpdir", "<srcdir> <destdir>", "Recursively copy a directory"},
+        {"mv", "<oldfile> <newfile>", "Move or rename a file"},
+        {"mvdir", "<olddir> <newdir>", "Move or rename a directory"}
     };
 
     size_t max_name_len=4, max_param_len=9, max_desc_len = 11;
