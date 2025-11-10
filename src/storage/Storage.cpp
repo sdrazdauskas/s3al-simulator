@@ -5,7 +5,7 @@ namespace storage {
 
 StorageManager::StorageManager() {
     root = std::make_unique<Folder>();
-    root->name = "root";
+    root->name = "/";
     root->parent = nullptr;
     currentFolder = root.get();
 }
@@ -18,7 +18,7 @@ StorageManager::StorageResponse StorageManager::reset() {
     try {
         recursiveDelete(*root);
         root = std::make_unique<Folder>();
-        root->name = "root";
+        root->name = "/";
         root->parent = nullptr;
         currentFolder = root.get();
         log("INFO", "Storage reset to empty state");

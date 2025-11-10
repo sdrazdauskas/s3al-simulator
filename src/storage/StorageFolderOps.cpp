@@ -91,10 +91,18 @@ std::string StorageManager::getWorkingDir() const {
     std::ostringstream path;
     std::vector<std::string> parts;
     auto* tmp = currentFolder;
+    
     while (tmp) {
-        parts.push_back(tmp->name);
+        if (tmp->name != "/") {
+            parts.push_back(tmp->name);
+        }
         tmp = tmp->parent;
     }
+    
+    if (parts.empty()) {
+        return "/";
+    }
+    
     path << "/";
     for (int i = static_cast<int>(parts.size()) - 1; i >= 0; --i) {
         path << parts[i];
