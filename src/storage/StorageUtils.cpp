@@ -49,9 +49,7 @@ std::string formatTime(const std::chrono::system_clock::time_point& tp) {
     return ss.str();
 }
 
-StorageManager::PathInfo StorageManager::parsePath(
-    const std::string& path) const {
-    
+StorageManager::PathInfo StorageManager::parsePath(const std::string& path) const {
     if (path.empty()) {
         return {nullptr, ""};
     }
@@ -76,6 +74,11 @@ StorageManager::PathInfo StorageManager::parsePath(
     }
     if (!part.empty()) {
         parts.push_back(part);
+    }
+
+    // handle "/" case, just return root with empty name
+    if (parts.empty() && isAbsolute) {
+        return {root.get(), ""};
     }
 
     if (parts.empty()) {
@@ -108,7 +111,22 @@ StorageManager::PathInfo StorageManager::parsePath(
         }
     }
 
-    // return folder and filename
+    // handle the last part
+    const std::string& lastName = parts.back();
+    
+    // if last part is ".." or ".", handle specially
+    if (lastName == "..") {
+        if (current->parent) {
+            return {current->parent, ""};
+        }
+        return {current, ""};
+    }
+    
+    if (lastName == ".") {
+        return {current, ""};
+    }
+
+    // return folder and filename/dirname
     return {current, parts.back()};
 }
 
