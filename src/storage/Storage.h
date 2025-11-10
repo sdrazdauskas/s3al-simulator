@@ -43,6 +43,11 @@ public:
         std::chrono::system_clock::time_point modifiedAt;
     };
 
+    struct PathInfo {
+        Folder* folder;
+        std::string name;
+    };
+
 public:
     // CONSTRUCTOR
     StorageManager();
@@ -83,6 +88,7 @@ public:
 
 private:
     // INTERNAL HELPERS
+    PathInfo parsePath(const std::string& path) const;
     int findFileIndex(const std::string& name) const;
     int findFolderIndex(const std::string& name) const;
     void recursiveDelete(Folder& folder);

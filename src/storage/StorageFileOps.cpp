@@ -12,9 +12,18 @@ int StorageManager::findFileIndex(const std::string& name) const {
     return -1;
 }
 
-Response StorageManager::fileExists(const std::string& name) const {
-    if (isNameInvalid(name)) return Response::InvalidArgument;
-    return (findFileIndex(name) != -1) ? Response::OK : Response::NotFound;
+Response StorageManager::fileExists(const std::string& path) const {
+    PathInfo info = parsePath(path);
+    if (!info.folder) return Response::NotFound;
+    if (isNameInvalid(info.name)) return Response::InvalidArgument;
+    
+    for (const auto& file : info.folder->files) {
+        if (file->name == info.name) {
+            return Response::OK;
+        }
+    }
+    
+    return Response::NotFound;
 }
 
 Response StorageManager::createFile(const std::string& name) {
@@ -65,18 +74,32 @@ Response StorageManager::deleteFile(const std::string& name) {
     return Response::OK;
 }
 
-Response StorageManager::writeFile(const std::string& name,
+Response StorageManager::writeFile(const std::string& path,
                                    const std::string& content) {
-    if (isNameInvalid(name)) return Response::InvalidArgument;
-    int i = findFileIndex(name);
-    if (i == -1) {
-        log("ERROR", "File not found: " + name);
+    PathInfo info = parsePath(path);
+    if (!info.folder) {
+        log("ERROR", "Path not found: " + path);
         return Response::NotFound;
     }
-    currentFolder->files[i]->content = content + "\n";
-    currentFolder->files[i]->modifiedAt = std::chrono::system_clock::now();
-    currentFolder->modifiedAt = std::chrono::system_clock::now();
-    log("INFO", "Wrote to file: " + name);
+    if (isNameInvalid(info.name)) return Response::InvalidArgument;
+
+    int i = -1;
+    for (size_t idx = 0; idx < info.folder->files.size(); ++idx) {
+        if (info.folder->files[idx]->name == info.name) {
+            i = static_cast<int>(idx);
+            break;
+        }
+    }
+
+    if (i == -1) {
+        log("ERROR", "File not found: " + path);
+        return Response::NotFound;
+    }
+
+    info.folder->files[i]->content = content + "\n";
+    info.folder->files[i]->modifiedAt = std::chrono::system_clock::now();
+    info.folder->modifiedAt = std::chrono::system_clock::now();
+    log("INFO", "Wrote to file: " + path);
     return Response::OK;
 }
 

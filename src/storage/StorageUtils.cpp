@@ -49,4 +49,67 @@ std::string formatTime(const std::chrono::system_clock::time_point& tp) {
     return ss.str();
 }
 
+StorageManager::PathInfo StorageManager::parsePath(
+    const std::string& path) const {
+    
+    if (path.empty()) {
+        return {nullptr, ""};
+    }
+
+    // is path absolute or relative
+    bool isAbsolute = (path[0] == '/');
+    Folder* current = isAbsolute ? root.get() : currentFolder;
+
+    // split path by '/'
+    std::vector<std::string> parts;
+    std::string part;
+    
+    for (char c : path) {
+        if (c == '/') {
+            if (!part.empty()) {
+                parts.push_back(part);
+                part.clear();
+            }
+        } else {
+            part += c;
+        }
+    }
+    if (!part.empty()) {
+        parts.push_back(part);
+    }
+
+    if (parts.empty()) {
+        return {nullptr, ""};
+    }
+
+    // navigate to parent folder
+    for (size_t i = 0; i + 1 < parts.size(); ++i) {
+        const std::string& dirName = parts[i];
+        
+        if (dirName == ".") {
+            continue;
+        } else if (dirName == "..") {
+            if (current->parent) {
+                current = current->parent;
+            }
+        } else {
+            // find subfolder
+            bool found = false;
+            for (auto& sub : current->subfolders) {
+                if (sub->name == dirName) {
+                    current = sub.get();
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return {nullptr, ""};
+            }
+        }
+    }
+
+    // return folder and filename
+    return {current, parts.back()};
+}
+
 }  // namespace storage
