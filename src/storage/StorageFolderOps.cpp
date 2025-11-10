@@ -127,8 +127,10 @@ void StorageManager::recursiveCopyDir(const Folder& src, Folder& destParent) {
 Response StorageManager::copyDir(const std::string& srcName,
                                  const std::string& destName) {
     int srcIndex = findFolderIndex(srcName);
-    if (srcIndex == -1)
+    if (srcIndex == -1) {
+        log("ERROR", "Directory not found: " + srcName);
         return Response::NotFound;
+    }
 
     Folder* srcFolder = currentFolder->subfolders[srcIndex].get();
 
@@ -139,18 +141,22 @@ Response StorageManager::copyDir(const std::string& srcName,
 
         // prevent same name conflict inside destination dir
         for (const auto& sub : destDir->subfolders)
-            if (sub->name == srcFolder->name)
+            if (sub->name == srcFolder->name) {
+                log("ERROR", "Directory already exists: " + sub->name);
                 return Response::AlreadyExists;
+            }
 
         // copy inside destination dir
         recursiveCopyDir(*srcFolder, *destDir);
-        log("INFO", "Copied '" + srcName + "' into directory '" + destName + "'");
+        log("INFO", "Copied '" + srcName + "' to '" + destName + "'");
         return Response::OK;
     }
 
     // or else copy and rename to destName
-    if (findFolderIndex(destName) != -1)
+    if (findFolderIndex(destName) != -1) {
+        log("ERROR", "Directory already exists: " + destName);
         return Response::AlreadyExists;
+    }
 
     recursiveCopyDir(*srcFolder, *currentFolder);
     currentFolder->subfolders.back()->name = destName;
@@ -162,8 +168,10 @@ Response StorageManager::copyDir(const std::string& srcName,
 Response StorageManager::moveDir(const std::string& oldName,
                                  const std::string& newName) {
     int srcIndex = findFolderIndex(oldName);
-    if (srcIndex == -1)
+    if (srcIndex == -1) {
+        log("ERROR", "Directory not found: " + oldName);
         return Response::NotFound;
+    }
 
     // destination is an existing dir, move inside
     int destDirIndex = findFolderIndex(newName);
@@ -172,8 +180,10 @@ Response StorageManager::moveDir(const std::string& oldName,
 
         // prevent same name conflict inside destination dir
         for (const auto& sub : destDir->subfolders)
-            if (sub->name == oldName)
+            if (sub->name == oldName) {
+                log("ERROR", "Directory already exists: " + sub->name);
                 return Response::AlreadyExists;
+            }
 
         // move folder pointer
         auto folderPtr = std::move(currentFolder->subfolders[srcIndex]);
@@ -186,8 +196,10 @@ Response StorageManager::moveDir(const std::string& oldName,
     }
 
     // or else destination is a new name, rename folder
-    if (findFolderIndex(newName) != -1)
+    if (findFolderIndex(newName) != -1){
+        log("ERROR", "Directory already exists: " + newName);
         return Response::AlreadyExists;
+    }
 
     currentFolder->subfolders[srcIndex]->name = newName;
     currentFolder->subfolders[srcIndex]->modifiedAt = std::chrono::system_clock::now();
