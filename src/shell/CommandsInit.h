@@ -1,68 +1,57 @@
 #pragma once
 #include "CommandAPI.h"
+#include <memory>
 
 namespace shell {
 
-int cmd_cat(const std::vector<std::string>&,
-            const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_touch(const std::vector<std::string>&,
-              const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_echo(const std::vector<std::string>&,
-             const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_add(const std::vector<std::string>&,
-            const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_rm(const std::vector<std::string>&,
-           const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_write(const std::vector<std::string>&,
-              const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_edit(const std::vector<std::string>&,
-             const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_mkdir(const std::vector<std::string>&,
-              const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_rmdir(const std::vector<std::string>&,
-              const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_cd(const std::vector<std::string>&,
-           const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_ls(const std::vector<std::string>&,
-           const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_pwd(const std::vector<std::string>&,
-            const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_help(const std::vector<std::string>&,
-             const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_quit(const std::vector<std::string>&,
-             const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_meminfo(const std::vector<std::string>&,
-                const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_membar(const std::vector<std::string>&,
-               const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_save(const std::vector<std::string>&,
-             const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_load(const std::vector<std::string>&,
-             const std::string&, std::ostream&, std::ostream&, SysApi&);
-int cmd_reset(const std::vector<std::string>&,
-              const std::string&, std::ostream&, std::ostream&, SysApi&);
+// Forward declarations of factory functions
+std::unique_ptr<ICommand> create_cat_command();
+std::unique_ptr<ICommand> create_touch_command();
+std::unique_ptr<ICommand> create_echo_command();
+std::unique_ptr<ICommand> create_add_command();
+std::unique_ptr<ICommand> create_rm_command();
+std::unique_ptr<ICommand> create_write_command();
+std::unique_ptr<ICommand> create_edit_command();
+std::unique_ptr<ICommand> create_mkdir_command();
+std::unique_ptr<ICommand> create_rmdir_command();
+std::unique_ptr<ICommand> create_cd_command();
+std::unique_ptr<ICommand> create_ls_command();
+std::unique_ptr<ICommand> create_pwd_command();
+std::unique_ptr<ICommand> create_help_command();
+std::unique_ptr<ICommand> create_quit_command();
+std::unique_ptr<ICommand> create_meminfo_command();
+std::unique_ptr<ICommand> create_membar_command();
+std::unique_ptr<ICommand> create_save_command();
+std::unique_ptr<ICommand> create_load_command();
+std::unique_ptr<ICommand> create_reset_command();
+std::unique_ptr<ICommand> create_help_command(CommandRegistry* reg);
 
 inline void init_commands(CommandRegistry& reg) {
-    reg.add("cat", &cmd_cat);
-    reg.add("touch", &cmd_touch);
-    reg.add("echo", &cmd_echo);
-    reg.add("add", &cmd_add);
-    reg.add("rm", &cmd_rm);
-    reg.add("write", &cmd_write);
-    reg.add("edit", &cmd_edit);
-    reg.add("mkdir", &cmd_mkdir);
-    reg.add("rmdir", &cmd_rmdir);
-    reg.add("cd", &cmd_cd);
-    reg.add("ls", &cmd_ls);
-    reg.add("pwd", &cmd_pwd);
-    reg.add("help", &cmd_help);
-    reg.add("quit", &cmd_quit);
-    reg.add("exit", &cmd_quit);
-    reg.add("meminfo", &cmd_meminfo);
-    reg.add("membar", &cmd_membar);
-    reg.add("save", &cmd_save);
-    reg.add("load", &cmd_load);
-    reg.add("reset", &cmd_reset);
+    reg.add(create_cat_command());
+    reg.add(create_touch_command());
+    reg.add(create_echo_command());
+    reg.add(create_add_command());
+    reg.add(create_rm_command());
+    reg.add(create_write_command());
+    reg.add(create_edit_command());
+    reg.add(create_mkdir_command());
+    reg.add(create_rmdir_command());
+    reg.add(create_cd_command());
+    reg.add(create_ls_command());
+    reg.add(create_pwd_command());
+    
+    reg.add(create_help_command(&reg));
+    
+    reg.add(create_quit_command());
+    reg.add(create_meminfo_command());
+    reg.add(create_membar_command());
+    reg.add(create_save_command());
+    reg.add(create_load_command());
+    reg.add(create_reset_command());
+    
+    // Add alias for exit -> quit
+    auto exit_cmd = create_quit_command();
+    reg.map["exit"] = std::move(exit_cmd);
 }
 
 } // namespace shell
