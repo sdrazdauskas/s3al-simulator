@@ -19,6 +19,10 @@ add_subdirectory(src/shell/commands)
 add_library(shell STATIC src/shell/Shell.cpp ${SHELL_COMMAND_SOURCES})
 target_include_directories(shell PUBLIC src src/kernel src/shell)
 
+# Config library (application-level configuration)
+add_library(config STATIC src/config/Config.cpp)
+target_include_directories(config PUBLIC src/config)
+
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
 target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal)
@@ -49,7 +53,7 @@ target_include_directories(logging PUBLIC src/logger)
 
 # Main executable
 add_executable(s3al_sim src/main.cpp)
-target_link_libraries(s3al_sim PRIVATE kernel logging)
+target_link_libraries(s3al_sim PRIVATE config kernel logging)
 target_include_directories(s3al_sim PRIVATE src)
 
 # --- Unit Tests ---
