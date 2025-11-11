@@ -3,13 +3,15 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <chrono>
 #include "Terminal.h"
 #include "Shell.h"
 #include "Logger.h"
 #include "SysCalls.h"
 #include "CommandsInit.h"
+#include "CommandAPI.h"
 
-using namespace std;
+namespace kernel {
 
 Kernel::Kernel()
     : m_is_running(true),
@@ -56,15 +58,15 @@ bool Kernel::is_running() const { return m_is_running; }
 std::string Kernel::process_line(const std::string& line) {
     if(line.empty()) return "";
 
-    istringstream iss(line);
-    string command_name;
+    std::istringstream iss(line);
+    std::string command_name;
     iss >> command_name;
 
-    vector<string> args;
-    string token;
+    std::vector<std::string> args;
+    std::string token;
     while(iss >> token) {
         if(!token.empty() && token.front()=='"') {
-            string quoted = token.substr(1);
+            std::string quoted = token.substr(1);
             while(iss && (quoted.empty() || quoted.back()!='"')) {
                 if(!(iss>>token)) break;
                 quoted += " "+token;
@@ -81,7 +83,6 @@ std::string Kernel::process_line(const std::string& line) {
     const int cpu_required = 2 * arg_count;
     const int memory_required = 64 * arg_count;
     if (m_proc_manager.execute_process(command_name, cpu_required, memory_required, 0) != -1) {
-        //string result = it->second(args);
         return "OK";
     } else {
         return "Error: Unable to execute process for command '" + command_name + "'.";
@@ -93,7 +94,126 @@ std::string Kernel::process_line(const std::string& line) {
 std::string Kernel::handle_quit(const std::vector<std::string>& args){
     (void)args;
     m_is_running = false;
+    kernel_running.store(false);
+    
+    // Submit shutdown event to wake up kernel thread
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        event_queue.push({KernelEvent::Type::SHUTDOWN, ""});
+    }
+    queue_cv.notify_one();
+    
     return "Shutting down kernel.";
+}
+
+void Kernel::submit_command(const std::string& line) {
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    event_queue.push({KernelEvent::Type::COMMAND, line});
+    queue_cv.notify_one();
+}
+
+void Kernel::handle_interrupt_signal(int signal) {
+    LOG_INFO("KERNEL", "Received interrupt signal: " + std::to_string(signal));
+    
+    // Set interrupt flag immediately for responsiveness
+    // Commands check this flag and should exit promptly
+    shell::g_interrupt_requested.store(true);
+    
+    // Also submit to kernel queue for proper processing
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        KernelEvent event;
+        event.type = KernelEvent::Type::INTERRUPT_SIGNAL;
+        event.signal_number = signal;
+        event_queue.push(event);
+    }
+    queue_cv.notify_one();
+}
+
+void Kernel::process_event(const KernelEvent& event) {
+    switch (event.type) {
+        case KernelEvent::Type::COMMAND:
+            LOG_DEBUG("KERNEL", "Processing command: " + event.data);
+            // Command processing happens in shell, we just logged it
+            break;
+            
+        case KernelEvent::Type::TIMER_TICK:
+            handle_timer_tick();
+            break;
+            
+        case KernelEvent::Type::INTERRUPT_SIGNAL:
+            LOG_DEBUG("KERNEL", "Processing interrupt signal: " + std::to_string(event.signal_number));
+
+            // Flag was already set immediately in handle_interrupt_signal()
+            // This event is for kernel bookkeeping and future process management
+            break;
+            
+        case KernelEvent::Type::SHUTDOWN:
+            LOG_INFO("KERNEL", "Shutdown event received");
+            break;
+    }
+}
+
+void Kernel::handle_timer_tick() {
+    // This is where background tasks would run:
+    // - Process scheduling
+    // - Memory garbage collection
+    // - System monitoring
+    
+    // Example: Timer tick counter
+    static int tick_count = 0;
+    static int last_logged_tick = 0;
+    tick_count++;
+    
+    // Log system status periodically (every 50 ticks = ~5 seconds)
+    // In a real OS, this would be dmesg or system monitoring tools
+    if (tick_count - last_logged_tick >= 50) {
+        size_t used_mem = m_mem_mgr.get_used_memory();
+        size_t total_mem = m_mem_mgr.get_total_memory();
+        double mem_usage = (double)used_mem / total_mem * 100.0;
+        
+        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count) + 
+                  ", mem:" + std::to_string((int)mem_usage) + "%]");
+        last_logged_tick = tick_count;
+    }
+}
+
+void Kernel::run_event_loop() {
+    LOG_INFO("KERNEL", "Kernel event loop started");
+    
+    auto last_tick = std::chrono::steady_clock::now();
+    const auto tick_interval = std::chrono::milliseconds(100); // 10 Hz tick rate
+    
+    while (kernel_running.load()) {
+        std::unique_lock<std::mutex> lock(queue_mutex);
+        
+        // Wait for event or timeout
+        if (queue_cv.wait_for(lock, tick_interval, [this] { 
+            return !event_queue.empty() || !kernel_running.load(); 
+        })) {
+            // Process all pending events
+            while (!event_queue.empty()) {
+                auto event = event_queue.front();
+                event_queue.pop();
+                lock.unlock();
+                
+                process_event(event);
+                
+                lock.lock();
+            }
+        } else {
+            // Timeout - generate timer tick
+            lock.unlock();
+            
+            auto now = std::chrono::steady_clock::now();
+            if (now - last_tick >= tick_interval) {
+                process_event({KernelEvent::Type::TIMER_TICK, ""});
+                last_tick = now;
+            }
+        }
+    }
+    
+    LOG_INFO("KERNEL", "Kernel event loop stopped");
 }
 
 void Kernel::boot(){
@@ -108,7 +228,7 @@ void Kernel::boot(){
     };
     
 
-    SysApiKernel sys(m_storage, this);//build syscalls 
+    SysApiKernel sys(m_storage, this); //build syscalls 
     shell::Shell sh(sys, registry);
 
     sh.setLogCallback(logger_callback); 
@@ -122,7 +242,7 @@ void Kernel::boot(){
     });
     
     // Shell's output callback - prints results to terminal
-    sh.setOutputCallback([&term](const string& output){
+    sh.setOutputCallback([&term](const std::string& output){
         if(!output.empty()){ 
             term.print(output); 
             if(output.back()!='\n') term.print("\n"); 
@@ -134,7 +254,7 @@ void Kernel::boot(){
         this->execute_command(cmd, args);
     });
     
-    term.setSendCallback([&](const string& line){
+    term.setSendCallback([&](const std::string& line){
         sh.processCommandLine(line);
         
         // If kernel wants to shutdown, signal terminal to exit
@@ -142,43 +262,38 @@ void Kernel::boot(){
             term.requestShutdown();
         }
     });
-    term.setSignalCallback([&term](int){ 
-        std::cout << "^C\n" << std::flush;
-        // TODO: Interrupt currently running process
-        // For now, just print ^C and continue
+    
+    // Terminal sends signals to kernel (like real hardware interrupt)
+    term.setSignalCallback([this](int sig){ 
+        // Hardware interrupt goes to kernel first
+        this->handle_interrupt_signal(sig);
+        std::cout << "^C" << std::flush;
     });
 
     LOG_INFO("KERNEL", "Init process started");
-    term.runBlockingStdioLoop();
+    
+    // Start kernel event loop in a separate thread
+    kernel_running.store(true);
+    kernel_thread = std::thread([this]() {
+        this->run_event_loop();
+    });
+    
+    // Start terminal in a separate thread
+    term.start();
+    
+    // Main thread waits for terminal to finish
+    // The kernel continues to run in its own thread, handling background tasks
+    term.join();
+    
+    // After terminal exits, stop kernel event loop
+    kernel_running.store(false);
+    queue_cv.notify_one();
+    
+    if (kernel_thread.joinable()) {
+        kernel_thread.join();
+    }
+    
     LOG_INFO("KERNEL", "Shutdown complete");
 }
 
-std::string Kernel::handle_meminfo(const std::vector<std::string>& args) {
-    (void)args;
-    size_t total = m_mem_mgr.get_total_memory();
-    size_t used  = m_mem_mgr.get_used_memory();
-    size_t free  = total - used;
-
-    std::ostringstream oss;
-    oss << "=== Memory Info ===\n";
-    oss << "Total: " << total / 1024 << " KB\n";
-    oss << "Used : " << used / 1024 << " KB\n";
-    oss << "Free : " << free / 1024 << " KB\n";
-    return oss.str();
-}
-
-std::string Kernel::handle_membar(const std::vector<std::string>& args) {
-    (void)args;
-    size_t total = m_mem_mgr.get_total_memory();
-    size_t used  = m_mem_mgr.get_used_memory();
-    int bar_width = 40;
-    int used_blocks = static_cast<int>((double)used / total * bar_width);
-
-    std::ostringstream oss;
-    oss << "[Memory] [";
-    for (int i = 0; i < bar_width; ++i) {
-        oss << (i < used_blocks ? '#' : '-');
-    }
-    oss << "] " << (used * 100 / total) << "% used\n";
-    return oss.str();
-}
+} // namespace kernel

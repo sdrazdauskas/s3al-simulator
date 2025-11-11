@@ -3,9 +3,9 @@
 #include <memory>
 #include <string>
 #include <utility>
-
 #include <functional>
-#include <string>
+#include <thread>
+#include <atomic>
 
 namespace terminal {
 
@@ -19,7 +19,11 @@ public:
                                            const std::string& message)>;
 
     Terminal() = default;
-    ~Terminal() = default;
+    ~Terminal();
+    
+    // Prevent copying
+    Terminal(const Terminal&) = delete;
+    Terminal& operator=(const Terminal&) = delete;
 
     // Set the send callback which will receive lines read from stdin.
     void setSendCallback(sendCallback cb);
@@ -31,6 +35,15 @@ public:
     void setPromptCallback(promptCallback cb);
 
     void setLogCallback(LogCallback callback);
+
+    // Start the terminal in a separate thread
+    void start();
+    
+    // Stop the terminal thread
+    void stop();
+    
+    // Wait for the terminal thread to finish
+    void join();
 
     void runBlockingStdioLoop();
 
@@ -45,7 +58,8 @@ private:
     signalCallback sigCb;
     promptCallback promptCb;
     LogCallback log_callback;
-    bool should_shutdown = false;
+    std::atomic<bool> should_shutdown{false};
+    std::thread terminal_thread;
 
     void log(const std::string& level, const std::string& message);
 };
