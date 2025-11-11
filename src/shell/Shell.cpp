@@ -78,6 +78,48 @@ std::vector<std::string> Shell::splitByPipeOperator(const std::string& commandLi
     return parts;
 }
 
+
+std::string Shell::trim(const std::string &s) {
+    auto start = s.find_first_not_of(" \t");
+    auto end = s.find_last_not_of(" \t");
+    return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
+}
+
+std::string Shell::extractAfterSymbol(const std::string &s, const std::string &symbol) {
+    size_t pos = s.find(symbol);
+    if (pos == std::string::npos)
+        return "";
+    return trim(s.substr(pos + symbol.size()));
+}
+
+std::string Shell::extractBeforeSymbol(const std::string &s, const std::string &symbol) {
+    size_t pos = s.find(symbol);
+    if (pos == std::string::npos)
+        return trim(s);
+    return trim(s.substr(0, pos));
+}
+
+std::string Shell::handleInputRedirection(const std::string &segment) {
+    std::string filename = extractAfterSymbol(segment, "<");
+    if (filename.empty())
+        return "";
+
+    CommandFn catFn = registry.find("cat");
+    if (!catFn) {
+        log("ERROR", "No 'cat' command found for input redirection");
+        return "";
+    }
+
+    std::ostringstream out, err;
+    int rc = catFn({filename}, "", out, err, sys);
+    if (!err.str().empty()) {
+        log("ERROR", err.str());
+        return "";
+    }
+
+    return out.str();
+}
+
 void Shell::processCommandLine(const std::string& commandLine) {
     if (commandLine.empty()) {
         log("DEBUG", "Empty command line received");
@@ -109,14 +151,22 @@ void Shell::processCommandLine(const std::string& commandLine) {
         std::string pipeInput;
 
         for (const auto& segment : pipeCommands) {
+            std::string segmentCopy = segment;
+            std::string inputData;
+
+            if (segmentCopy.find('<') != std::string::npos) {
+                inputData = handleInputRedirection(segmentCopy);
+                segmentCopy = extractBeforeSymbol(segmentCopy, "<");
+            }
+
             std::string command;
             std::vector<std::string> args;
-            parseCommand(segment, command, args);
+            parseCommand(segmentCopy, command, args);
 
             if (command.empty())
                 continue;
 
-            std::string result = executeCommand(command, args, pipeInput);
+            std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData);
             pipeInput = result;
         }
 
