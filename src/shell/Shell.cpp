@@ -120,6 +120,31 @@ std::string Shell::handleInputRedirection(const std::string &segment) {
     return out.str();
 }
 
+std::string Shell::handleOutputRedirection(std::string segment, const std::string &output) {
+    std::string filename = extractAfterSymbol(segment, ">");
+    segment = extractBeforeSymbol(segment, ">");
+    if (filename.empty()) {
+        log("ERROR", "Output redirection missing filename");
+        return "";
+    }
+
+    CommandFn writeFn = registry.find("write");
+    if (!writeFn) {
+        log("ERROR", "No 'write' command found for output redirection");
+        return "";
+    }
+
+    std::ostringstream out, err;
+    int rc = writeFn({filename, output}, "", out, err, sys);
+    if (!err.str().empty()) {
+        log("ERROR", err.str());
+        return "";
+    }
+
+    return out.str();
+}
+
+
 void Shell::processCommandLine(const std::string& commandLine) {
     if (commandLine.empty()) {
         log("DEBUG", "Empty command line received");
@@ -167,7 +192,22 @@ void Shell::processCommandLine(const std::string& commandLine) {
                 continue;
 
             std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData);
-            pipeInput = result;
+
+            if (segmentCopy.find('>') != std::string::npos) {
+                std::string cleanCommand = extractBeforeSymbol(segmentCopy, ">");
+                std::string filename = extractAfterSymbol(segmentCopy, ">");
+
+                std::string command;
+                std::vector<std::string> args;
+                parseCommand(cleanCommand, command, args);
+                std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData);
+
+                handleOutputRedirection(segmentCopy, result);
+                pipeInput.clear();
+            } else {
+                std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData);
+                pipeInput = result;
+            }
         }
 
         if (!combinedOutput.empty())
