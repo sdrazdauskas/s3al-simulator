@@ -45,9 +45,17 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
                     }
                 }
                 
-                config.memory_size = std::stoull(mem_str) * multiplier;
-            } catch (...) {
-                std::cerr << "Invalid memory size: " << mem_str << std::endl;
+                // Parse the numeric part
+                size_t pos = 0;
+                config.memory_size = std::stoull(mem_str, &pos) * multiplier;
+                
+                // Check if entire string was consumed (no invalid characters)
+                if (pos != mem_str.length()) {
+                    throw std::invalid_argument("contains non-numeric characters");
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Invalid memory size: " << argv[i] << std::endl;
+                showHelp(argv[0]);
                 return false;
             }
         } 
