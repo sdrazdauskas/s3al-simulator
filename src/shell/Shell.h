@@ -30,6 +30,10 @@ namespace shell {
         std::vector<std::string> splitByAndOperator(const std::string& commandLine);
         std::vector<std::string> splitByPipeOperator(const std::string& commandLine);
         std::string executeScriptFile(const std::string& filename);
+        std::string handleInputRedirection(const std::string& segment);
+        static std::string trim(const std::string& s);
+        static std::string extractAfterSymbol(const std::string& s, const std::string& symbol);
+        static std::string extractBeforeSymbol(const std::string& s, const std::string& symbol);
 
     public:
         explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
