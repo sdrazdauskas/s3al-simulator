@@ -5,9 +5,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Find Threads package (required for std::thread)
+find_package(Threads REQUIRED)
+
 # Terminal library
 add_library(terminal STATIC src/terminal/Terminal.cpp)
 target_include_directories(terminal PUBLIC src/terminal)
+target_link_libraries(terminal PUBLIC Threads::Threads)
 
 
 # Shell library. command cmake maintained in src/shell/commands/CMakeLists.txt
@@ -18,7 +22,7 @@ target_include_directories(shell PUBLIC src src/kernel src/shell)
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
 target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal)
-target_link_libraries(kernel PUBLIC terminal shell logging memory process storage scheduler)
+target_link_libraries(kernel PUBLIC terminal shell logging memory process storage scheduler Threads::Threads)
 
 # Storage library
 add_library(storage STATIC src/storage/Storage.cpp)
