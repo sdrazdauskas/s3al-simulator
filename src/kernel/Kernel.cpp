@@ -13,10 +13,10 @@
 
 namespace kernel {
 
-Kernel::Kernel()
+Kernel::Kernel(size_t memory_size)
     : m_is_running(true),
       m_scheduler(),
-      m_mem_mgr(1024 * 1024),
+      m_mem_mgr(memory_size),
       m_proc_manager(m_mem_mgr, m_scheduler) {
     auto logger_callback = [](const std::string& level, const std::string& module, const std::string& message){
         logging::Logger::getInstance().log(level, module, message);
