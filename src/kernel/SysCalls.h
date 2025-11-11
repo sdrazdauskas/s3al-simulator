@@ -72,6 +72,7 @@ struct SysApiKernel : shell::SysApi {
         auto res = fs.makeDir(name);
         switch(res) {
             case Resp::OK: return shell::SysResult::OK;
+            case Resp::NotFound: return shell::SysResult::NotFound;
             case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
             case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
             default: return shell::SysResult::Error;
