@@ -59,18 +59,30 @@ Response StorageManager::removeDir(const std::string& path) {
         return Response::NotFound;
     }
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
-    
+
     // find and remove directory
     for (size_t i = 0; i < info.folder->subfolders.size(); ++i) {
         if (info.folder->subfolders[i]->name == info.name) {
-            info.folder->subfolders.erase(
-                info.folder->subfolders.begin() + i);
+            Folder* toDelete = info.folder->subfolders[i].get();
+
+            // if we are currently inside the deleted folder or one of its subfolders
+            Folder* tmp = currentFolder;
+            while (tmp != nullptr) {
+                if (tmp == toDelete) {
+                    // jump up to parent or root if deleting current
+                    currentFolder = info.folder; 
+                    break;
+                }
+                tmp = tmp->parent;
+            }
+
+            info.folder->subfolders.erase(info.folder->subfolders.begin() + i);
             info.folder->modifiedAt = std::chrono::system_clock::now();
             log("INFO", "Removed directory: " + path);
             return Response::OK;
         }
     }
-    
+
     log("ERROR", "Directory not found: " + path);
     return Response::NotFound;
 }
@@ -381,7 +393,7 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
     }
     
     if (targetDir) {
-        // dest is a directory, move dir INTO it with original name
+        // dest is a directory, move dir into it with original name
         for (const auto& sub : targetDir->subfolders) {
             if (sub->name == srcInfo.name) {
                 log("ERROR", "Directory already exists: " + srcInfo.name);
@@ -390,8 +402,7 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
         }
         
         auto folderPtr = std::move(srcInfo.folder->subfolders[srcIndex]);
-        srcInfo.folder->subfolders.erase(
-            srcInfo.folder->subfolders.begin() + srcIndex);
+        srcInfo.folder->subfolders.erase(srcInfo.folder->subfolders.begin() + srcIndex);
         folderPtr->parent = targetDir;
         targetDir->subfolders.push_back(std::move(folderPtr));
         
@@ -413,8 +424,7 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
     }
 
     auto folderPtr = std::move(srcInfo.folder->subfolders[srcIndex]);
-    srcInfo.folder->subfolders.erase(
-        srcInfo.folder->subfolders.begin() + srcIndex);
+    srcInfo.folder->subfolders.erase(srcInfo.folder->subfolders.begin() + srcIndex);
     folderPtr->name = destInfo.name;
     folderPtr->parent = destInfo.folder;
     folderPtr->modifiedAt = std::chrono::system_clock::now();

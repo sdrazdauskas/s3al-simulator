@@ -4,6 +4,8 @@
 #include <ctime>
 #include <sstream>
 #include <cctype>
+#include <chrono>
+#include <format>
 
 namespace storage {
 
@@ -41,12 +43,8 @@ void StorageManager::log(const std::string& level, const std::string& message) {
 }
 
 std::string formatTime(const std::chrono::system_clock::time_point& tp) {
-    std::time_t time = std::chrono::system_clock::to_time_t(tp);
-    std::tm tm = *std::localtime(&time);
-
-    std::ostringstream ss;
-    ss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
-    return ss.str();
+    auto seconds = std::chrono::floor<std::chrono::seconds>(tp);
+    return std::format("{:%Y-%m-%d %H:%M:%S}", seconds);
 }
 
 StorageManager::PathInfo StorageManager::parsePath(const std::string& path) const {

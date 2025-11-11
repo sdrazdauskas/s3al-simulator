@@ -5,13 +5,6 @@ namespace storage {
 
 using Response = StorageManager::StorageResponse;
 
-int StorageManager::findFileIndex(const std::string& name) const {
-    for (size_t i = 0; i < currentFolder->files.size(); ++i)
-        if (currentFolder->files[i]->name == name)
-            return static_cast<int>(i);
-    return -1;
-}
-
 Response StorageManager::fileExists(const std::string& path) const {
     PathInfo info = parsePath(path);
     if (!info.folder) return Response::NotFound;
@@ -313,8 +306,7 @@ Response StorageManager::moveFile(const std::string& srcPath, const std::string&
         }
         
         auto filePtr = std::move(srcInfo.folder->files[srcIndex]);
-        srcInfo.folder->files.erase(
-            srcInfo.folder->files.begin() + srcIndex);
+        srcInfo.folder->files.erase(srcInfo.folder->files.begin() + srcIndex);
         targetDir->files.push_back(std::move(filePtr));
         
         srcInfo.folder->modifiedAt = std::chrono::system_clock::now();

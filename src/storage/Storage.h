@@ -89,7 +89,6 @@ public:
 private:
     // INTERNAL HELPERS
     PathInfo parsePath(const std::string& path) const;
-    int findFileIndex(const std::string& name) const;
     int findFolderIndex(const std::string& name) const;
     void recursiveDelete(Folder& folder);
     void recursiveCopyDir(const Folder& src, Folder& destParent);
