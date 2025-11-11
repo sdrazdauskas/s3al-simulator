@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Process.h"
+#include "../ProcessData.h"
 #include <vector>
 #include <algorithm>
 #include <iostream>

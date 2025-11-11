@@ -4,6 +4,9 @@
 
 namespace shell {
 
+// Global interrupt flag for Ctrl+C handling
+std::atomic<bool> g_interrupt_requested{false};
+
 Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
     : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)) {}
 
@@ -113,15 +116,17 @@ void Shell::processCommandLine(const std::string& commandLine) {
         std::vector<std::string> pipeCommands = splitByPipeOperator(andCmd);
         std::string pipeInput;
 
-        for (const auto& segment : pipeCommands) {
+        for (size_t i = 0; i < pipeCommands.size(); ++i) {
             std::string command;
             std::vector<std::string> args;
-            parseCommand(segment, command, args);
+            parseCommand(pipeCommands[i], command, args);
 
             if (command.empty())
                 continue;
 
-            std::string result = executeCommand(command, args, pipeInput);
+            // We're in a pipe chain if there's a next command
+            bool inPipeChain = (i < pipeCommands.size() - 1);
+            std::string result = executeCommand(command, args, pipeInput, inPipeChain);
             pipeInput = result;
         }
 
@@ -141,7 +146,8 @@ void Shell::processCommandLine(const std::string& commandLine) {
 
 std::string Shell::executeCommand(const std::string& command,
                                   const std::vector<std::string>& args,
-                                  const std::string& input) {
+                                  const std::string& input,
+                                  bool inPipeChain) {
     if (command.empty()) {
         log("ERROR", "No command specified");
         return "Error: No command specified";
@@ -158,8 +164,8 @@ std::string Shell::executeCommand(const std::string& command,
     if (!input.empty())
         argsWithInput.push_back(input);
 
-    CommandFn fn = registry.find(command);
-    if (!fn) {
+    ICommand* cmd = registry.find(command);
+    if (!cmd) {
         log("ERROR", "Unknown command: " + command);
         return "Error: Unknown command: " + command;
     }
@@ -168,15 +174,46 @@ std::string Shell::executeCommand(const std::string& command,
         kernelCallback(command, argsWithInput);
     }
 
-    std::ostringstream out, err;
-    int rc = fn(argsWithInput, input, out, err, sys);
+    // Reset interrupt flag before executing command
+    g_interrupt_requested.store(false);
 
+    int rc;
     std::string result;
-    if (!err.str().empty()) {
-        log("ERROR", err.str());
-        result += err.str();
+    
+    // Buffer output if we're in a pipe chain (need to pass to next command)
+    if (inPipeChain) {
+        // Buffer for pipes
+        std::ostringstream out, err;
+        rc = cmd->execute(argsWithInput, input, out, err, sys);
+        
+        if (!err.str().empty()) {
+            log("ERROR", err.str());
+            result += err.str();
+        }
+        result += out.str();
+    } else {
+        // Stream output directly to terminal (no buffering)
+        CallbackStreamBuf out_buf(outputCallback);
+        CallbackStreamBuf err_buf(outputCallback);
+        std::ostream out(&out_buf);
+        std::ostream err(&err_buf);
+        
+        rc = cmd->execute(argsWithInput, input, out, err, sys);
+        
+        // Flush any remaining output
+        out.flush();
+        err.flush();
     }
-    result += out.str();
+
+    // Check if command was interrupted
+    if (g_interrupt_requested.load()) {
+        log("INFO", "Command interrupted by user");
+        g_interrupt_requested.store(false);
+        if (outputCallback && !inPipeChain) {
+            outputCallback("^C\nCommand interrupted\n");
+        }
+        return "";
+    }
 
     return result;
 }
@@ -188,9 +225,9 @@ std::string Shell::executeScriptFile(const std::string& filename) {
     std::vector<std::string> readArgs = { filename };
     std::string fileContent;
 
-    CommandFn catFn = registry.find("cat");
-    if (catFn) {
-        int rc = catFn(readArgs, "", out, err, sys);
+    ICommand* catCmd = registry.find("cat");
+    if (catCmd) {
+        int rc = catCmd->execute(readArgs, "", out, err, sys);
         if (!err.str().empty()) {
             log("ERROR", err.str());
             return "Error: Failed to read script: " + filename + "\n" + err.str();
@@ -212,6 +249,13 @@ std::string Shell::executeScriptFile(const std::string& filename) {
     };
 
     while (std::getline(file, line)) {
+        // Check if script execution was interrupted
+        if (g_interrupt_requested.load()) {
+            log("INFO", "Script execution interrupted by user");
+            output += "\n^C\nScript interrupted";
+            break;
+        }
+        
         auto l = line.find_first_not_of(" \t\r\n");
         if (l == std::string::npos) continue;
         auto r = line.find_last_not_of(" \t\r\n");
