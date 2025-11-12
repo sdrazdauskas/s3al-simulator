@@ -7,6 +7,9 @@
 #include <ostream>
 #include <streambuf>
 #include "CommandAPI.h"
+#include <atomic>
+
+extern std::atomic<bool> g_interrupt_requested;
 
 namespace shell {
 
@@ -68,6 +71,13 @@ namespace shell {
         std::vector<std::string> splitByAndOperator(const std::string& commandLine);
         std::vector<std::string> splitByPipeOperator(const std::string& commandLine);
         std::string executeScriptFile(const std::string& filename);
+        std::string trim(const std::string &s);
+        std::string extractAfterSymbol(const std::string &s, const std::string &symbol);
+        std::string extractBeforeSymbol(const std::string &s, const std::string &symbol);
+
+        std::string handleInputRedirection(const std::string &segment);
+        std::string handleOutputRedirection(std::string segment, const std::string &output);
+        std::string handleAppendRedirection(std::string segment, const std::string &output);
 
     public:
         explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
