@@ -4,17 +4,25 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+
 #include <Storage.h>
 #include <MemoryManager.h>
 #include <ProcessManager.h>
 #include <Scheduler.h>
 #include "SysCallsAPI.h"
 
+namespace kernel {
+
 class Kernel {
 public:
     using CommandHandler = std::function<std::string(const std::vector<std::string>&)>;
 
-    Kernel();
+    explicit Kernel(size_t memory_size = 1024 * 1024);
 
     /**
      * @brief Processes a single line of input as a command and returns the result.
@@ -46,8 +54,39 @@ public:
     shell::SysApi::SysInfo get_sysinfo() const;
 
     std::string handle_quit(const std::vector<std::string>& args);
+    
+    // Signal handling - kernel receives interrupts from hardware/terminal
+    void handle_interrupt_signal(int signal);
+
+    // Kernel event loop - runs background tasks
+    void run_event_loop();
+    
+    // Submit a command to be processed by the kernel
+    void submit_command(const std::string& line);
 
 private:
+    struct KernelEvent {
+        enum class Type {
+            COMMAND,
+            TIMER_TICK,
+            INTERRUPT_SIGNAL,
+            SHUTDOWN
+        };
+        
+        Type type;
+        std::string data;
+        int signal_number{0}; // For INTERRUPT_SIGNAL events
+    };
+    
+    void process_event(const KernelEvent& event);
+    void handle_timer_tick();
+    
+    std::queue<KernelEvent> event_queue;
+    std::mutex queue_mutex;
+    std::condition_variable queue_cv;
+    std::atomic<bool> kernel_running{true};
+    std::thread kernel_thread;
+    
     std::string process_line(const std::string& line);
     std::string handle_meminfo(const std::vector<std::string>& args);
     std::string handle_membar(const std::vector<std::string>& args);
@@ -60,3 +99,5 @@ private:
     scheduler::CPUScheduler m_scheduler;
     process::ProcessManager m_proc_manager;
 };
+
+} // namespace kernel

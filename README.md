@@ -1,54 +1,67 @@
 # s3al
 
-## Native build
+## Quick Start
 
-```powershell
+### Native Build
+
+```bash
+# Install the dependencies
+./install.sh
+```
+Then
+
+```bash
 # First time or after changing CMakeLists.txt
 cmake -S . -B build
 
+# Build
 cmake --build build
 
-# Run the simulator
-.\build\Debug\s3al_sim.exe
+# Run (Windows)
+.\build\Debug\s3al_sim.exe [OPTIONS]
 
-# or with logging to cout
-.\build\Debug\s3al_sim.exe --verbose
+# Run (Linux)
+./build/s3al_sim [OPTIONS]
 ```
 
-## Docker image
+### Docker
 
-Build the containerized toolchain and project:
-
-```powershell
+```bash
 # Build and automatically clean up dangling images
 docker build -t s3al/simulator:latest . ; docker image prune -f
+
+# Run
+docker run --rm -it s3al/simulator [OPTIONS]
 ```
 
-Or build and clean separately:
+## Available Options
 
-```powershell
-docker build -t s3al/simulator:latest .
-docker image prune -f
+Both native and Docker builds support the same command-line options:
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--verbose` | Enable verbose logging to console | `--verbose` |
+| `--memory <size>` | Set memory size (K/M/G suffix) | `--memory 2M` |
+| `--help` | Show help message | `--help` |
+
+**Example:**
+
+```bash
+# Docker - 4MB memory, verbose logging
+docker run --rm -it s3al/simulator /app/s3al_sim --memory 4M --verbose
 ```
 
-Launch an interactive shell in the image:
+## Docker Persistent Storage
 
-```powershell
-# Run without saving logs
-docker run --rm -it s3al/simulator
+Mount volumes to persist logs and data across runs:
 
-# Run with verbose logging (logs to console and file)
-docker run --rm -it s3al/simulator /app/s3al_sim --verbose
-
-# Run with persistent logs (volume mount)
+```bash
+# Persistent logs only
 docker run --rm -it -v ./logs:/app/logs s3al/simulator
 
-# Run with persistent data (saves/loads storage state)
+# Persistent data only  
 docker run --rm -it -v ./data:/app/data s3al/simulator
 
-# Run with both persistent logs and data
-docker run --rm -it -v ./logs:/app/logs -v ./data:/app/data s3al/simulator
-
-# Run with verbose logging and persistent data
+# Both logs and data
 docker run --rm -it -v ./logs:/app/logs -v ./data:/app/data s3al/simulator /app/s3al_sim --verbose
 ```
