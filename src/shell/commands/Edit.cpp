@@ -1,4 +1,5 @@
 #include "../CommandAPI.h"
+#include <iostream>
 #include <memory>
 
 namespace shell {
@@ -18,21 +19,39 @@ public:
 
         const std::string& filename = args[0];
 
-        auto exists = sys.fileExists(filename);
-        if (exists == SysResult::NotFound) {
-            err << "edit: " << filename << ": file not found\n";
+        std::string content;
+        auto readResult = sys.readFile(filename, content);
+        if (readResult != SysResult::OK) {
+            err << "edit: " << filename << ": " << shell::toString(readResult) << "\n";
             return 1;
         }
 
-        auto res = sys.editFile(filename);
-        out << "edit: " << filename << ": "
-            << shell::toString(res) << "\n";
+        out << "=== contents of " << filename << " ===\n";
+        if (content.empty())
+            out << "(empty)\n";
+        else
+            out << content;
+        out << "--------------------------------------\n";
+        out << "Type new content below to ADD to the file.\n";
+        out << "Type ':wq' on a new line to save and exit.\n";
+        out << "--------------------------------------\n";
+
+        std::string newLines, line;
+        while (true) {
+            std::getline(std::cin, line);
+            if (line == ":wq")
+                break;
+            newLines += line + "\n";
+        }
+
+        auto res = sys.editFile(filename, newLines);
+        out << "edit: " << filename << ": " << shell::toString(res) << "\n";
         return (res == SysResult::OK) ? 0 : 1;
     }
-    
+
     const char* getName() const override { return "edit"; }
-    const char* getDescription() const override { return "Open editor to append text to a file"; }
-    const char* getUsage() const override { return "edit <filename>"; }
+    const char* getDescription() const override {return "Open an interactive editor to append text to a file";}
+    const char* getUsage() const override { return "edit <fileName>"; }
 };
 
 std::unique_ptr<ICommand> create_edit_command() {

@@ -26,6 +26,11 @@ std::unique_ptr<ICommand> create_load_command();
 std::unique_ptr<ICommand> create_reset_command();
 std::unique_ptr<ICommand> create_sleep_command();
 std::unique_ptr<ICommand> create_help_command(CommandRegistry* reg);
+std::unique_ptr<ICommand> create_listdata_command();
+std::unique_ptr<ICommand> create_mv_command();
+std::unique_ptr<ICommand> create_cp_command();
+std::unique_ptr<ICommand> create_mvdir_command();
+std::unique_ptr<ICommand> create_cpdir_command();
 
 inline void init_commands(CommandRegistry& reg) {
     reg.add(create_cat_command());
@@ -40,16 +45,21 @@ inline void init_commands(CommandRegistry& reg) {
     reg.add(create_cd_command());
     reg.add(create_ls_command());
     reg.add(create_pwd_command());
+    reg.add(create_save_command());
+    reg.add(create_load_command());
+    reg.add(create_reset_command());
+    reg.add(create_sleep_command());
+    reg.add(create_listdata_command());
+    reg.add(create_mv_command());
+    reg.add(create_cp_command());
+    reg.add(create_mvdir_command());
+    reg.add(create_cpdir_command());
     
     reg.add(create_help_command(&reg));
     
     reg.add(create_quit_command());
     reg.add(create_meminfo_command());
     reg.add(create_membar_command());
-    reg.add(create_save_command());
-    reg.add(create_load_command());
-    reg.add(create_reset_command());
-    reg.add(create_sleep_command());
     
     // Add alias for exit -> quit
     auto exit_cmd = create_quit_command();

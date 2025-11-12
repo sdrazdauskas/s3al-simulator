@@ -25,8 +25,8 @@ public:
     }
     
     const char* getName() const override { return "rmdir"; }
-    const char* getDescription() const override { return "Remove an empty directory"; }
-    const char* getUsage() const override { return "rmdir <foldername>"; }
+    const char* getDescription() const override { return "Remove a directory"; }
+    const char* getUsage() const override { return "rmdir <dirName>"; }
 };
 
 std::unique_ptr<ICommand> create_rmdir_command() {
