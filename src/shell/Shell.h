@@ -5,6 +5,7 @@
 #include <functional>
 #include <sstream>
 #include <ostream>
+#include <streambuf>
 #include "CommandAPI.h"
 
 namespace shell {
@@ -16,6 +17,43 @@ namespace shell {
 
     using KernelCallback = std::function<void(const std::string& command,
                                               const std::vector<std::string>& args)>;
+
+    // Custom stream buffer that writes directly to output callback
+    class CallbackStreamBuf : public std::streambuf {
+    private:
+        OutputCallback callback;
+        std::string buffer;
+        
+    protected:
+        int overflow(int c) override {
+            if (c != EOF) {
+                buffer += static_cast<char>(c);
+                if (c == '\n' || buffer.size() >= 1024) {
+                    flush_buffer();
+                }
+            }
+            return c;
+        }
+        
+        int sync() override {
+            flush_buffer();
+            return 0;
+        }
+        
+        void flush_buffer() {
+            if (!buffer.empty() && callback) {
+                callback(buffer);
+                buffer.clear();
+            }
+        }
+        
+    public:
+        CallbackStreamBuf(OutputCallback cb) : callback(std::move(cb)) {}
+        
+        ~CallbackStreamBuf() {
+            flush_buffer();
+        }
+    };
 
     class Shell {
     private:
@@ -41,7 +79,8 @@ namespace shell {
         void processCommandLine(const std::string& commandLine);
         std::string executeCommand(const std::string& command,
                                    const std::vector<std::string>& args,
-                                   const std::string& input = "");
+                                   const std::string& input = "",
+                                   bool inPipeChain = false);
         void parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args);
 
         bool isConnectedToKernel() const;
