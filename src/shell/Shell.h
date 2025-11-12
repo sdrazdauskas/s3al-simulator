@@ -32,6 +32,7 @@ namespace shell {
         std::string executeScriptFile(const std::string& filename);
         std::string handleInputRedirection(const std::string& segment);
         std::string handleOutputRedirection(std::string segment, const std::string &output);
+        std::string handleAppendRedirection(std::string segment, const std::string &output);
         static std::string trim(const std::string& s);
         static std::string extractAfterSymbol(const std::string& s, const std::string& symbol);
         static std::string extractBeforeSymbol(const std::string& s, const std::string& symbol);

@@ -144,6 +144,25 @@ std::string Shell::handleOutputRedirection(std::string segment, const std::strin
     return out.str();
 }
 
+std::string Shell::handleAppendRedirection(std::string segment, const std::string &output) {
+    std::string filename = extractAfterSymbol(segment, ">>");
+    segment = extractBeforeSymbol(segment, ">>");
+
+    if (filename.empty()) {
+        log("ERROR", "Append redirection missing filename");
+        return "";
+    }
+
+    auto result = sys.appendFile(filename, output);
+    if (result != shell::SysResult::OK) {
+        log("ERROR", "appendFile failed: " + shell::toString(result));
+        return "";
+    }
+
+    return "append: " + filename + ": OK";
+}
+
+
 
 void Shell::processCommandLine(const std::string& commandLine) {
     if (commandLine.empty()) {
@@ -187,6 +206,22 @@ void Shell::processCommandLine(const std::string& commandLine) {
             std::string command;
             std::vector<std::string> args;
             parseCommand(segmentCopy, command, args);
+
+            if (segmentCopy.find(">>") != std::string::npos) {
+                std::string cleanCommand = extractBeforeSymbol(segmentCopy, ">>");
+                std::string filename = extractAfterSymbol(segmentCopy, ">>");
+
+                std::string command;
+                std::vector<std::string> args;
+                parseCommand(cleanCommand, command, args);
+
+                std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData);
+
+                handleAppendRedirection(segmentCopy, result);
+                pipeInput.clear();
+                continue;
+            }
+
 
             if (command.empty())
                 continue;
