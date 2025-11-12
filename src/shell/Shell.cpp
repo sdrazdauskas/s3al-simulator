@@ -99,13 +99,31 @@ void Shell::processCommandLine(const std::string& commandLine) {
         std::vector<std::string> args;
         parseCommand(commandLine, command, args);
 
-        CommandFn fn = registry.find(command);
-        if (fn) {
-            fn(args, "", std::cout, std::cerr, sys);
+        ICommand* cmd = registry.find(command);
+        if (cmd) {
+            // write/edit commands should go directly to std::cout / std::cerr
+            g_interrupt_requested.store(false);
+
+            int rc = cmd->execute(args, "", std::cout, std::cerr, sys);
 
             std::cout.flush();
             std::cerr.flush();
+
+            // handle interruption
+            if (g_interrupt_requested.load()) {
+                log("INFO", "Command interrupted by user");
+                g_interrupt_requested.store(false);
+                if (outputCallback) {
+                    outputCallback("^C\nCommand interrupted\n");
+                }
+            }
+        } else {
+            log("ERROR", "Unknown command: " + command);
+            if (outputCallback) {
+                outputCallback("Error: Unknown command: " + command);
+            }
         }
+
         return;
     }
 

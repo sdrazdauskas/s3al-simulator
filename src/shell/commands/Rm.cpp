@@ -30,7 +30,7 @@ public:
     
     const char* getName() const override { return "rm"; }
     const char* getDescription() const override { return "Delete a file"; }
-    const char* getUsage() const override { return "rm <filename> [filename...]"; }
+    const char* getUsage() const override { return "rm <fileName> [fileName...]"; }
 };
 
 std::unique_ptr<ICommand> create_rm_command() {
