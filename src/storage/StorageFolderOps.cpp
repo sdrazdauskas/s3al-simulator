@@ -327,16 +327,14 @@ Response StorageManager::copyDir(const std::string& srcPath, const std::string& 
         recursiveCopyDir(*srcFolder, *targetDir);
         targetDir->modifiedAt = std::chrono::system_clock::now();
         
-        log("INFO", "Copied directory '" + srcPath + "' into '" + 
-            destPath + "'");
+        log("INFO", "Copied directory '" + srcPath + "' into '" + destPath + "'");
         return Response::OK;
     }
     
     // dest is not a directory - copy with new name
     for (const auto& sub : destInfo.folder->subfolders) {
         if (sub->name == destInfo.name) {
-            log("ERROR", "Destination directory already exists: " + 
-                destPath);
+            log("ERROR", "Destination directory already exists: " + destPath);
             return Response::AlreadyExists;
         }
     }
@@ -409,16 +407,14 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
         srcInfo.folder->modifiedAt = std::chrono::system_clock::now();
         targetDir->modifiedAt = std::chrono::system_clock::now();
         
-        log("INFO", "Moved directory '" + srcPath + "' into '" + 
-            destPath + "'");
+        log("INFO", "Moved directory '" + srcPath + "' into '" + destPath + "'");
         return Response::OK;
     }
     
     // dest is not a directory, rename/move with new name
     for (const auto& sub : destInfo.folder->subfolders) {
         if (sub->name == destInfo.name) {
-            log("ERROR", "Destination directory already exists: " + 
-                destPath);
+            log("ERROR", "Destination directory already exists: " + destPath);
             return Response::AlreadyExists;
         }
     }

@@ -229,8 +229,7 @@ Response StorageManager::copyFile(const std::string& srcPath, const std::string&
         targetDir->files.push_back(std::move(newFile));
         targetDir->modifiedAt = std::chrono::system_clock::now();
         
-        log("INFO", "Copied file '" + srcPath + "' into directory '" + 
-            destPath + "'");
+        log("INFO", "Copied file '" + srcPath + "' into directory '" + destPath + "'");
         return Response::OK;
     }
     
@@ -312,8 +311,7 @@ Response StorageManager::moveFile(const std::string& srcPath, const std::string&
         srcInfo.folder->modifiedAt = std::chrono::system_clock::now();
         targetDir->modifiedAt = std::chrono::system_clock::now();
         
-        log("INFO", "Moved file '" + srcPath + "' into directory '" + 
-            destPath + "'");
+        log("INFO", "Moved file '" + srcPath + "' into directory '" + destPath + "'");
         return Response::OK;
     }
     

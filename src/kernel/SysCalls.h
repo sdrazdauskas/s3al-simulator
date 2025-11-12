@@ -129,12 +129,9 @@ struct SysApiKernel : ::shell::SysApi {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = fs.listDataFiles(out);
         switch (res) {
-            case Resp::OK:
-                return shell::SysResult::OK;
-            case Resp::NotFound:
-                return shell::SysResult::NotFound;
-            default:
-                return shell::SysResult::Error;
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            default: return shell::SysResult::Error;
         }
     }
 
@@ -195,7 +192,7 @@ struct SysApiKernel : ::shell::SysApi {
         }
     }
 
-    shell::SysResult listDir(const std::string& path, std::vector<std::string>& out) override {
+    ::shell::SysResult listDir(const std::string& path, std::vector<std::string>& out) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = fs.listDir(path, out);
         switch (res) {
