@@ -53,7 +53,6 @@ struct Editor {
         std::istringstream iss(content);
         std::string line;
         while (std::getline(iss, line)) {
-            // strip CR if present
             if (!line.empty() && line.back() == '\r')
                 line.pop_back();
             lines.push_back(line);
@@ -297,7 +296,6 @@ public:
                 std::ostream& err,
                 ::shell::SysApi& sys) override
     {
-        // Require a filename argument for this command
         if (args.empty()) {
             err << "texed: filename required\n";
             return 1;
