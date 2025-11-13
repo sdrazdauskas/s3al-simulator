@@ -25,14 +25,20 @@ public:
                 rc = 1;
                 continue;
             }
-            out << content;
+
+            out << "=== contents of " << name << " ===\n";
+            if (content.empty())
+                out << "(empty)\n";
+            else
+                out << content;
+            out << "=============================\n";
         }
         return rc;
     }
     
     const char* getName() const override { return "cat"; }
     const char* getDescription() const override { return "Display file contents"; }
-    const char* getUsage() const override { return "cat <filename> [filename...]"; }
+    const char* getUsage() const override { return "cat <fileName> [fileName...]"; }
 };
 
 std::unique_ptr<ICommand> create_cat_command() {

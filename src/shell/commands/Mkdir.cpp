@@ -26,7 +26,7 @@ public:
     
     const char* getName() const override { return "mkdir"; }
     const char* getDescription() const override { return "Create a new directory"; }
-    const char* getUsage() const override { return "mkdir <foldername>"; }
+    const char* getUsage() const override { return "mkdir <dirName>"; }
 };
 
 std::unique_ptr<ICommand> create_mkdir_command() {
