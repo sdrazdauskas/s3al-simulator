@@ -50,7 +50,7 @@ public:
     }
 
     const char* getName() const override { return "edit"; }
-    const char* getDescription() const override {return "Open an interactive editor to append text to a file";}
+    const char* getDescription() const override {return "Open an editor to append text to a file";}
     const char* getUsage() const override { return "edit <fileName>"; }
 };
 

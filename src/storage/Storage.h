@@ -43,6 +43,11 @@ public:
         std::chrono::system_clock::time_point modifiedAt;
     };
 
+    struct PathInfo {
+        Folder* folder;
+        std::string name;
+    };
+
 public:
     // CONSTRUCTOR
     StorageManager();
@@ -68,7 +73,7 @@ public:
     StorageResponse makeDir(const std::string& name);
     StorageResponse removeDir(const std::string& name);
     StorageResponse changeDir(const std::string& path);
-    std::vector<std::string> listDir() const;
+    StorageResponse listDir(const std::string& path, std::vector<std::string>& outEntries) const;
     std::string getWorkingDir() const;
     StorageResponse copyDir(const std::string& srcName, const std::string& destName);
     StorageResponse moveDir(const std::string& oldName, const std::string& newName);
@@ -83,7 +88,7 @@ public:
 
 private:
     // INTERNAL HELPERS
-    int findFileIndex(const std::string& name) const;
+    PathInfo parsePath(const std::string& path) const;
     int findFolderIndex(const std::string& name) const;
     void recursiveDelete(Folder& folder);
     void recursiveCopyDir(const Folder& src, Folder& destParent);
