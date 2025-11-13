@@ -24,7 +24,7 @@ public:
     
     const char* getName() const override { return "echo"; }
     const char* getDescription() const override { return "Print text to output"; }
-    const char* getUsage() const override { return "echo [text]"; }
+    const char* getUsage() const override { return "echo <text>"; }
 };
 
 std::unique_ptr<ICommand> create_echo_command() {

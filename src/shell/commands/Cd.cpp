@@ -26,7 +26,7 @@ public:
     
     const char* getName() const override { return "cd"; }
     const char* getDescription() const override { return "Change current directory"; }
-    const char* getUsage() const override { return "cd <foldername|..>"; }
+    const char* getUsage() const override { return "cd <dirName|..>"; }
 };
 
 std::unique_ptr<ICommand> create_cd_command() {
