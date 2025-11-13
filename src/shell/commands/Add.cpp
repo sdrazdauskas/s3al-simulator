@@ -24,8 +24,8 @@ public:
     }
     
     const char* getName() const override { return "add"; }
-    const char* getDescription() const override { return "Sum numbers"; }
-    const char* getUsage() const override { return "add [number1] [number2] ..."; }
+    const char* getDescription() const override { return "Sum the numbers"; }
+    const char* getUsage() const override { return "add <num1> [num2] [num...]"; }
 };
 
 std::unique_ptr<ICommand> create_add_command() {

@@ -29,8 +29,8 @@ public:
     }
     
     const char* getName() const override { return "write"; }
-    const char* getDescription() const override { return "Write text to a file (overwrite)"; }
-    const char* getUsage() const override { return "write <filename> <content>"; }
+    const char* getDescription() const override { return "Write content to a file (overwrite)"; }
+    const char* getUsage() const override { return "write <fileName> <content>"; }
 };
 
 std::unique_ptr<ICommand> create_write_command() {

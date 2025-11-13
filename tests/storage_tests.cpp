@@ -65,20 +65,12 @@ TEST_F(StorageManagerTest, WriteFile_NotFound) {
 }
 
 TEST_F(StorageManagerTest, EditFile_ShouldAppendNewLines) {
-    std::istringstream fakeInput("foo\nbar\n:wq\n");
-    std::ostringstream fakeOutput;
-
-    std::streambuf* originalCin = std::cin.rdbuf(fakeInput.rdbuf());
-    std::streambuf* originalCout = std::cout.rdbuf(fakeOutput.rdbuf());
-
     EXPECT_EQ(storage.createFile("test.txt"), Response::OK);
     EXPECT_EQ(storage.writeFile("test.txt", "test"), Response::OK);
 
-    const auto response = storage.editFile("test.txt");
+    const std::string newContent = "foo\nbar\n";
 
-    std::cin.rdbuf(originalCin);
-    std::cout.rdbuf(originalCout);
-
+    const auto response = storage.editFile("test.txt", newContent);
     EXPECT_EQ(response, StorageManager::StorageResponse::OK);
 
     std::string contents;
@@ -87,21 +79,59 @@ TEST_F(StorageManagerTest, EditFile_ShouldAppendNewLines) {
 }
 
 TEST_F(StorageManagerTest, EditFile_ShouldReturnNotFoundForMissingFile) {
-    std::istringstream fakeInput(":wq\n");
-    std::streambuf* originalCin = std::cin.rdbuf(fakeInput.rdbuf());
-
-    const auto response = storage.editFile("ghost.txt");
-    std::cin.rdbuf(originalCin);
-
+    const std::string newContent = "some text\n";
+    const auto response = storage.editFile("ghost.txt", newContent);
     EXPECT_EQ(response, StorageManager::StorageResponse::NotFound);
 }
 
 TEST_F(StorageManagerTest, EditFile_ShouldReturnInvalidArgumentForEmptyName) {
-    const auto response = storage.editFile("");
+    const std::string newContent = "anything\n";
+    const auto response = storage.editFile("", newContent);
     EXPECT_EQ(response, StorageManager::StorageResponse::InvalidArgument);
 }
 
+TEST_F(StorageManagerTest, CopyFile_ShouldDuplicateFileWithDifferentName) {
+    EXPECT_EQ(storage.createFile("a.txt"), Response::OK);
+    EXPECT_EQ(storage.writeFile("a.txt", "hello"), Response::OK);
+    EXPECT_EQ(storage.copyFile("a.txt", "b.txt"), Response::OK);
 
+    std::string out1, out2;
+    EXPECT_EQ(storage.readFile("a.txt", out1), Response::OK);
+    EXPECT_EQ(storage.readFile("b.txt", out2), Response::OK);
+    EXPECT_EQ(out1, out2);
+}
+
+TEST_F(StorageManagerTest, CopyFile_ShouldFailIfSourceDoesNotExist) {
+    EXPECT_EQ(storage.copyFile("ghost.txt", "new.txt"), Response::NotFound);
+}
+
+TEST_F(StorageManagerTest, CopyFile_ShouldReturnAlreadyExistsIfDestExists) {
+    EXPECT_EQ(storage.createFile("src.txt"), Response::OK);
+    EXPECT_EQ(storage.createFile("dest.txt"), Response::OK);
+    EXPECT_EQ(storage.copyFile("src.txt", "dest.txt"), Response::AlreadyExists);
+}
+
+TEST_F(StorageManagerTest, MoveFile_ShouldRenameFileInSameDirectory) {
+    EXPECT_EQ(storage.createFile("oldname.txt"), Response::OK);
+    EXPECT_EQ(storage.moveFile("oldname.txt", "newname.txt"), Response::OK);
+    EXPECT_EQ(storage.fileExists("newname.txt"), Response::OK);
+    EXPECT_EQ(storage.fileExists("oldname.txt"), Response::NotFound);
+}
+
+TEST_F(StorageManagerTest, MoveFile_ShouldMoveIntoExistingDirectory) {
+    EXPECT_EQ(storage.makeDir("target"), Response::OK);
+    EXPECT_EQ(storage.createFile("move_me.txt"), Response::OK);
+    EXPECT_EQ(storage.moveFile("move_me.txt", "target"), Response::OK);
+
+    EXPECT_EQ(storage.changeDir("target"), Response::OK);
+    EXPECT_EQ(storage.fileExists("move_me.txt"), Response::OK);
+    EXPECT_EQ(storage.changeDir(".."), Response::OK);
+    EXPECT_EQ(storage.fileExists("move_me.txt"), Response::NotFound);
+}
+
+TEST_F(StorageManagerTest, MoveFile_ShouldReturnNotFoundIfSourceMissing) {
+    EXPECT_EQ(storage.moveFile("missing.txt", "whatever"), Response::NotFound);
+}
 
 // Directory Tests
 TEST_F(StorageManagerTest, MakeAndChangeDir_Success) {
@@ -160,4 +190,59 @@ TEST_F(StorageManagerTest, RemoveDir_ShouldDeleteAllNestedFilesAndFolders) {
     EXPECT_EQ(storage.changeDir("child"), Response::NotFound);
     EXPECT_EQ(storage.writeFile("rootfile.txt", "hi"), Response::NotFound);
     EXPECT_EQ(storage.writeFile("nested.txt", "hi"), Response::NotFound);
+}
+
+TEST_F(StorageManagerTest, CopyDir_ShouldCopyFolderWithContents) {
+    EXPECT_EQ(storage.makeDir("srcdir"), Response::OK);
+    EXPECT_EQ(storage.changeDir("srcdir"), Response::OK);
+    EXPECT_EQ(storage.createFile("note.txt"), Response::OK);
+    EXPECT_EQ(storage.writeFile("note.txt", "data"), Response::OK);
+    EXPECT_EQ(storage.changeDir(".."), Response::OK);
+
+    EXPECT_EQ(storage.copyDir("srcdir", "copydir"), Response::OK);
+
+    EXPECT_EQ(storage.changeDir("copydir"), Response::OK);
+    std::string out;
+    EXPECT_EQ(storage.readFile("note.txt", out), Response::OK);
+    EXPECT_EQ(out, "data\n");
+}
+
+TEST_F(StorageManagerTest, CopyDir_ShouldCopyIntoExistingDirectory) {
+    EXPECT_EQ(storage.makeDir("srcdir"), Response::OK);
+    EXPECT_EQ(storage.makeDir("destdir"), Response::OK);
+
+    EXPECT_EQ(storage.changeDir("srcdir"), Response::OK);
+    EXPECT_EQ(storage.createFile("inside.txt"), Response::OK);
+    EXPECT_EQ(storage.changeDir(".."), Response::OK);
+
+    EXPECT_EQ(storage.copyDir("srcdir", "destdir"), Response::OK);
+
+    EXPECT_EQ(storage.changeDir("destdir"), Response::OK);
+    EXPECT_EQ(storage.changeDir("srcdir"), Response::OK);
+    EXPECT_EQ(storage.fileExists("inside.txt"), Response::OK);
+}
+
+TEST_F(StorageManagerTest, MoveDir_ShouldRenameDirectory) {
+    EXPECT_EQ(storage.makeDir("rename_me"), Response::OK);
+    EXPECT_EQ(storage.moveDir("rename_me", "renamed"), Response::OK);
+    EXPECT_EQ(storage.changeDir("rename_me"), Response::NotFound);
+    EXPECT_EQ(storage.changeDir("renamed"), Response::OK);
+}
+
+TEST_F(StorageManagerTest, MoveDir_ShouldReturnNotFoundIfSourceMissing) {
+    EXPECT_EQ(storage.moveDir("ghostdir", "whatever"), Response::NotFound);
+}
+
+TEST_F(StorageManagerTest, CopyDir_ShouldReturnNotFoundIfMissingSource) {
+    EXPECT_EQ(storage.copyDir("ghostdir", "whatever"), Response::NotFound);
+}
+
+TEST_F(StorageManagerTest, CopyDir_ShouldReturnAlreadyExistsIfSameNameInDest) {
+    EXPECT_EQ(storage.makeDir("a"), Response::OK);
+    EXPECT_EQ(storage.makeDir("b"), Response::OK);
+    EXPECT_EQ(storage.changeDir("b"), Response::OK);
+    EXPECT_EQ(storage.makeDir("a"), Response::OK);
+    EXPECT_EQ(storage.changeDir(".."), Response::OK);
+
+    EXPECT_EQ(storage.copyDir("a", "b"), Response::AlreadyExists);
 }
