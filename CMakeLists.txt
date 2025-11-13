@@ -19,6 +19,13 @@ add_subdirectory(src/shell/commands)
 add_library(shell STATIC src/shell/Shell.cpp ${SHELL_COMMAND_SOURCES})
 target_include_directories(shell PUBLIC src src/kernel src/shell)
 
+# curses used by "texed" text editor command
+find_package(Curses REQUIRED)
+if (CURSES_FOUND)
+    target_include_directories(shell PUBLIC ${CURSES_INCLUDE_DIR})
+    target_link_libraries(shell PUBLIC ${CURSES_LIBRARIES})
+endif()
+
 # Config library (application-level configuration)
 add_library(config STATIC src/config/Config.cpp)
 target_include_directories(config PUBLIC src/config)
