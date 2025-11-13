@@ -74,6 +74,7 @@ struct SysApiKernel : ::shell::SysApi {
         auto res = fs.makeDir(name);
         switch(res) {
             case Resp::OK: return ::shell::SysResult::OK;
+            case Resp::NotFound: return shell::SysResult::NotFound;
             case Resp::AlreadyExists: return ::shell::SysResult::AlreadyExists;
             case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
             default: return ::shell::SysResult::Error;
@@ -128,12 +129,9 @@ struct SysApiKernel : ::shell::SysApi {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = fs.listDataFiles(out);
         switch (res) {
-            case Resp::OK:
-                return shell::SysResult::OK;
-            case Resp::NotFound:
-                return shell::SysResult::NotFound;
-            default:
-                return shell::SysResult::Error;
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            default: return shell::SysResult::Error;
         }
     }
 
@@ -194,8 +192,14 @@ struct SysApiKernel : ::shell::SysApi {
         }
     }
 
-    std::vector<std::string> listDir() override {
-        return fs.listDir();
+    ::shell::SysResult listDir(const std::string& path, std::vector<std::string>& out) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = fs.listDir(path, out);
+        switch (res) {
+            case Resp::OK: return shell::SysResult::OK;
+            case Resp::NotFound: return shell::SysResult::NotFound;
+            default: return shell::SysResult::Error;
+        }
     }
 
     std::string getWorkingDir() override {
