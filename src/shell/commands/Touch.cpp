@@ -24,15 +24,15 @@ public:
                 err << "touch: " << name << ": " << shell::toString(res) << "\n";
                 rc = 1;
             } else {
-                out << "[Shell] touch: " << name << ": " << shell::toString(res) << "\n";
+                out << "touch: " << name << ": " << shell::toString(res) << "\n";
             }
         }
         return rc;
     }
     
     const char* getName() const override { return "touch"; }
-    const char* getDescription() const override { return "Create a new empty file"; }
-    const char* getUsage() const override { return "touch <filename>"; }
+    const char* getDescription() const override { return "Create a new empty file or update the modification timestamp"; }
+    const char* getUsage() const override { return "touch <fileName> [fileName...]"; }
 };
 
 std::unique_ptr<ICommand> create_touch_command() {
