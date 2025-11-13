@@ -297,7 +297,7 @@ public:
                 ::shell::SysApi& sys) override
     {
         if (args.empty()) {
-            err << "texed: filename required\n";
+            err << "Usage: " << getUsage() << "\n";
             return 1;
         }
 
@@ -391,7 +391,7 @@ public:
 
     const char* getName() const override { return "texed"; }
     const char* getDescription() const override { return "Terminal text editor (ncurses)"; }
-    const char* getUsage() const override { return "texed [file]"; }
+    const char* getUsage() const override { return "texed <fileName>"; }
 };
 
 std::unique_ptr<ICommand> create_texed_command() { return std::make_unique<TexedCommand>(); }
