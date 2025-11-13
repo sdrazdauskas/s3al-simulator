@@ -36,14 +36,7 @@ struct SysApiKernel : ::shell::SysApi {
         }
     }
 
-    ::shell::SysResult editFile(const std::string& name) override {
-        if (kernel_owner) {
-            std::vector<std::string> args = { name };
-        }
-        return ::shell::SysResult::OK;
-    }
-
-    ::shell::SysResult editFile(const std::string& name, const std::string& newContent) {
+    ::shell::SysResult editFile(const std::string& name, const std::string& newContent) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = fs.editFile(name, newContent);
         switch (res) {

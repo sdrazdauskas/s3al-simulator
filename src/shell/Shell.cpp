@@ -186,9 +186,6 @@ void Shell::processCommandLine(const std::string& commandLine) {
         std::string command;
         std::vector<std::string> args;
         parseCommand(commandLine, command, args);
-        std::string result = executeCommand(command, args, "", false);
-        if (outputCallback && !result.empty())
-            outputCallback(result);
 
         ICommand* cmd = registry.find(command);
         if (cmd) {
