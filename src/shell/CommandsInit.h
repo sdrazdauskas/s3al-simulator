@@ -12,6 +12,7 @@ std::unique_ptr<ICommand> create_add_command();
 std::unique_ptr<ICommand> create_rm_command();
 std::unique_ptr<ICommand> create_write_command();
 std::unique_ptr<ICommand> create_edit_command();
+std::unique_ptr<ICommand> create_texed_command();
 std::unique_ptr<ICommand> create_mkdir_command();
 std::unique_ptr<ICommand> create_rmdir_command();
 std::unique_ptr<ICommand> create_cd_command();
@@ -40,6 +41,7 @@ inline void init_commands(CommandRegistry& reg) {
     reg.add(create_rm_command());
     reg.add(create_write_command());
     reg.add(create_edit_command());
+    reg.add(create_texed_command());
     reg.add(create_mkdir_command());
     reg.add(create_rmdir_command());
     reg.add(create_cd_command());
