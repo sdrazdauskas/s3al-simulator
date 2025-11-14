@@ -140,8 +140,12 @@ std::string Shell::handleOutputRedirection(std::string segment, const std::strin
         return "";
     }
 
+    std::string cleaned = output;
+    if (!cleaned.empty() && cleaned.back() == '\n')
+        cleaned.pop_back();
+
     std::ostringstream out, err;
-    std::vector<std::string> writeArgs = { filename, output };
+    std::vector<std::string> writeArgs = { filename, cleaned };
     int rc = writeCmd->execute(writeArgs, "", out, err, sys);
     if (!err.str().empty()) {
         log("ERROR", err.str());
@@ -160,7 +164,11 @@ std::string Shell::handleAppendRedirection(std::string segment, const std::strin
         return "";
     }
 
-    auto result = sys.appendFile(filename, output);
+    std::string cleaned = output;
+    if (!cleaned.empty() && cleaned.back() == '\n')
+        cleaned.pop_back();
+
+    auto result = sys.appendFile(filename, cleaned);
     if (result != shell::SysResult::OK) {
         log("ERROR", "appendFile failed: " + shell::toString(result));
         return "";
