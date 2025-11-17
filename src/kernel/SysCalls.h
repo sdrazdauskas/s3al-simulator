@@ -58,6 +58,16 @@ struct SysApiKernel : ::shell::SysApi {
         }
     }
 
+    shell::SysResult appendFile(const std::string& name, const std::string& content) override {
+        std::string existing;
+        auto readRes = readFile(name, existing);
+        if (readRes != shell::SysResult::OK)
+            return readRes;
+
+        existing += content;
+        return writeFile(name, existing);
+    }
+
     ::shell::SysResult writeFile(const std::string& name, const std::string& content) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = fs.writeFile(name, content);
