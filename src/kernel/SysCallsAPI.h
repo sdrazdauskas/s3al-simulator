@@ -38,9 +38,11 @@ struct SysApi {
     virtual SysResult editFile(const std::string& name, const std::string& newContent) = 0;
     virtual SysResult copyFile(const std::string& src, const std::string& dest) = 0;
     virtual SysResult moveFile(const std::string& src, const std::string& dest) = 0;
+    virtual SysResult appendFile(const std::string& name, const std::string& content) = 0;
 
     virtual std::string getWorkingDir() = 0;
     virtual SysResult listDir(const std::string& path, std::vector<std::string>& out) = 0;
+
     virtual SysResult makeDir(const std::string& name) = 0;
     virtual SysResult removeDir(const std::string& name) = 0;
     virtual SysResult changeDir(const std::string& name) = 0;

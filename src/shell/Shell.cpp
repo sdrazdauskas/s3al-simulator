@@ -1,6 +1,9 @@
 #include "Shell.h"
 #include <sstream>
 #include <iostream>
+#include <atomic>
+#include <vector>
+#include <string>
 
 namespace shell {
 
@@ -27,13 +30,11 @@ void Shell::log(const std::string& level, const std::string& message) {
 std::string Shell::parseQuotedToken(std::istringstream& iss, std::string token) {
     std::string quoted = token.substr(1);
     std::string next;
-
-    while (!quoted.empty() && quoted.back() != '"' && iss >> next)
+    while (!quoted.empty() && quoted.back() != '"' && iss >> next) {
         quoted += " " + next;
-
+    }
     if (!quoted.empty() && quoted.back() == '"')
         quoted.pop_back();
-
     return quoted;
 }
 
@@ -79,6 +80,109 @@ std::vector<std::string> Shell::splitByPipeOperator(const std::string& commandLi
         parts.push_back(temp.substr(start, end - start + 1));
 
     return parts;
+}
+
+std::string Shell::trim(const std::string &s) {
+    auto start = s.find_first_not_of(" \t");
+    auto end = s.find_last_not_of(" \t");
+    return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
+}
+
+std::string Shell::extractAfterSymbol(const std::string &s, const std::string &symbol) {
+    size_t pos = s.find(symbol);
+    if (pos == std::string::npos)
+        return "";
+    return trim(s.substr(pos + symbol.size()));
+}
+
+std::string Shell::extractBeforeSymbol(const std::string &s, const std::string &symbol) {
+    size_t pos = s.find(symbol);
+    if (pos == std::string::npos)
+        return trim(s);
+    return trim(s.substr(0, pos));
+}
+
+std::string Shell::handleInputRedirection(const std::string &segment) {
+    std::string filename = extractAfterSymbol(segment, "<");
+    if (filename.empty()) {
+        log("ERROR", "Input redirection missing filename");
+        return "";
+    }
+
+    ICommand* catCmd = registry.find("cat");
+    if (!catCmd) {
+        log("ERROR", "No 'cat' command found for input redirection");
+        return "";
+    }
+
+    std::ostringstream out, err;
+    std::vector<std::string> readArgs = { filename };
+    int rc = catCmd->execute(readArgs, "", out, err, sys);
+    if (!err.str().empty()) {
+        log("ERROR", err.str());
+        return "";
+    }
+
+    return out.str();
+}
+
+std::string Shell::handleOutputRedirection(std::string segment, const std::string &output) {
+    std::string filename = extractAfterSymbol(segment, ">");
+    segment = extractBeforeSymbol(segment, ">");
+    if (filename.empty()) {
+        log("ERROR", "Output redirection missing filename");
+        return "";
+    }
+
+    ICommand* writeCmd = registry.find("write");
+    if (!writeCmd) {
+        log("ERROR", "No 'write' command found for output redirection");
+        return "";
+    }
+
+    std::string cleaned = output;
+    if (!cleaned.empty() && cleaned.back() == '\n')
+        cleaned.pop_back();
+
+    if (sys.fileExists(filename) != shell::SysResult::OK) {
+        sys.createFile(filename);
+    }
+
+    std::ostringstream out, err;
+    std::vector<std::string> writeArgs = { filename, cleaned };
+    int rc = writeCmd->execute(writeArgs, "", out, err, sys);
+    if (!err.str().empty()) {
+        log("ERROR", err.str());
+        return "";
+    }
+
+    return out.str();
+}
+
+std::string Shell::handleAppendRedirection(std::string segment, const std::string &output) {
+    std::string filename = extractAfterSymbol(segment, ">>");
+    segment = extractBeforeSymbol(segment, ">>");
+
+    if (filename.empty()) {
+        log("ERROR", "Append redirection missing filename");
+        return "";
+    }
+
+    std::string cleaned = output;
+    if (!cleaned.empty() && cleaned.back() == '\n')
+        cleaned.pop_back();
+
+    if (sys.fileExists(filename) != shell::SysResult::OK) {
+        sys.createFile(filename);
+    }
+
+    auto result = sys.appendFile(filename, cleaned);
+    if (result != shell::SysResult::OK) {
+        log("ERROR", "appendFile failed: " + shell::toString(result));
+        return "";
+    }
+
+    return "append: " + filename + ": OK";
 }
 
 void Shell::processCommandLine(const std::string& commandLine) {
@@ -135,17 +239,59 @@ void Shell::processCommandLine(const std::string& commandLine) {
         std::string pipeInput;
 
         for (size_t i = 0; i < pipeCommands.size(); ++i) {
+            std::string segment = pipeCommands[i];
+            std::string segmentCopy = segment;
+            std::string inputData;
+
+            if (segmentCopy.find('<') != std::string::npos) {
+                inputData = handleInputRedirection(segmentCopy);
+                segmentCopy = extractBeforeSymbol(segmentCopy, "<");
+            }
+
+            if (segmentCopy.find(">>") != std::string::npos) {
+                std::string cleanCommand = extractBeforeSymbol(segmentCopy, ">>");
+                std::string filename = extractAfterSymbol(segmentCopy, ">>");
+
+                std::string command;
+                std::vector<std::string> args;
+                parseCommand(cleanCommand, command, args);
+
+                if (command.empty())
+                    continue;
+
+                bool inPipeChain = true;
+                std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData, inPipeChain);
+
+                handleAppendRedirection(segmentCopy, result);
+                pipeInput.clear();
+                continue;
+            }
+
+            bool hasOutputRedirect = (segmentCopy.find('>') != std::string::npos && segmentCopy.find(">>") == std::string::npos);
+
+            std::string filename;
+            if (hasOutputRedirect) {
+                filename = extractAfterSymbol(segmentCopy, ">");
+                segmentCopy = extractBeforeSymbol(segmentCopy, ">");
+            }
+
             std::string command;
             std::vector<std::string> args;
-            parseCommand(pipeCommands[i], command, args);
+            parseCommand(segmentCopy, command, args);
 
             if (command.empty())
                 continue;
 
-            // We're in a pipe chain if there's a next command
-            bool inPipeChain = (i < pipeCommands.size() - 1);
-            std::string result = executeCommand(command, args, pipeInput, inPipeChain);
-            pipeInput = result;
+            bool inPipeChain = hasOutputRedirect ? true : (i < pipeCommands.size() - 1);
+            std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData, inPipeChain);
+
+            if (hasOutputRedirect && !filename.empty()) {
+                handleOutputRedirection(">" + filename, result);
+                pipeInput.clear();
+            } else {
+                pipeInput = result;
+            }
+
         }
 
         if (!combinedOutput.empty())
@@ -192,38 +338,32 @@ std::string Shell::executeCommand(const std::string& command,
         kernelCallback(command, argsWithInput);
     }
 
-    // Reset interrupt flag before executing command
     g_interrupt_requested.store(false);
 
-    int rc;
+    int rc = 0;
     std::string result;
-    
-    // Buffer output if we're in a pipe chain (need to pass to next command)
+
     if (inPipeChain) {
-        // Buffer for pipes
         std::ostringstream out, err;
         rc = cmd->execute(argsWithInput, input, out, err, sys);
-        
+
         if (!err.str().empty()) {
             log("ERROR", err.str());
             result += err.str();
         }
         result += out.str();
     } else {
-        // Stream output directly to terminal (no buffering)
         CallbackStreamBuf out_buf(outputCallback);
         CallbackStreamBuf err_buf(outputCallback);
         std::ostream out(&out_buf);
         std::ostream err(&err_buf);
-        
+
         rc = cmd->execute(argsWithInput, input, out, err, sys);
-        
-        // Flush any remaining output
+
         out.flush();
         err.flush();
     }
 
-    // Check if command was interrupted
     if (g_interrupt_requested.load()) {
         log("INFO", "Command interrupted by user");
         g_interrupt_requested.store(false);
@@ -267,13 +407,13 @@ std::string Shell::executeScriptFile(const std::string& filename) {
     };
 
     while (std::getline(file, line)) {
-        // Check if script execution was interrupted
         if (g_interrupt_requested.load()) {
             log("INFO", "Script execution interrupted by user");
-            output += "\n^C\nScript interrupted";
+            if (!output.empty()) output += "\n";
+            output += "^C\nScript interrupted";
             break;
         }
-        
+
         auto l = line.find_first_not_of(" \t\r\n");
         if (l == std::string::npos) continue;
         auto r = line.find_last_not_of(" \t\r\n");
@@ -295,7 +435,7 @@ void Shell::parseCommand(const std::string& commandLine, std::string& command, s
     args.clear();
     std::string token;
     while (iss >> token) {
-        if (token.front() == '"')
+        if (!token.empty() && token.front() == '"')
             args.push_back(parseQuotedToken(iss, token));
         else
             args.push_back(token);
