@@ -51,7 +51,7 @@ target_include_directories(storage
 )
 
 # Process library
-add_library(process STATIC src/process/ProcessManager.cpp)
+add_library(process STATIC src/process/ProcessManager.cpp src/process/Process.cpp)
 target_include_directories(process PUBLIC src/process)
 
 # Init process (PID 1) - First user-space process

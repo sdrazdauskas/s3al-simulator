@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 #include <functional>
-#include "ProcessData.h"
+#include "Process.h"
 
 namespace memory { class MemoryManager; }
 namespace scheduler { class CPUScheduler; }
@@ -38,6 +38,13 @@ public:
     
     // Query process existence
     bool process_exists(int pid) const;
+    
+    // Process control - suspend/resume
+    bool suspend_process(int pid);   // SIGSTOP - suspend execution
+    bool resume_process(int pid);    // SIGCONT - resume execution
+    
+    // Signal handling
+    bool send_signal(int pid, int signal);  // Send signal to process
 
     // Read-only access for kernel/UI/tests
     std::vector<Process> snapshot() const;

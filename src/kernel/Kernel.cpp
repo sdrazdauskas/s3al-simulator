@@ -136,6 +136,10 @@ void Kernel::handle_interrupt_signal(int signal) {
     queue_cv.notify_one();
 }
 
+bool Kernel::send_signal_to_process(int pid, int signal) {
+    return m_proc_manager.send_signal(pid, signal);
+}
+
 void Kernel::process_event(const KernelEvent& event) {
     switch (event.type) {
         case KernelEvent::Type::COMMAND:
