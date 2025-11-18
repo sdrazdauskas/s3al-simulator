@@ -13,11 +13,15 @@ add_library(terminal STATIC src/terminal/Terminal.cpp)
 target_include_directories(terminal PUBLIC src/terminal)
 target_link_libraries(terminal PUBLIC Threads::Threads)
 
-
 # Shell library. command cmake maintained in src/shell/commands/CMakeLists.txt
 add_subdirectory(src/shell/commands)
 add_library(shell STATIC src/shell/Shell.cpp ${SHELL_COMMAND_SOURCES})
 target_include_directories(shell PUBLIC src src/kernel src/shell)
+
+# curses used by "texed" text editor command
+find_package(Curses REQUIRED)
+target_include_directories(shell PUBLIC ${CURSES_INCLUDE_DIR})
+target_link_libraries(shell PUBLIC ${CURSES_LIBRARIES})
 
 # curses used by "texed" text editor command
 find_package(Curses REQUIRED)
@@ -31,7 +35,7 @@ target_include_directories(config PUBLIC src/config)
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
 target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal)
-target_link_libraries(kernel PUBLIC terminal shell logging memory process storage scheduler Threads::Threads)
+target_link_libraries(kernel PUBLIC terminal shell logging memory process storage scheduler init Threads::Threads)
 
 # Storage library
 add_library(storage STATIC
@@ -49,6 +53,11 @@ target_include_directories(storage
 # Process library
 add_library(process STATIC src/process/ProcessManager.cpp)
 target_include_directories(process PUBLIC src/process)
+
+# Init process (PID 1) - First user-space process
+add_library(init STATIC src/init/Init.cpp)
+target_include_directories(init PUBLIC src/init src/shell src/terminal)
+target_link_libraries(init PUBLIC shell terminal)
 
 # Memory library
 add_library(memory STATIC src/memory/MemoryManager.cpp)
