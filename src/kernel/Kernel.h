@@ -57,6 +57,9 @@ public:
     
     // Signal handling - kernel receives interrupts from hardware/terminal
     void handle_interrupt_signal(int signal);
+    
+    // Process signal handling
+    bool send_signal_to_process(int pid, int signal);
 
     // Kernel event loop - runs background tasks
     void run_event_loop();

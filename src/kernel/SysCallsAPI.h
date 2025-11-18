@@ -59,6 +59,9 @@ struct SysApi {
     virtual void requestShutdown() = 0;
     
     virtual void sendSignal(int signal) = 0;
+    
+    // Process control
+    virtual SysResult sendSignalToProcess(int pid, int signal) = 0;
 
     virtual ~SysApi() = default;
 };

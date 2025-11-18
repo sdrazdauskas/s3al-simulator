@@ -241,6 +241,14 @@ struct SysApiKernel : ::shell::SysApi {
     void sendSignal(int signal) override {
         if (kernel_owner) kernel_owner->handle_interrupt_signal(signal);
     }
+    
+    ::shell::SysResult sendSignalToProcess(int pid, int signal) override {
+        if (kernel_owner) {
+            bool success = kernel_owner->send_signal_to_process(pid, signal);
+            return success ? ::shell::SysResult::OK : ::shell::SysResult::Error;
+        }
+        return ::shell::SysResult::Error;
+    }
 };
 
 } // namespace kernel
