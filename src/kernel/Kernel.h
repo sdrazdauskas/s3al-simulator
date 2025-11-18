@@ -93,6 +93,9 @@ private:
 
     std::map<std::string, CommandHandler> m_commands;
     bool m_is_running;
+    
+    // Callback to signal init process to shutdown (like sending SIGTERM to PID 1)
+    std::function<void()> m_init_shutdown;
 
     storage::StorageManager m_storage;
     memory::MemoryManager m_mem_mgr;
