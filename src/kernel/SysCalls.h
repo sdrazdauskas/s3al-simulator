@@ -237,6 +237,10 @@ struct SysApiKernel : ::shell::SysApi {
     void requestShutdown() override {
         if (kernel_owner) kernel_owner->handle_quit(std::vector<std::string>());
     }
+
+    void sendSignal(int signal) override {
+        if (kernel_owner) kernel_owner->handle_interrupt_signal(signal);
+    }
 };
 
 } // namespace kernel

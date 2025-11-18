@@ -55,25 +55,14 @@ void Init::initialize_shell() {
         }
     });
     
-    sh.setKernelCallback([this](const std::string& cmd, const std::vector<std::string>& args){
-        // Init receives kernel commands but delegates to kernel via callback
-        log("DEBUG", "Command execution requested: " + cmd);
-        
-        // Check if this is a shutdown request
-        if (cmd == "quit" || cmd == "exit") {
-            log("INFO", "Shutdown requested via " + cmd);
-        }
-    });
-    
     term.setSendCallback([&](const std::string& line){
         sh.processCommandLine(line);
     });
     
-    // Terminal sends signals - in real OS this goes to kernel, not init
-    term.setSignalCallback([&](int sig){ 
-        log("INFO", "Received signal: " + std::to_string(sig));
+    term.setSignalCallback([this](int sig){ 
+        log("INFO", "Received signal " + std::to_string(sig) + " from terminal, forwarding to kernel");
         std::cout << "^C" << std::flush;
-        // TODO: Send signal to kernel via syscall
+        m_sys.sendSignal(sig);
     });
     
     log("INFO", "Starting terminal...");
