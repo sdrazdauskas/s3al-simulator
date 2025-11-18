@@ -1,11 +1,9 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <utility>
 #include <functional>
 #include <thread>
 #include <atomic>
+#include <string>
 
 namespace terminal {
 
@@ -63,5 +61,8 @@ private:
 
     void log(const std::string& level, const std::string& message);
 };
+        using LogCallback = std::function<void(const std::string& level,
+                                               const std::string& module,
+                                               const std::string& message)>;
 
 } // namespace terminal
