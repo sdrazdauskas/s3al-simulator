@@ -2,6 +2,9 @@
 #include <algorithm>
 #include <iostream>
 #include <csignal>
+#include <termios.h>
+#include <unistd.h>
+#include "helper/History.h"
 
 namespace terminal {
 
@@ -28,7 +31,7 @@ Terminal::~Terminal() {
 
 void Terminal::setSendCallback(sendCallback cb) { sendCb = std::move(cb); }
 
-void Terminal::setSignalCallback(signalCallback cb) { 
+void Terminal::setSignalCallback(signalCallback cb) {
     sigCb = std::move(cb);
     // Store pointer to callback for signal handler
     g_signalCallback = &sigCb;
@@ -78,44 +81,124 @@ void Terminal::join() {
 void Terminal::runBlockingStdioLoop() {
     std::string line;
     auto prev = std::signal(SIGINT, terminalSigintHandler);
-    
+
     log("INFO", "Terminal started, listening for input");
+
+    // =================== HISTORY + LEFT/RIGHT CURSOR =====================
+    History history;
+    struct termios orig, raw;
+    tcgetattr(STDIN_FILENO, &orig);
+    raw = orig;
+    raw.c_lflag &= ~(ECHO | ICANON);
+    raw.c_cc[VMIN] = 1;
+    raw.c_cc[VTIME] = 0;
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 
     while (!should_shutdown.load()) {
         if (sigintReceived.load()) {
             sigintReceived.store(false);
             log("DEBUG", "Received SIGINT (Ctrl+C) - already handled in signal handler");
-            
-            // Check if shutdown was requested by the callback
-            if (should_shutdown.load()) {
-                log("INFO", "Shutdown requested via signal");
-                break;
-            }
+            if (should_shutdown.load()) break;
             continue;
         }
 
-        // Print prompt if callback is set
-        if (promptCb) {
-            std::cout << promptCb() << std::flush;
+        if (promptCb) std::cout << promptCb() << std::flush;
+
+        std::string buffer;
+        size_t cursor = 0;
+
+        while (true) {
+            char c;
+            if (read(STDIN_FILENO, &c, 1) <= 0) {
+                should_shutdown.store(true);
+                break;
+            }
+
+            if (c == '\n' || c == '\r') {
+                std::cout << "\n";
+                history.add(buffer);
+                if (sendCb) sendCb(buffer);
+                break;
+            }
+
+            if (c == 127 || c == 8) {
+                if (!buffer.empty() && cursor > 0) {
+                    buffer.erase(cursor - 1, 1);
+                    --cursor;
+                    std::cout << "\r\33[2K";
+                    if (promptCb) std::cout << promptCb();
+                    std::cout << buffer;
+                    std::cout << "\r\33[" << cursor + promptCb().size() << "C" << std::flush;
+                }
+                continue;
+            }
+
+            if (c == '\x1b') {
+                char seq[2];
+                if (read(STDIN_FILENO, &seq[0], 1) <= 0) continue;
+                if (read(STDIN_FILENO, &seq[1], 1) <= 0) continue;
+
+                if (seq[0] == '[') {
+                    std::string hist;
+                    if (seq[1] == 'A') { // UP
+                        if (history.prev(hist)) {
+                            buffer = hist;
+                            cursor = buffer.size();
+                            std::cout << "\r\33[2K";
+                            if (promptCb) std::cout << promptCb();
+                            std::cout << buffer << std::flush;
+                        }
+                        continue;
+                    }
+                    if (seq[1] == 'B') { // DOWN
+                        if (history.next(hist)) {
+                            buffer = hist;
+                            cursor = buffer.size();
+                            std::cout << "\r\33[2K";
+                            if (promptCb) std::cout << promptCb();
+                            std::cout << buffer << std::flush;
+                        } else {
+                            buffer.clear();
+                            cursor = 0;
+                            std::cout << "\r\33[2K";
+                            if (promptCb) std::cout << promptCb();
+                            std::cout << std::flush;
+                        }
+                        continue;
+                    }
+                    if (seq[1] == 'C') { // RIGHT
+                        if (cursor < buffer.size()) {
+                            ++cursor;
+                            std::cout << "\033[C" << std::flush;
+                        }
+                        continue;
+                    }
+                    if (seq[1] == 'D') { // LEFT
+                        if (cursor > 0) {
+                            --cursor;
+                            std::cout << "\033[D" << std::flush;
+                        }
+                        continue;
+                    }
+                }
+                continue;
+            }
+
+            buffer.insert(buffer.begin() + cursor, c);
+            ++cursor;
+            std::cout << "\r\33[2K";
+            if (promptCb) std::cout << promptCb();
+            std::cout << buffer;
+            std::cout << "\r\33[" << cursor + promptCb().size() << "C" << std::flush;
         }
-        
-        if (!std::getline(std::cin, line)) {
-            log("INFO", "Terminal input stream closed (EOF)");
-            break; // EOF or error
-        }
-        
-        log("DEBUG", "Received input line: " + line);
-        if (sendCb) sendCb(line);
-        
-        // Check if shutdown was requested after processing command
-        if (should_shutdown.load()) {
-            log("INFO", "Shutdown requested via command");
-            break;
-        }
+
+        if (should_shutdown.load()) break;
     }
 
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
     std::signal(SIGINT, prev);
     log("INFO", "Terminal stopped");
+    // =====================================================================
 }
 
 } // namespace terminal
