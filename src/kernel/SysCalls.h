@@ -249,6 +249,20 @@ struct SysApiKernel : ::shell::SysApi {
         }
         return ::shell::SysResult::Error;
     }
+    
+    int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0) override {
+        if (kernel_owner) {
+            return kernel_owner->fork_process(name, cpuTimeNeeded, memoryNeeded, priority);
+        }
+        return -1;
+    }
+    
+    std::vector<::shell::SysApi::ProcessInfo> getProcessList() override {
+        if (kernel_owner) {
+            return kernel_owner->get_process_list();
+        }
+        return {};
+    }
 };
 
 } // namespace kernel

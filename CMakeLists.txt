@@ -54,10 +54,19 @@ target_include_directories(storage
 add_library(process STATIC src/process/ProcessManager.cpp src/process/Process.cpp)
 target_include_directories(process PUBLIC src/process)
 
+# Daemon library (background services)
+add_library(daemon STATIC 
+    src/daemon/Daemon.cpp 
+    src/daemon/MonitoringDaemon.cpp
+    src/daemon/DaemonRegistry.cpp
+)
+target_include_directories(daemon PUBLIC src/daemon src/kernel)
+target_link_libraries(daemon PUBLIC Threads::Threads)
+
 # Init process (PID 1) - First user-space process
 add_library(init STATIC src/init/Init.cpp)
 target_include_directories(init PUBLIC src/init src/shell src/terminal)
-target_link_libraries(init PUBLIC shell terminal)
+target_link_libraries(init PUBLIC shell terminal daemon)
 
 # Memory library
 add_library(memory STATIC src/memory/MemoryManager.cpp)

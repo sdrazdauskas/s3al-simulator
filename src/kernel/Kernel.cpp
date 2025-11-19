@@ -27,6 +27,12 @@ Kernel::Kernel(size_t memory_size)
     m_scheduler.setLogCallback(logger_callback);
     m_storage.setLogCallback(logger_callback);
     m_mem_mgr.setLogCallback(logger_callback);
+    
+    // Set up signal callback to notify Init about signals sent to daemon processes
+    m_proc_manager.setSignalCallback([this](int pid, int signal) {
+        // Init will handle this via its daemon signal callbacks
+        // This allows daemons to respond to signals sent via kill command
+    });
 
     std::cout << "Kernel initialized." << std::endl;
 }
@@ -140,6 +146,26 @@ bool Kernel::send_signal_to_process(int pid, int signal) {
     return m_proc_manager.send_signal(pid, signal);
 }
 
+int Kernel::fork_process(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority) {
+    return m_proc_manager.create_process(name, cpuTimeNeeded, memoryNeeded, priority);
+}
+
+std::vector<shell::SysApi::ProcessInfo> Kernel::get_process_list() const {
+    auto processes = m_proc_manager.snapshot();
+    std::vector<shell::SysApi::ProcessInfo> result;
+    
+    for (const auto& proc : processes) {
+        shell::SysApi::ProcessInfo info;
+        info.pid = proc.pid();
+        info.name = proc.name();
+        info.state = process::stateToString(proc.state());
+        info.priority = proc.priority();
+        result.push_back(info);
+    }
+    
+    return result;
+}
+
 void Kernel::process_event(const KernelEvent& event) {
     switch (event.type) {
         case KernelEvent::Type::COMMAND:
@@ -233,6 +259,12 @@ void Kernel::boot(){
         logging::Logger::getInstance().log(level, module, message);
     };
     
+    // Set up signal callback so ProcessManager can notify daemon threads
+    m_proc_manager.setSignalCallback([](int pid, int signal) {
+        // Forward signal to daemon thread if it exists
+        init::Init::forwardSignalToDaemon(pid, signal);
+    });
+    
     // Start kernel event loop in a separate thread
     kernel_running.store(true);
     kernel_thread = std::thread([this]() {
@@ -254,6 +286,11 @@ void Kernel::boot(){
     // Create and start init process (PID 1)
     init::Init init(sys);
     init.setLogCallback(logger_callback);
+    
+    // Set up callback so Init can handle signals sent to its daemon processes
+    setDaemonSignalCallback([&init](int pid, int signal) {
+        init.handleDaemonSignal(pid, signal);
+    });
     
     // Store reference to init so kernel can signal it on shutdown (like sending SIGTERM to PID 1)
     auto init_ptr = &init;

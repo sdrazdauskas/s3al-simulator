@@ -146,6 +146,11 @@ bool ProcessManager::send_signal(int pid, int signal) {
     
     log("INFO", "Sending signal " + std::to_string(signal) + " to process '" + it->name() + "' (PID=" + std::to_string(pid) + ")");
     
+    // Notify any listeners (like Init managing daemons) before modifying process state
+    if (signal_callback) {
+        signal_callback(pid, signal);
+    }
+    
     // Handle common signals - delegate to Process methods
     switch (signal) {
         case 19: // SIGSTOP
