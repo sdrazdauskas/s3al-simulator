@@ -45,6 +45,10 @@ public:
     
     // Signal handling
     bool send_signal(int pid, int signal);  // Send signal to process
+    
+    // Callback for when a signal is sent to a process (so daemon threads can respond)
+    using SignalCallback = std::function<void(int pid, int signal)>;
+    void setSignalCallback(SignalCallback callback) { signal_callback = callback; }
 
     // Read-only access for kernel/UI/tests
     std::vector<Process> snapshot() const;
@@ -55,6 +59,7 @@ private:
     memory::MemoryManager& mem;
     scheduler::CPUScheduler&  cpu;
     LogCallback log_callback;
+    SignalCallback signal_callback;
 
     Process*       find(int pid);
     void log(const std::string& level, const std::string& message);
