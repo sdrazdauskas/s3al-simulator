@@ -90,3 +90,49 @@ target_link_libraries(storage_tests PRIVATE storage GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(storage_tests)
+
+# Integration Tests
+add_executable(integration_tests tests/integration_tests.cpp)
+target_include_directories(integration_tests PRIVATE 
+    src/kernel 
+    src/storage 
+    src/memory 
+    src/process 
+    src/scheduler
+    src/logger
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(integration_tests PRIVATE 
+    kernel 
+    storage 
+    memory 
+    process 
+    scheduler 
+    logging
+    GTest::gtest_main
+    Threads::Threads
+)
+gtest_discover_tests(integration_tests)
+
+# Acceptance Tests
+add_executable(acceptance_tests tests/acceptance_tests.cpp)
+target_include_directories(acceptance_tests PRIVATE 
+    src/kernel 
+    src/storage 
+    src/memory 
+    src/process 
+    src/scheduler
+    src/logger
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(acceptance_tests PRIVATE 
+    kernel 
+    storage 
+    memory 
+    process 
+    scheduler 
+    logging
+    GTest::gtest_main
+    Threads::Threads
+)
+gtest_discover_tests(acceptance_tests)
