@@ -14,18 +14,18 @@ public:
                                            const std::string& message)>;
 
     MemoryManager(size_t total_size);
-    ~MemoryManager();
+    virtual ~MemoryManager();
 
     void setLogCallback(LogCallback callback) { log_callback = callback; }
 
     // Allocate memory for a process
-    void *allocate(size_t size, int process_id = 0);
+    virtual void *allocate(size_t size, int process_id = 0);
 
     // Deallocate specific pointer
-    void deallocate(void* ptr);
+    virtual void deallocate(void* ptr);
     
     // Deallocate ALL memory owned by a process
-    void free_process_memory(int process_id);
+    virtual void free_process_memory(int process_id);
 
     size_t get_total_memory() const { return total_memory; }
     size_t get_used_memory() const { return used_memory; }
