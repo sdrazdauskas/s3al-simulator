@@ -5,7 +5,11 @@
 #include <functional>
 #include <sstream>
 #include <ostream>
+#include <streambuf>
 #include "CommandAPI.h"
+#include <atomic>
+
+extern std::atomic<bool> g_interrupt_requested;
 
 namespace shell {
 
@@ -16,6 +20,43 @@ namespace shell {
 
     using KernelCallback = std::function<void(const std::string& command,
                                               const std::vector<std::string>& args)>;
+
+    // Custom stream buffer that writes directly to output callback
+    class CallbackStreamBuf : public std::streambuf {
+    private:
+        OutputCallback callback;
+        std::string buffer;
+        
+    protected:
+        int overflow(int c) override {
+            if (c != EOF) {
+                buffer += static_cast<char>(c);
+                if (c == '\n' || buffer.size() >= 1024) {
+                    flush_buffer();
+                }
+            }
+            return c;
+        }
+        
+        int sync() override {
+            flush_buffer();
+            return 0;
+        }
+        
+        void flush_buffer() {
+            if (!buffer.empty() && callback) {
+                callback(buffer);
+                buffer.clear();
+            }
+        }
+        
+    public:
+        CallbackStreamBuf(OutputCallback cb) : callback(std::move(cb)) {}
+        
+        ~CallbackStreamBuf() {
+            flush_buffer();
+        }
+    };
 
     class Shell {
     private:
@@ -30,6 +71,13 @@ namespace shell {
         std::vector<std::string> splitByAndOperator(const std::string& commandLine);
         std::vector<std::string> splitByPipeOperator(const std::string& commandLine);
         std::string executeScriptFile(const std::string& filename);
+        std::string trim(const std::string &s);
+        std::string extractAfterSymbol(const std::string &s, const std::string &symbol);
+        std::string extractBeforeSymbol(const std::string &s, const std::string &symbol);
+
+        std::string handleInputRedirection(const std::string &segment);
+        std::string handleOutputRedirection(std::string segment, const std::string &output);
+        std::string handleAppendRedirection(std::string segment, const std::string &output);
 
     public:
         explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
@@ -41,7 +89,8 @@ namespace shell {
         void processCommandLine(const std::string& commandLine);
         std::string executeCommand(const std::string& command,
                                    const std::vector<std::string>& args,
-                                   const std::string& input = "");
+                                   const std::string& input = "",
+                                   bool inPipeChain = false);
         void parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args);
 
         bool isConnectedToKernel() const;
