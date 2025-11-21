@@ -38,9 +38,9 @@ test:
 
 .deploy_template: &deploy_template
   stage: deploy
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  image: registry.gitlab.com/gitlab-org/cli:latest
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   needs:
     - job: build
       artifacts: true
@@ -52,12 +52,7 @@ deploy:dated:
   release:
     tag_name: 'v$(date +%Y.%m.%d-%H%M%S)'
     name: 'Release $(date +%Y-%m-%d) - $CI_COMMIT_SHORT_SHA'
-    description: |
-      Automated release from commit $CI_COMMIT_SHORT_SHA
-      
-      **Commit message:** $CI_COMMIT_MESSAGE
-      
-      **Download the binary** from the artifacts of the build job.
+    description: 'Automated release from commit $CI_COMMIT_SHORT_SHA'
     assets:
       links:
         - name: 's3al_sim (Linux binary)'
@@ -66,14 +61,6 @@ deploy:dated:
 
 deploy:latest:
   <<: *deploy_template
-  before_script:
-    - apk add --no-cache curl git
-    - |
-      # Delete existing 'latest' tag and release if they exist
-      curl --request DELETE --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" \
-        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases/latest" 2>/dev/null || true
-      curl --request DELETE --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" \
-        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/repository/tags/latest" 2>/dev/null || true
   script:
     - echo "Creating latest release from commit $CI_COMMIT_SHORT_SHA"
   release:
