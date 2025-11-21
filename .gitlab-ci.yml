@@ -66,8 +66,16 @@ deploy:dated:
 
 deploy:latest:
   <<: *deploy_template
+  before_script:
+    - apk add --no-cache curl git
+    - |
+      # Delete existing 'latest' tag and release if they exist
+      curl --request DELETE --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases/latest" 2>/dev/null || true
+      curl --request DELETE --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/repository/tags/latest" 2>/dev/null || true
   script:
-    - echo "Updating latest release from commit $CI_COMMIT_SHORT_SHA"
+    - echo "Creating latest release from commit $CI_COMMIT_SHORT_SHA"
   release:
     tag_name: 'latest'
     name: 'Latest Release'
