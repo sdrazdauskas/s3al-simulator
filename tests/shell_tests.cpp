@@ -38,6 +38,9 @@ public:
     MOCK_METHOD(SysInfo, get_sysinfo, (), (override));
     MOCK_METHOD(void, requestShutdown, (), (override));
     MOCK_METHOD(void, sendSignal, (int signal), (override));
+    MOCK_METHOD(SysResult, sendSignalToProcess, (int pid, int signal), (override));
+    MOCK_METHOD(int, fork, (const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority), (override));
+    MOCK_METHOD(std::vector<ProcessInfo>, getProcessList, (), (override));
 };
 
 class ShellTest : public ::testing::Test {
@@ -128,4 +131,44 @@ TEST_F(ShellTest, MemInfoCommand) {
     EXPECT_TRUE(out.find("Total") != std::string::npos);
     EXPECT_TRUE(out.find("4 KB") != std::string::npos);  // 4096 / 1024 = 4
     EXPECT_TRUE(out.find("2 KB") != std::string::npos);  // 2048 / 1024 = 2 (used or free)
+}
+
+TEST_F(ShellTest, PsCommandDisplaysProcesses) {
+    Shell shell(mock_sys, *registry);
+    std::ostringstream output;
+    
+    std::vector<SysApi::ProcessInfo> processes = {
+        {1, "init", "running", 0},
+        {2, "test_proc", "ready", 5}
+    };
+    
+    EXPECT_CALL(mock_sys, getProcessList()).WillOnce(Return(processes));
+    
+    shell.setOutputCallback([&output](const std::string& str) {
+        output << str;
+    });
+    
+    shell.processCommandLine("ps");
+    
+    // Test behavior: Shell should display process list
+    std::string out = output.str();
+    EXPECT_TRUE(out.find("init") != std::string::npos);
+    EXPECT_TRUE(out.find("test_proc") != std::string::npos);
+}
+
+TEST_F(ShellTest, KillCommandSendsSignal) {
+    Shell shell(mock_sys, *registry);
+    std::ostringstream output;
+    
+    EXPECT_CALL(mock_sys, sendSignalToProcess(123, 9)).WillOnce(Return(SysResult::OK));
+    
+    shell.setOutputCallback([&output](const std::string& str) {
+        output << str;
+    });
+    
+    shell.processCommandLine("kill -9 123");
+    
+    // Test behavior: Should successfully send signal to process
+    std::string out = output.str();
+    EXPECT_FALSE(out.empty());
 }
