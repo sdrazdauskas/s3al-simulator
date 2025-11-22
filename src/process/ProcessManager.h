@@ -35,6 +35,9 @@ public:
                         int priority = 0);   // prepare only; NO allocation
     bool run_process(int pid);                 // alloc → execute → dealloc
     bool stop_process(int pid);                 // mark terminated and remove
+    
+    // Query process existence
+    bool process_exists(int pid) const;
 
     // Read-only access for kernel/UI/tests
     std::vector<Process> snapshot() const;

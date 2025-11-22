@@ -54,8 +54,6 @@ std::string Kernel::execute_command(const std::string& cmd, const std::vector<st
 
 bool Kernel::is_running() const { return m_is_running; }
 
-
-
 std::string Kernel::process_line(const std::string& line) {
     if(line.empty()) return "";
 
@@ -239,6 +237,13 @@ void Kernel::boot(){
     
     LOG_INFO("KERNEL", "Starting init process (PID 1)...");
     
+    // Create init as actual process with PID 1
+    int init_pid = m_proc_manager.create_process("init", 1, 1024, 10);
+    if (init_pid != 1) {
+        LOG_ERROR("KERNEL", "Failed to create init process");
+        return;
+    }
+    
     // Create syscall interface for user-space processes
     SysApiKernel sys(m_storage, this);
     
@@ -253,6 +258,11 @@ void Kernel::boot(){
     };
     
     init.start();
+    
+    // Init has exited - remove from process table
+    if (m_proc_manager.process_exists(1)) {
+        m_proc_manager.stop_process(1);
+    }
     
     // After init exits, stop kernel event loop
     kernel_running.store(false);
