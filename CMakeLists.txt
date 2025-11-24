@@ -25,9 +25,7 @@ add_library(shell STATIC src/shell/Shell.cpp ${SHELL_COMMAND_SOURCES})
 target_include_directories(shell PUBLIC src src/kernel src/shell)
 
 # Config library (application-level configuration)
-add_library(config STATIC src/config/Config.cpp
-        src/terminal/helper/history.cpp
-        src/terminal/helper/history.h)
+add_library(config STATIC src/config/Config.cpp)
 target_include_directories(config PUBLIC src/config)
 
 # Kernel library
