@@ -9,7 +9,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Threads REQUIRED)
 
 # Terminal library
-# Terminal library
 add_library(terminal STATIC
         src/terminal/Terminal.cpp
         src/terminal/helper/History.cpp
