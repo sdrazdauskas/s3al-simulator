@@ -10,6 +10,7 @@
 #include "SysCalls.h"
 #include "CommandsInit.h"
 #include "CommandAPI.h"
+#include "../init/Init.h"
 
 namespace kernel {
 
@@ -53,8 +54,6 @@ std::string Kernel::execute_command(const std::string& cmd, const std::vector<st
 
 bool Kernel::is_running() const { return m_is_running; }
 
-
-
 std::string Kernel::process_line(const std::string& line) {
     if(line.empty()) return "";
 
@@ -93,8 +92,15 @@ std::string Kernel::process_line(const std::string& line) {
 
 std::string Kernel::handle_quit(const std::vector<std::string>& args){
     (void)args;
+    LOG_INFO("KERNEL", "Shutdown requested");
+    
     m_is_running = false;
     kernel_running.store(false);
+    
+    // Signal init to shutdown (like kernel sending SIGTERM to PID 1)
+    if (m_init_shutdown) {
+        m_init_shutdown();
+    }
     
     // Submit shutdown event to wake up kernel thread
     {
@@ -219,58 +225,9 @@ void Kernel::run_event_loop() {
 void Kernel::boot(){
     LOG_INFO("KERNEL", "Booting s3al OS...");
     
-    // Initialize command registry
-    shell::CommandRegistry registry;
-    shell::init_commands(registry);
-    
     auto logger_callback = [](const std::string& level, const std::string& module, const std::string& message){
         logging::Logger::getInstance().log(level, module, message);
     };
-    
-
-    SysApiKernel sys(m_storage, this); //build syscalls 
-    shell::Shell sh(sys, registry);
-
-    sh.setLogCallback(logger_callback); 
-    
-    terminal::Terminal term;
-    term.setLogCallback(logger_callback);
-    
-    // Set prompt callback to show current directory
-    term.setPromptCallback([this](){
-        return m_storage.getWorkingDir() + "$ ";
-    });
-    
-    // Shell's output callback - prints results to terminal
-    sh.setOutputCallback([&term](const std::string& output){
-        if(!output.empty()){ 
-            term.print(output); 
-            if(output.back()!='\n') term.print("\n"); 
-        }
-    });
-
-    
-    sh.setKernelCallback([this](const std::string& cmd, const std::vector<std::string>& args){
-        this->execute_command(cmd, args);
-    });
-    
-    term.setSendCallback([&](const std::string& line){
-        sh.processCommandLine(line);
-        
-        // If kernel wants to shutdown, signal terminal to exit
-        if(!m_is_running) {
-            term.requestShutdown();
-        }
-    });
-    
-    // Terminal sends signals to kernel (like real hardware interrupt)
-    term.setSignalCallback([this](int sig){ 
-        // Hardware interrupt goes to kernel first
-        this->handle_interrupt_signal(sig);
-        std::cout << "^C" << std::flush;
-    });
-
-    LOG_INFO("KERNEL", "Init process started");
     
     // Start kernel event loop in a separate thread
     kernel_running.store(true);
@@ -278,14 +235,36 @@ void Kernel::boot(){
         this->run_event_loop();
     });
     
-    // Start terminal in a separate thread
-    term.start();
+    LOG_INFO("KERNEL", "Starting init process (PID 1)...");
     
-    // Main thread waits for terminal to finish
-    // The kernel continues to run in its own thread, handling background tasks
-    term.join();
+    // Create init as actual process with PID 1
+    int init_pid = m_proc_manager.create_process("init", 1, 1024, 10);
+    if (init_pid != 1) {
+        LOG_ERROR("KERNEL", "Failed to create init process");
+        return;
+    }
     
-    // After terminal exits, stop kernel event loop
+    // Create syscall interface for user-space processes
+    SysApiKernel sys(m_storage, this);
+    
+    // Create and start init process (PID 1)
+    init::Init init(sys);
+    init.setLogCallback(logger_callback);
+    
+    // Store reference to init so kernel can signal it on shutdown (like sending SIGTERM to PID 1)
+    auto init_ptr = &init;
+    m_init_shutdown = [init_ptr]() {
+        init_ptr->signalShutdown();
+    };
+    
+    init.start();
+    
+    // Init has exited - remove from process table
+    if (m_proc_manager.process_exists(1)) {
+        m_proc_manager.stop_process(1);
+    }
+    
+    // After init exits, stop kernel event loop
     kernel_running.store(false);
     queue_cv.notify_one();
     

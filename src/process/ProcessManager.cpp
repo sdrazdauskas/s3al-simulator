@@ -15,6 +15,11 @@ void ProcessManager::log(const std::string& level, const std::string& message) {
     }
 }
 
+bool ProcessManager::process_exists(int pid) const {
+    return std::find_if(table.begin(), table.end(),
+                       [pid](const Process& p) { return p.pid == pid; }) != table.end();
+}
+
 //general function describing lifecycle, accessed by kernel
 int ProcessManager::execute_process(const std::string& name,
                                     int cpuTimeNeeded,
