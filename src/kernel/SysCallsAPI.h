@@ -57,6 +57,8 @@ struct SysApi {
     virtual SysInfo get_sysinfo() = 0;
 
     virtual void requestShutdown() = 0;
+    
+    virtual void sendSignal(int signal) = 0;
 
     virtual ~SysApi() = default;
 };

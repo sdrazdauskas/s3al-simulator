@@ -37,6 +37,7 @@ public:
     MOCK_METHOD(SysResult, listDataFiles, (std::vector<std::string>& out), (override));
     MOCK_METHOD(SysInfo, get_sysinfo, (), (override));
     MOCK_METHOD(void, requestShutdown, (), (override));
+    MOCK_METHOD(void, sendSignal, (int signal), (override));
 };
 
 class ShellTest : public ::testing::Test {
