@@ -20,7 +20,8 @@ case "$OS" in
             build-essential \
             cmake \
             ninja-build \
-            g++
+            g++ \
+            libncurses-dev
         ;;
     fedora|rhel|centos)
         echo "Detected Fedora/RHEL/CentOS-based system"
@@ -29,18 +30,20 @@ case "$OS" in
             gcc-c++ \
             cmake \
             ninja-build \
-            make
+            make \
+            ncurses-devel
         ;;
     arch|manjaro)
         echo "Detected Arch-based system"
         sudo pacman -Sy --noconfirm \
             base-devel \
             cmake \
-            ninja
+            ninja \
+            ncurses
         ;;
     *)
         echo "Unsupported OS: $OS"
-        echo "Please manually install: build-essential/gcc, cmake, ninja-build"
+        echo "Please manually install: build-essential/gcc, cmake, ninja-build, ncurses-dev"
         exit 1
         ;;
 esac

@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 #include <functional>
-#include "ProcessData.h"
+#include "Process.h"
 
 namespace memory { class MemoryManager; }
 namespace scheduler { class CPUScheduler; }
@@ -38,6 +38,17 @@ public:
     
     // Query process existence
     bool process_exists(int pid) const;
+    
+    // Process control - suspend/resume
+    bool suspend_process(int pid);   // SIGSTOP - suspend execution
+    bool resume_process(int pid);    // SIGCONT - resume execution
+    
+    // Signal handling
+    bool send_signal(int pid, int signal);  // Send signal to process
+    
+    // Callback for when a signal is sent to a process (so daemon threads can respond)
+    using SignalCallback = std::function<void(int pid, int signal)>;
+    void setSignalCallback(SignalCallback callback) { signal_callback = callback; }
 
     // Read-only access for kernel/UI/tests
     std::vector<Process> snapshot() const;
@@ -48,6 +59,7 @@ private:
     memory::MemoryManager& mem;
     scheduler::CPUScheduler&  cpu;
     LogCallback log_callback;
+    SignalCallback signal_callback;
 
     Process*       find(int pid);
     void log(const std::string& level, const std::string& message);

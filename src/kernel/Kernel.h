@@ -57,6 +57,20 @@ public:
     
     // Signal handling - kernel receives interrupts from hardware/terminal
     void handle_interrupt_signal(int signal);
+    
+    // Process signal handling
+    bool send_signal_to_process(int pid, int signal);
+    
+    // Process creation - creates a process entry, returns PID
+    int fork_process(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0);
+    
+    // Get list of all processes
+    std::vector<shell::SysApi::ProcessInfo> get_process_list() const;
+    
+    // Set callback for daemon signal notifications
+    void setDaemonSignalCallback(std::function<void(int pid, int signal)> callback) {
+        m_daemon_signal_callback = callback;
+    }
 
     // Kernel event loop - runs background tasks
     void run_event_loop();
@@ -93,6 +107,9 @@ private:
 
     std::map<std::string, CommandHandler> m_commands;
     bool m_is_running;
+    
+    // Signal callback from ProcessManager to Init (for daemon notification)
+    std::function<void(int pid, int signal)> m_daemon_signal_callback;
     
     // Callback to signal init process to shutdown
     std::function<void()> m_init_shutdown;

@@ -59,6 +59,21 @@ struct SysApi {
     virtual void requestShutdown() = 0;
     
     virtual void sendSignal(int signal) = 0;
+    
+    // Process control
+    virtual SysResult sendSignalToProcess(int pid, int signal) = 0;
+    
+    // Process creation - returns PID of new process or -1 on failure
+    virtual int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0) = 0;
+    
+    // Process information
+    struct ProcessInfo {
+        int pid;
+        std::string name;
+        std::string state;
+        int priority;
+    };
+    virtual std::vector<ProcessInfo> getProcessList() = 0;
 
     virtual ~SysApi() = default;
 };
