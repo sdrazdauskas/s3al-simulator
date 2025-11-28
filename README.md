@@ -31,7 +31,7 @@ cmake --build build
 docker build -t s3al/simulator:latest . ; docker image prune -f
 
 # Run
-docker run --rm -it s3al/simulator [OPTIONS]
+docker run --rm -it s3al/simulator /app/s3al_sim [OPTIONS]
 ```
 
 ## Available Options

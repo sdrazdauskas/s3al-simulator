@@ -32,6 +32,8 @@ std::unique_ptr<ICommand> create_mv_command();
 std::unique_ptr<ICommand> create_cp_command();
 std::unique_ptr<ICommand> create_mvdir_command();
 std::unique_ptr<ICommand> create_cpdir_command();
+std::unique_ptr<ICommand> create_kill_command();
+std::unique_ptr<ICommand> create_ps_command();
 
 inline void init_commands(CommandRegistry& reg) {
     reg.add(create_cat_command());
@@ -56,6 +58,8 @@ inline void init_commands(CommandRegistry& reg) {
     reg.add(create_cp_command());
     reg.add(create_mvdir_command());
     reg.add(create_cpdir_command());
+    reg.add(create_kill_command());
+    reg.add(create_ps_command());
     
     reg.add(create_help_command(&reg));
     
