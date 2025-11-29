@@ -5,6 +5,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "helper/History.h"
+#include "Logger.h"
 
 namespace terminal {
 
@@ -13,6 +14,8 @@ namespace {
     std::atomic<bool> sigintReceived{false};
     // Store the signal callback globally so signal handler can access it
     std::function<void(int)>* g_signalCallback = nullptr;
+    // Store pointer to active terminal for redraw callback
+    Terminal* g_activeTerminal = nullptr;
 
     extern "C" void terminalSigintHandler(int sig) {
         sigintReceived.store(true);
@@ -53,6 +56,28 @@ void Terminal::print(const std::string& output) {
     std::cout << output << std::flush;
 }
 
+void Terminal::redrawPrompt() {
+    if (!is_reading_input.load()) return;
+    
+    std::lock_guard<std::mutex> lock(input_mutex);
+    // Redraw prompt and current input on a fresh line
+    std::cout << "\r\33[2K";  // Clear current line
+    if (promptCb) std::cout << promptCb();
+    std::cout << current_buffer;
+    // Move cursor to correct position
+    if (promptCb && current_cursor < current_buffer.size()) {
+        std::cout << "\r\33[" << (current_cursor + promptCb().size()) << "C";
+    }
+    std::cout << std::flush;
+}
+
+void Terminal::clearCurrentLine() {
+    if (!is_reading_input.load()) return;
+    
+    // Clear the current line before log output
+    std::cout << "\r\33[2K" << std::flush;
+}
+
 void Terminal::requestShutdown() {
     should_shutdown.store(true);
 }
@@ -84,6 +109,16 @@ void Terminal::runBlockingStdioLoop() {
 
     log("INFO", "Terminal started, listening for input");
 
+    // Register redraw callback with Logger
+    g_activeTerminal = this;
+    logging::Logger::getInstance().setConsoleOutputCallback([this](bool before) {
+        if (before) {
+            clearCurrentLine();  // Clear before log is printed
+        } else {
+            redrawPrompt();      // Redraw after log is printed
+        }
+    });
+
     // =================== HISTORY + LEFT/RIGHT CURSOR =====================
     History history;
     struct termios orig, raw;
@@ -106,6 +141,14 @@ void Terminal::runBlockingStdioLoop() {
 
         std::string buffer;
         size_t cursor = 0;
+        
+        // Mark that we're now reading input and clear previous state
+        {
+            std::lock_guard<std::mutex> lock(input_mutex);
+            current_buffer.clear();
+            current_cursor = 0;
+        }
+        is_reading_input.store(true);
 
         while (true) {
             char c;
@@ -115,6 +158,7 @@ void Terminal::runBlockingStdioLoop() {
             }
 
             if (c == '\n' || c == '\r') {
+                is_reading_input.store(false);
                 std::cout << "\n";
                 history.add(buffer);
                 if (sendCb) sendCb(buffer);
@@ -125,6 +169,11 @@ void Terminal::runBlockingStdioLoop() {
                 if (!buffer.empty() && cursor > 0) {
                     buffer.erase(cursor - 1, 1);
                     --cursor;
+                    {
+                        std::lock_guard<std::mutex> lock(input_mutex);
+                        current_buffer = buffer;
+                        current_cursor = cursor;
+                    }
                     std::cout << "\r\33[2K";
                     if (promptCb) std::cout << promptCb();
                     std::cout << buffer;
@@ -144,6 +193,11 @@ void Terminal::runBlockingStdioLoop() {
                         if (history.prev(hist)) {
                             buffer = hist;
                             cursor = buffer.size();
+                            {
+                                std::lock_guard<std::mutex> lock(input_mutex);
+                                current_buffer = buffer;
+                                current_cursor = cursor;
+                            }
                             std::cout << "\r\33[2K";
                             if (promptCb) std::cout << promptCb();
                             std::cout << buffer << std::flush;
@@ -154,12 +208,22 @@ void Terminal::runBlockingStdioLoop() {
                         if (history.next(hist)) {
                             buffer = hist;
                             cursor = buffer.size();
+                            {
+                                std::lock_guard<std::mutex> lock(input_mutex);
+                                current_buffer = buffer;
+                                current_cursor = cursor;
+                            }
                             std::cout << "\r\33[2K";
                             if (promptCb) std::cout << promptCb();
                             std::cout << buffer << std::flush;
                         } else {
                             buffer.clear();
                             cursor = 0;
+                            {
+                                std::lock_guard<std::mutex> lock(input_mutex);
+                                current_buffer = buffer;
+                                current_cursor = cursor;
+                            }
                             std::cout << "\r\33[2K";
                             if (promptCb) std::cout << promptCb();
                             std::cout << std::flush;
@@ -169,6 +233,10 @@ void Terminal::runBlockingStdioLoop() {
                     if (seq[1] == 'C') { // RIGHT
                         if (cursor < buffer.size()) {
                             ++cursor;
+                            {
+                                std::lock_guard<std::mutex> lock(input_mutex);
+                                current_cursor = cursor;
+                            }
                             std::cout << "\033[C" << std::flush;
                         }
                         continue;
@@ -176,6 +244,10 @@ void Terminal::runBlockingStdioLoop() {
                     if (seq[1] == 'D') { // LEFT
                         if (cursor > 0) {
                             --cursor;
+                            {
+                                std::lock_guard<std::mutex> lock(input_mutex);
+                                current_cursor = cursor;
+                            }
                             std::cout << "\033[D" << std::flush;
                         }
                         continue;
@@ -186,6 +258,11 @@ void Terminal::runBlockingStdioLoop() {
 
             buffer.insert(buffer.begin() + cursor, c);
             ++cursor;
+            {
+                std::lock_guard<std::mutex> lock(input_mutex);
+                current_buffer = buffer;
+                current_cursor = cursor;
+            }
             std::cout << "\r\33[2K";
             if (promptCb) std::cout << promptCb();
             std::cout << buffer;
@@ -195,6 +272,11 @@ void Terminal::runBlockingStdioLoop() {
         if (should_shutdown.load()) break;
     }
 
+    // Cleanup
+    is_reading_input.store(false);
+    g_activeTerminal = nullptr;
+    logging::Logger::getInstance().setConsoleOutputCallback(nullptr);
+    
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
     std::signal(SIGINT, prev);
     log("INFO", "Terminal stopped");
