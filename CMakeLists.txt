@@ -14,18 +14,13 @@ add_library(terminal STATIC
         src/terminal/helper/History.cpp
 )
 
-target_include_directories(terminal PUBLIC src/terminal)
-target_link_libraries(terminal PUBLIC Threads::Threads)
+target_include_directories(terminal PUBLIC src/terminal src/logger)
+target_link_libraries(terminal PUBLIC Threads::Threads logging)
 
 # Shell library. command cmake maintained in src/shell/commands/CMakeLists.txt
 add_subdirectory(src/shell/commands)
 add_library(shell STATIC src/shell/Shell.cpp ${SHELL_COMMAND_SOURCES})
 target_include_directories(shell PUBLIC src src/kernel src/shell)
-
-# curses used by "texed" text editor command
-find_package(Curses REQUIRED)
-target_include_directories(shell PUBLIC ${CURSES_INCLUDE_DIR})
-target_link_libraries(shell PUBLIC ${CURSES_LIBRARIES})
 
 # curses used by "texed" text editor command
 find_package(Curses REQUIRED)

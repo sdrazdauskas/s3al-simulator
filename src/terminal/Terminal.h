@@ -4,6 +4,7 @@
 #include <thread>
 #include <atomic>
 #include <string>
+#include <mutex>
 
 namespace terminal {
 
@@ -58,6 +59,15 @@ private:
     LogCallback log_callback;
     std::atomic<bool> should_shutdown{false};
     std::thread terminal_thread;
+    
+    // State for redrawing prompt after external output (e.g., logs)
+    std::mutex input_mutex;
+    std::string current_buffer;
+    size_t current_cursor{0};
+    std::atomic<bool> is_reading_input{false};
+    
+    void redrawPrompt();
+    void clearCurrentLine();
 
     void log(const std::string& level, const std::string& message);
 };
