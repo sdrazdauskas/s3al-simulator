@@ -8,6 +8,9 @@
 
 namespace terminal {
 
+// Forward declaration
+class History;
+
 class Terminal {
 public:
     using sendCallback = std::function<void(const std::string&)>;
@@ -70,6 +73,12 @@ private:
     void clearCurrentLine();
     void updateInputState(const std::string& buffer, size_t cursor);
     void displayBuffer(const std::string& buffer, size_t cursor);
+    
+    // Input handlers
+    bool handleBackspace(std::string& buffer, size_t& cursor);
+    bool handleHistoryNavigation(char key, History& history, std::string& buffer, size_t& cursor);
+    bool handleCursorMovement(char key, size_t& cursor, size_t bufferSize);
+    void handleCharInput(char c, std::string& buffer, size_t& cursor);
 
     void log(const std::string& level, const std::string& message);
 };
