@@ -74,6 +74,10 @@ struct SysApi {
         int priority;
     };
     virtual std::vector<ProcessInfo> getProcessList() = 0;
+    
+    // Interactive input - commands should use this instead of std::cin
+    // Handles console logging suspension during input
+    virtual std::string readLine() = 0;
 
     virtual ~SysApi() = default;
 };

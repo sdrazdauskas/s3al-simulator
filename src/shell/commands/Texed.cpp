@@ -237,7 +237,9 @@ struct Editor {
             if (gut > 0) {
                 if (fileRow < (int)lines.size()) {
                     char buf[32];
-                    std::snprintf(buf, sizeof(buf), "%*d ", gut - 1, fileRow + 1);
+                    int width = std::min(gut - 1, 10);  // Clamp width to reasonable value to avoid overflow
+                    int lineNum = std::min(fileRow + 1, 999999999);  // Clamp line number to avoid overflow
+                    std::snprintf(buf, sizeof(buf), "%*d ", width, lineNum);
                     attron(A_DIM);
                     addnstr(buf, gut);
                     attroff(A_DIM);

@@ -240,7 +240,13 @@ void Terminal::runBlockingStdioLoop() {
                 is_reading_input.store(false);
                 std::cout << "\n";
                 history.add(buffer);
+                
+                // Restore cooked mode before executing command
+                // so commands can use std::getline() normally
+                tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
                 if (sendCb) sendCb(buffer);
+                // Return to raw mode for next input
+                tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
                 break;
             }
 

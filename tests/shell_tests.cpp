@@ -41,6 +41,7 @@ public:
     MOCK_METHOD(SysResult, sendSignalToProcess, (int pid, int signal), (override));
     MOCK_METHOD(int, fork, (const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority), (override));
     MOCK_METHOD(std::vector<ProcessInfo>, getProcessList, (), (override));
+    MOCK_METHOD(std::string, readLine, (), (override));
 };
 
 class ShellTest : public ::testing::Test {
