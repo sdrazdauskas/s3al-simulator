@@ -4,8 +4,18 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <csignal>
 
 namespace shell {
+
+// Flag for handling Ctrl+C in editor
+namespace {
+    volatile sig_atomic_t g_texed_sigint = 0;
+    
+    extern "C" void texed_sigint_handler(int) {
+        g_texed_sigint = 1;
+    }
+}
 
 enum class Mode { NORMAL, INSERT, COMMAND };
 
@@ -237,7 +247,9 @@ struct Editor {
             if (gut > 0) {
                 if (fileRow < (int)lines.size()) {
                     char buf[32];
-                    std::snprintf(buf, sizeof(buf), "%*d ", gut - 1, fileRow + 1);
+                    int width = std::min(gut - 1, 10);  // Clamp width to reasonable value to avoid overflow
+                    int lineNum = std::min(fileRow + 1, 999999999);  // Clamp line number to avoid overflow
+                    std::snprintf(buf, sizeof(buf), "%*d ", width, lineNum);
                     attron(A_DIM);
                     addnstr(buf, gut);
                     attroff(A_DIM);
@@ -305,6 +317,13 @@ public:
         ed.filename = args[0];
         ed.loadFromSys(sys);
 
+        // Enter interactive mode (disables console logging)
+        sys.beginInteractiveMode();
+        
+        // Install our own SIGINT handler to catch Ctrl+C
+        auto prev_handler = std::signal(SIGINT, texed_sigint_handler);
+        g_texed_sigint = 0;
+
         initscr();              // init ncurses mode
         raw();                  // pass keypresses DIRECTLY to program
         noecho();               // do not echo typed chars
@@ -315,6 +334,15 @@ public:
         ed.setStatus("Press :help for help");
 
         while (!ed.requestClose) {
+            // Handle Ctrl+C: return to normal mode
+            if (g_texed_sigint) {
+                g_texed_sigint = 0;
+                ed.mode = Mode::NORMAL;
+                ed.cmdline.clear();
+                ed.setStatus("Interrupted");
+                continue;
+            }
+            
             ed.refreshScreen();
             int ch = getch();
             if (ch == KEY_RESIZE)
@@ -357,6 +385,14 @@ public:
             case Mode::INSERT:
                 if (ch == 27) { // ascii: 27=1B=ESC
                     ed.mode = Mode::NORMAL;
+                } else if (ch == KEY_LEFT) {
+                    ed.moveCursor(0, -1);
+                } else if (ch == KEY_RIGHT) {
+                    ed.moveCursor(0, 1);
+                } else if (ch == KEY_UP) {
+                    ed.moveCursor(-1, 0);
+                } else if (ch == KEY_DOWN) {
+                    ed.moveCursor(1, 0);
                 } else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
                     ed.backspace();
                 } else if (ch == '\n' || ch == '\r') {
@@ -385,6 +421,12 @@ public:
 
         // ends ncurses mode
         endwin();
+        
+        // Restore previous signal handler
+        std::signal(SIGINT, prev_handler);
+
+        // Exit interactive mode (restores console logging)
+        sys.endInteractiveMode();
 
         return 0;
     }

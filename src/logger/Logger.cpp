@@ -51,7 +51,15 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
     }
 
     if (log_to_console) {
-        std::cout << log_entry << std::endl;
+        // Call callback before output to clear the current input line
+        if (console_output_callback) {
+            console_output_callback(true);  // true = before log
+        }
+        std::cerr << log_entry << std::endl;
+        // Call callback after output to redraw the prompt
+        if (console_output_callback) {
+            console_output_callback(false);  // false = after log
+        }
     }
 }
 

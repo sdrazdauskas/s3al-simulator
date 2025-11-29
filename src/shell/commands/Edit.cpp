@@ -36,9 +36,9 @@ public:
         out << "Type ':wq' on a new line to save and exit.\n";
         out << "--------------------------------------\n";
 
-        std::string newLines, line;
+        std::string newLines;
         while (true) {
-            std::getline(std::cin, line);
+            std::string line = sys.readLine();
             if (line == ":wq")
                 break;
             newLines += line + "\n";

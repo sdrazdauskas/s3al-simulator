@@ -4,8 +4,12 @@
 #include <thread>
 #include <atomic>
 #include <string>
+#include <mutex>
 
 namespace terminal {
+
+// Forward declaration
+class History;
 
 class Terminal {
 public:
@@ -58,6 +62,23 @@ private:
     LogCallback log_callback;
     std::atomic<bool> should_shutdown{false};
     std::thread terminal_thread;
+    
+    // State for redrawing prompt after external output (e.g., logs)
+    std::mutex input_mutex;
+    std::string current_buffer;
+    size_t current_cursor{0};
+    std::atomic<bool> is_reading_input{false};
+    
+    void redrawPrompt();
+    void clearCurrentLine();
+    void updateInputState(const std::string& buffer, size_t cursor);
+    void displayBuffer(const std::string& buffer, size_t cursor);
+    
+    // Input handlers
+    bool handleBackspace(std::string& buffer, size_t& cursor);
+    bool handleHistoryNavigation(char key, History& history, std::string& buffer, size_t& cursor);
+    bool handleCursorMovement(char key, size_t& cursor, size_t bufferSize);
+    void handleCharInput(char c, std::string& buffer, size_t& cursor);
 
     void log(const std::string& level, const std::string& message);
 };
