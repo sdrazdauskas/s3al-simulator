@@ -102,7 +102,6 @@ enable_testing()
 
 # Storage Tests
 add_executable(storage_tests tests/storage_tests.cpp)
-target_include_directories(storage_tests PRIVATE src/storage)
 target_link_libraries(storage_tests PRIVATE storage GTest::gtest_main GTest::gmock_main)
 
 include(GoogleTest)
@@ -110,12 +109,6 @@ gtest_discover_tests(storage_tests)
 
 # Process Manager Tests
 add_executable(process_tests tests/process_tests.cpp)
-target_include_directories(process_tests PRIVATE 
-    src/process 
-    src/memory 
-    src/scheduler
-    src/logger
-)
 target_link_libraries(process_tests PRIVATE 
     process 
     memory 
@@ -129,13 +122,7 @@ gtest_discover_tests(process_tests)
 
 # Shell Tests
 add_executable(shell_tests tests/shell_tests.cpp)
-target_include_directories(shell_tests PRIVATE 
-    src/shell
-    src/kernel
-    src/storage
-    src/logger
-    ${CMAKE_SOURCE_DIR}/include
-)
+target_include_directories(shell_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(shell_tests PRIVATE 
     shell
     storage
@@ -147,15 +134,7 @@ gtest_discover_tests(shell_tests)
 
 # Integration Tests
 add_executable(integration_tests tests/integration_tests.cpp)
-target_include_directories(integration_tests PRIVATE 
-    src/kernel 
-    src/storage 
-    src/memory 
-    src/process 
-    src/scheduler
-    src/logger
-    ${CMAKE_SOURCE_DIR}/include
-)
+target_include_directories(integration_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(integration_tests PRIVATE 
     kernel 
     storage 
@@ -171,15 +150,7 @@ gtest_discover_tests(integration_tests)
 
 # Acceptance Tests
 add_executable(acceptance_tests tests/acceptance_tests.cpp)
-target_include_directories(acceptance_tests PRIVATE 
-    src/kernel 
-    src/storage 
-    src/memory 
-    src/process 
-    src/scheduler
-    src/logger
-    ${CMAKE_SOURCE_DIR}/include
-)
+target_include_directories(acceptance_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(acceptance_tests PRIVATE 
     kernel 
     storage 
