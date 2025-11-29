@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include <functional>
 
 namespace logging {
 
@@ -28,6 +29,11 @@ public:
     void setConsoleOutput(bool enabled) { log_to_console = enabled; }
     bool getConsoleOutput() const { return log_to_console; }
     
+    // Callback called before/after console output, allowing terminal to redraw prompt
+    // Parameter: true = before log output (clear line), false = after log output (redraw prompt)
+    using ConsoleOutputCallback = std::function<void(bool)>;
+    void setConsoleOutputCallback(ConsoleOutputCallback cb) { console_output_callback = std::move(cb); }
+    
     // Disable copy/move, enforce existence of single instance
     Logger(const Logger&) = delete;
     Logger& operator=(const Logger&) = delete;
@@ -40,6 +46,7 @@ private:
     LogLevel min_level = LogLevel::INFO;
     std::mutex mutex;
     bool log_to_console = false;
+    ConsoleOutputCallback console_output_callback;
     
     std::string levelToString(LogLevel level);
     std::string getCurrentTime();
