@@ -278,6 +278,20 @@ struct SysApiKernel : ::shell::SysApi {
         logging::Logger::getInstance().setConsoleOutput(wasConsoleLogging);
         return line;
     }
+    
+    void beginInteractiveMode() override {
+        // Save and disable console logging for full-screen interactive applications
+        savedConsoleLogging = logging::Logger::getInstance().getConsoleOutput();
+        logging::Logger::getInstance().setConsoleOutput(false);
+    }
+    
+    void endInteractiveMode() override {
+        // Restore console logging state
+        logging::Logger::getInstance().setConsoleOutput(savedConsoleLogging);
+    }
+    
+private:
+    bool savedConsoleLogging = false;
 };
 
 } // namespace kernel

@@ -78,6 +78,11 @@ struct SysApi {
     // Interactive input - commands should use this instead of std::cin
     // Handles console logging suspension during input
     virtual std::string readLine() = 0;
+    
+    // Interactive mode control for full-screen applications (e.g., ncurses editors)
+    // Call beginInteractiveMode() before taking over the terminal, endInteractiveMode() when done
+    virtual void beginInteractiveMode() = 0;
+    virtual void endInteractiveMode() = 0;
 
     virtual ~SysApi() = default;
 };

@@ -42,6 +42,8 @@ public:
     MOCK_METHOD(int, fork, (const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority), (override));
     MOCK_METHOD(std::vector<ProcessInfo>, getProcessList, (), (override));
     MOCK_METHOD(std::string, readLine, (), (override));
+    MOCK_METHOD(void, beginInteractiveMode, (), (override));
+    MOCK_METHOD(void, endInteractiveMode, (), (override));
 };
 
 class ShellTest : public ::testing::Test {
