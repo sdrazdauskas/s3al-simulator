@@ -68,6 +68,8 @@ private:
     
     void redrawPrompt();
     void clearCurrentLine();
+    void updateInputState(const std::string& buffer, size_t cursor);
+    void displayBuffer(const std::string& buffer, size_t cursor);
 
     void log(const std::string& level, const std::string& message);
 };

@@ -78,6 +78,22 @@ void Terminal::clearCurrentLine() {
     std::cout << "\r\33[2K" << std::flush;
 }
 
+void Terminal::updateInputState(const std::string& buffer, size_t cursor) {
+    std::lock_guard<std::mutex> lock(input_mutex);
+    current_buffer = buffer;
+    current_cursor = cursor;
+}
+
+void Terminal::displayBuffer(const std::string& buffer, size_t cursor) {
+    std::cout << "\r\33[2K";
+    if (promptCb) std::cout << promptCb();
+    std::cout << buffer;
+    if (cursor < buffer.size() && promptCb) {
+        std::cout << "\r\33[" << (cursor + promptCb().size()) << "C";
+    }
+    std::cout << std::flush;
+}
+
 void Terminal::requestShutdown() {
     should_shutdown.store(true);
 }
@@ -169,15 +185,8 @@ void Terminal::runBlockingStdioLoop() {
                 if (!buffer.empty() && cursor > 0) {
                     buffer.erase(cursor - 1, 1);
                     --cursor;
-                    {
-                        std::lock_guard<std::mutex> lock(input_mutex);
-                        current_buffer = buffer;
-                        current_cursor = cursor;
-                    }
-                    std::cout << "\r\33[2K";
-                    if (promptCb) std::cout << promptCb();
-                    std::cout << buffer;
-                    std::cout << "\r\33[" << cursor + promptCb().size() << "C" << std::flush;
+                    updateInputState(buffer, cursor);
+                    displayBuffer(buffer, cursor);
                 }
                 continue;
             }
@@ -189,68 +198,40 @@ void Terminal::runBlockingStdioLoop() {
 
                 if (seq[0] == '[') {
                     std::string hist;
-                    if (seq[1] == 'A') { // UP
-                        if (history.prev(hist)) {
-                            buffer = hist;
-                            cursor = buffer.size();
-                            {
-                                std::lock_guard<std::mutex> lock(input_mutex);
-                                current_buffer = buffer;
-                                current_cursor = cursor;
+                    switch (seq[1]) {
+                        case 'A': // UP
+                            if (history.prev(hist)) {
+                                buffer = hist;
+                                cursor = buffer.size();
+                                updateInputState(buffer, cursor);
+                                displayBuffer(buffer, cursor);
                             }
-                            std::cout << "\r\33[2K";
-                            if (promptCb) std::cout << promptCb();
-                            std::cout << buffer << std::flush;
-                        }
-                        continue;
-                    }
-                    if (seq[1] == 'B') { // DOWN
-                        if (history.next(hist)) {
-                            buffer = hist;
-                            cursor = buffer.size();
-                            {
-                                std::lock_guard<std::mutex> lock(input_mutex);
-                                current_buffer = buffer;
-                                current_cursor = cursor;
+                            break;
+                        case 'B': // DOWN
+                            if (history.next(hist)) {
+                                buffer = hist;
+                                cursor = buffer.size();
+                            } else {
+                                buffer.clear();
+                                cursor = 0;
                             }
-                            std::cout << "\r\33[2K";
-                            if (promptCb) std::cout << promptCb();
-                            std::cout << buffer << std::flush;
-                        } else {
-                            buffer.clear();
-                            cursor = 0;
-                            {
-                                std::lock_guard<std::mutex> lock(input_mutex);
-                                current_buffer = buffer;
-                                current_cursor = cursor;
+                            updateInputState(buffer, cursor);
+                            displayBuffer(buffer, cursor);
+                            break;
+                        case 'C': // RIGHT
+                            if (cursor < buffer.size()) {
+                                ++cursor;
+                                updateInputState(buffer, cursor);
+                                std::cout << "\033[C" << std::flush;
                             }
-                            std::cout << "\r\33[2K";
-                            if (promptCb) std::cout << promptCb();
-                            std::cout << std::flush;
-                        }
-                        continue;
-                    }
-                    if (seq[1] == 'C') { // RIGHT
-                        if (cursor < buffer.size()) {
-                            ++cursor;
-                            {
-                                std::lock_guard<std::mutex> lock(input_mutex);
-                                current_cursor = cursor;
+                            break;
+                        case 'D': // LEFT
+                            if (cursor > 0) {
+                                --cursor;
+                                updateInputState(buffer, cursor);
+                                std::cout << "\033[D" << std::flush;
                             }
-                            std::cout << "\033[C" << std::flush;
-                        }
-                        continue;
-                    }
-                    if (seq[1] == 'D') { // LEFT
-                        if (cursor > 0) {
-                            --cursor;
-                            {
-                                std::lock_guard<std::mutex> lock(input_mutex);
-                                current_cursor = cursor;
-                            }
-                            std::cout << "\033[D" << std::flush;
-                        }
-                        continue;
+                            break;
                     }
                 }
                 continue;
@@ -258,15 +239,8 @@ void Terminal::runBlockingStdioLoop() {
 
             buffer.insert(buffer.begin() + cursor, c);
             ++cursor;
-            {
-                std::lock_guard<std::mutex> lock(input_mutex);
-                current_buffer = buffer;
-                current_cursor = cursor;
-            }
-            std::cout << "\r\33[2K";
-            if (promptCb) std::cout << promptCb();
-            std::cout << buffer;
-            std::cout << "\r\33[" << cursor + promptCb().size() << "C" << std::flush;
+            updateInputState(buffer, cursor);
+            displayBuffer(buffer, cursor);
         }
 
         if (should_shutdown.load()) break;
