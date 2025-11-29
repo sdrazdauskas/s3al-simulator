@@ -94,6 +94,69 @@ void Terminal::displayBuffer(const std::string& buffer, size_t cursor) {
     std::cout << std::flush;
 }
 
+bool Terminal::handleBackspace(std::string& buffer, size_t& cursor) {
+    if (buffer.empty() || cursor == 0) return false;
+    buffer.erase(cursor - 1, 1);
+    --cursor;
+    updateInputState(buffer, cursor);
+    displayBuffer(buffer, cursor);
+    return true;
+}
+
+bool Terminal::handleHistoryNavigation(char key, History& history, std::string& buffer, size_t& cursor) {
+    std::string hist;
+    
+    switch (key) {
+        case 'A': // UP
+            if (!history.prev(hist)) return false;
+            buffer = hist;
+            cursor = buffer.size();
+            break;
+        case 'B': // DOWN
+            if (history.next(hist)) {
+                buffer = hist;
+                cursor = buffer.size();
+            } else {
+                buffer.clear();
+                cursor = 0;
+            }
+            break;
+        default:
+            return false;
+    }
+    
+    updateInputState(buffer, cursor);
+    displayBuffer(buffer, cursor);
+    return true;
+}
+
+bool Terminal::handleCursorMovement(char key, size_t& cursor, size_t bufferSize) {
+    switch (key) {
+        case 'C': // RIGHT
+            if (cursor >= bufferSize) return false;
+            ++cursor;
+            std::cout << "\033[C" << std::flush;
+            break;
+        case 'D': // LEFT
+            if (cursor == 0) return false;
+            --cursor;
+            std::cout << "\033[D" << std::flush;
+            break;
+        default:
+            return false;
+    }
+    
+    updateInputState(current_buffer, cursor);
+    return true;
+}
+
+void Terminal::handleCharInput(char c, std::string& buffer, size_t& cursor) {
+    buffer.insert(buffer.begin() + cursor, c);
+    ++cursor;
+    updateInputState(buffer, cursor);
+    displayBuffer(buffer, cursor);
+}
+
 void Terminal::requestShutdown() {
     should_shutdown.store(true);
 }
@@ -135,7 +198,7 @@ void Terminal::runBlockingStdioLoop() {
         }
     });
 
-    // =================== HISTORY + LEFT/RIGHT CURSOR =====================
+    // HISTORY + LEFT/RIGHT CURSOR
     History history;
     struct termios orig, raw;
     tcgetattr(STDIN_FILENO, &orig);
@@ -182,12 +245,7 @@ void Terminal::runBlockingStdioLoop() {
             }
 
             if (c == 127 || c == 8) {
-                if (!buffer.empty() && cursor > 0) {
-                    buffer.erase(cursor - 1, 1);
-                    --cursor;
-                    updateInputState(buffer, cursor);
-                    displayBuffer(buffer, cursor);
-                }
+                handleBackspace(buffer, cursor);
                 continue;
             }
 
@@ -197,50 +255,13 @@ void Terminal::runBlockingStdioLoop() {
                 if (read(STDIN_FILENO, &seq[1], 1) <= 0) continue;
 
                 if (seq[0] == '[') {
-                    std::string hist;
-                    switch (seq[1]) {
-                        case 'A': // UP
-                            if (history.prev(hist)) {
-                                buffer = hist;
-                                cursor = buffer.size();
-                                updateInputState(buffer, cursor);
-                                displayBuffer(buffer, cursor);
-                            }
-                            break;
-                        case 'B': // DOWN
-                            if (history.next(hist)) {
-                                buffer = hist;
-                                cursor = buffer.size();
-                            } else {
-                                buffer.clear();
-                                cursor = 0;
-                            }
-                            updateInputState(buffer, cursor);
-                            displayBuffer(buffer, cursor);
-                            break;
-                        case 'C': // RIGHT
-                            if (cursor < buffer.size()) {
-                                ++cursor;
-                                updateInputState(buffer, cursor);
-                                std::cout << "\033[C" << std::flush;
-                            }
-                            break;
-                        case 'D': // LEFT
-                            if (cursor > 0) {
-                                --cursor;
-                                updateInputState(buffer, cursor);
-                                std::cout << "\033[D" << std::flush;
-                            }
-                            break;
-                    }
+                    handleHistoryNavigation(seq[1], history, buffer, cursor) ||
+                    handleCursorMovement(seq[1], cursor, buffer.size());
                 }
                 continue;
             }
 
-            buffer.insert(buffer.begin() + cursor, c);
-            ++cursor;
-            updateInputState(buffer, cursor);
-            displayBuffer(buffer, cursor);
+            handleCharInput(c, buffer, cursor);
         }
 
         if (should_shutdown.load()) break;
@@ -254,7 +275,6 @@ void Terminal::runBlockingStdioLoop() {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
     std::signal(SIGINT, prev);
     log("INFO", "Terminal stopped");
-    // =====================================================================
 }
 
 } // namespace terminal
