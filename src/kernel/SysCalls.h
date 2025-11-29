@@ -2,7 +2,9 @@
 #include "SysCallsAPI.h"
 #include "Storage.h"
 #include "Kernel.h"
+#include "Logger.h"
 #include <string>
+#include <iostream>
 
 namespace kernel {
 
@@ -262,6 +264,19 @@ struct SysApiKernel : ::shell::SysApi {
             return kernel_owner->get_process_list();
         }
         return {};
+    }
+    
+    std::string readLine() override {
+        // Disable console logging during interactive input
+        bool wasConsoleLogging = logging::Logger::getInstance().getConsoleOutput();
+        logging::Logger::getInstance().setConsoleOutput(false);
+        
+        std::string line;
+        std::getline(std::cin, line);
+        
+        // Restore console logging
+        logging::Logger::getInstance().setConsoleOutput(wasConsoleLogging);
+        return line;
     }
 };
 
