@@ -208,8 +208,10 @@ void Kernel::handle_timer_tick() {
         size_t total_mem = m_mem_mgr.get_total_memory();
         double mem_usage = (double)used_mem / total_mem * 100.0;
         
-        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count) + 
-                  ", mem:" + std::to_string((int)mem_usage) + "%]");
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << mem_usage;
+        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count)
+                + ", mem:" + oss.str() + "%]");
         last_logged_tick = tick_count;
     }
 }
