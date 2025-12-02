@@ -36,18 +36,17 @@ protected:
 TEST_F(ProcessManagerMockTest, ProcessCreationFailsWhenMemoryUnavailable) {
     ProcessManager pm(mock_memory, *scheduler);
     
-    // Create process (preparation step - doesn't allocate yet)
-    int pid = pm.create_process("test_process", 100, 512, 5);
-    EXPECT_GT(pid, 0); // Process created successfully
-    
-    // Configure mock to simulate allocation failure when running the process
-    EXPECT_CALL(mock_memory, allocate(512, pid))
+    // Configure mock to simulate allocation failure during process creation
+    EXPECT_CALL(mock_memory, allocate(512, testing::_))
         .WillOnce(Return(nullptr));
     
-    // Configure mock for cleanup (called after execution)
-    EXPECT_CALL(mock_memory, free_process_memory(pid))
-        .Times(1);
+    // No memory gets freed, because allocation never succeeded
+    EXPECT_CALL(mock_memory, free_process_memory(testing::_))
+        .Times(0);
     
-    // Attempt to run process (this triggers memory allocation)
-    bool result = pm.run_process(pid);
+    // Attempt to create the process
+    int pid = pm.create_process("test_process", 100, 512, 5);
+    
+    // Creation should fail due to memory allocation failure
+    EXPECT_EQ(pid, -1);
 }
