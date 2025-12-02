@@ -31,7 +31,7 @@ void MonitoringDaemon::collect_stats() {
     double mem_usage_percent = (double)info.used_memory / info.total_memory * 100.0;
     
     std::ostringstream oss;
-    oss << std::fixed << std::setprecision(1);
+    oss << std::fixed << std::setprecision(2);
     oss << "System stats: Memory " << info.used_memory << "/" << info.total_memory 
         << " bytes (" << mem_usage_percent << "% used)";
     
