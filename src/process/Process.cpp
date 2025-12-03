@@ -89,6 +89,20 @@ bool Process::makeZombie() {
     return true;
 }
 
+bool Process::consumeCycle() {
+    if (m_remainingCycles > 0) {
+        --m_remainingCycles;
+        log("DEBUG", "Consumed cycle, remaining: " + std::to_string(m_remainingCycles));
+    }
+    return m_remainingCycles == 0;
+}
+
+void Process::onComplete(int exitCode) {
+    if (m_execCallback) {
+        m_execCallback(m_pid, exitCode);
+    }
+}
+
 void Process::log(const std::string& level, const std::string& message) {
     if (m_log_callback) {
         m_log_callback(level, "PID=" + std::to_string(m_pid) + " '" + m_name + "': " + message);

@@ -26,7 +26,7 @@ void MonitoringDaemon::run() {
 }
 
 void MonitoringDaemon::collect_stats() {
-    auto info = m_sys.get_sysinfo();
+    auto info = m_sys.getSysInfo();
     
     double mem_usage_percent = (double)info.used_memory / info.total_memory * 100.0;
     

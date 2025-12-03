@@ -228,10 +228,10 @@ struct SysApiKernel : ::shell::SysApi {
         }
     }
 
-    ::shell::SysApi::SysInfo get_sysinfo() override {
+    ::shell::SysApi::SysInfo getSysInfo() override {
         ::shell::SysApi::SysInfo info;
         if (kernel_owner) {
-            info = kernel_owner->get_sysinfo();
+            info = kernel_owner->getSysInfo();
         }
         return info;
     }
@@ -288,6 +288,35 @@ struct SysApiKernel : ::shell::SysApi {
     void endInteractiveMode() override {
         // Restore console logging state
         logging::Logger::getInstance().setConsoleOutput(savedConsoleLogging);
+    }
+    
+
+    int submitCommand(const std::string& name, int cpuCycles, int priority = 0) override {
+        if (kernel_owner) {
+            return kernel_owner->submit_async_command(name, cpuCycles, priority);
+        }
+        return -1;
+    }
+    
+    bool waitForProcess(int pid) override {
+        if (kernel_owner) {
+            return kernel_owner->wait_for_process(pid);
+        }
+        return false;
+    }
+    
+    bool isProcessComplete(int pid) override {
+        if (kernel_owner) {
+            return kernel_owner->is_process_complete(pid);
+        }
+        return true; // If no kernel, consider it complete
+    }
+    
+    int getProcessRemainingCycles(int pid) override {
+        if (kernel_owner) {
+            return kernel_owner->get_process_remaining_cycles(pid);
+        }
+        return -1;
     }
     
 private:

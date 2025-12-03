@@ -28,6 +28,9 @@ inline std::string stateToString(ProcessState s) {
     }
 }
 
+// Callback type for when a process completes execution
+using ExecutionCallback = std::function<void(int pid, int exitCode)>;
+
 class Process {
 public:
     using LogCallback = std::function<void(const std::string& level, const std::string& message)>;
@@ -43,10 +46,19 @@ public:
     const std::string& name() const { return m_name; }
     int pid() const { return m_pid; }
     int cpuTimeNeeded() const { return m_cpuTimeNeeded; }
+    int remainingCycles() const { return m_remainingCycles; }
     int memoryNeeded() const { return m_memoryNeeded; }
     int priority() const { return m_priority; }
     int parentPid() const { return m_parent_pid; }
     ProcessState state() const { return m_state; }
+    
+    // CPU cycle management
+    void setRemainingCycles(int cycles) { m_remainingCycles = cycles; }
+    bool consumeCycle();  // Returns true if process completed (remaining == 0)
+    
+    // Execution callback - called when process finishes
+    void setExecutionCallback(ExecutionCallback cb) { m_execCallback = cb; }
+    void onComplete(int exitCode);
     
     void setLogCallback(LogCallback callback) { m_log_callback = callback; }
 
@@ -63,11 +75,13 @@ private:
     std::string m_name;
     int m_pid;
     int m_cpuTimeNeeded;
+    int m_remainingCycles{0};
     int m_memoryNeeded;
     int m_priority;
     int m_parent_pid;
     ProcessState m_state;
     LogCallback m_log_callback;
+    ExecutionCallback m_execCallback;
 
     void log(const std::string& level, const std::string& message);
 };

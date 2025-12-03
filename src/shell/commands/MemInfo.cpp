@@ -12,7 +12,7 @@ public:
                 std::ostream& /*err*/,
                 SysApi& sys) override
     {
-        auto info = sys.get_sysinfo();
+        auto info = sys.getSysInfo();
         size_t total = info.total_memory;
         size_t used = info.used_memory;
         size_t free = (total > used) ? (total - used) : 0;
@@ -40,7 +40,7 @@ public:
                 std::ostream& /*err*/,
                 SysApi& sys) override
     {
-        auto info = sys.get_sysinfo();
+        auto info = sys.getSysInfo();
         size_t total = info.total_memory;
         size_t used = info.used_memory;
         int bar_width = 40;

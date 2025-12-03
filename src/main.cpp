@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     LOG_INFO("MAIN", "Memory size: " + std::to_string(config.memory_size) + " bytes (" + 
              std::to_string(config.memory_size / 1024) + " KB)");
 
-    kernel::Kernel kernel(config.memory_size);
+    kernel::Kernel kernel(config);
     kernel.boot();
 
     LOG_INFO("MAIN", "Shutdown complete");

@@ -11,13 +11,14 @@
 #include "CommandsInit.h"
 #include "CommandAPI.h"
 #include "../init/Init.h"
+#include "../config/Config.h"
 
 namespace kernel {
 
-Kernel::Kernel(size_t memory_size)
+Kernel::Kernel(const config::Config& config)
     : m_is_running(true),
       m_scheduler(),
-      m_mem_mgr(memory_size),
+      m_mem_mgr(config.memory_size),
       m_proc_manager(m_mem_mgr, m_scheduler) {
     auto logger_callback = [](const std::string& level, const std::string& module, const std::string& message){
         logging::Logger::getInstance().log(level, module, message);
@@ -28,16 +29,36 @@ Kernel::Kernel(size_t memory_size)
     m_storage.setLogCallback(logger_callback);
     m_mem_mgr.setLogCallback(logger_callback);
     
+    // Configure scheduler from config
+    switch (config.scheduler_algorithm) {
+        case config::SchedulerAlgorithm::FCFS:
+            m_scheduler.setAlgorithm(scheduler::Algorithm::FCFS);
+            break;
+        case config::SchedulerAlgorithm::RoundRobin:
+            m_scheduler.setAlgorithm(scheduler::Algorithm::RoundRobin);
+            break;
+        case config::SchedulerAlgorithm::Priority:
+            m_scheduler.setAlgorithm(scheduler::Algorithm::Priority);
+            break;
+    }
+    m_scheduler.setQuantum(config.scheduler_quantum);
+    m_scheduler.setCyclesPerInterval(config.cycles_per_tick);
+    m_scheduler.setTickIntervalMs(config.tick_interval_ms);
+    
     // Set up signal callback to notify Init about signals sent to daemon processes
     m_proc_manager.setSignalCallback([this](int pid, int signal) {
         // Init will handle this via its daemon signal callbacks
-        // This allows daemons to respond to signals sent via kill command
     });
 
-    std::cout << "Kernel initialized." << std::endl;
+    std::cout << "Kernel initialized with scheduler: " 
+              << scheduler::algorithmToString(m_scheduler.getAlgorithm())
+              << " (quantum=" << m_scheduler.getQuantum() 
+              << ", cycles/tick=" << m_scheduler.getCyclesPerInterval()
+              << ", tick=" << m_scheduler.getTickIntervalMs() << "ms)"
+              << std::endl;
 }
 
-shell::SysApi::SysInfo Kernel::get_sysinfo() const {
+shell::SysApi::SysInfo Kernel::getSysInfo() const {
     shell::SysApi::SysInfo info;
     info.total_memory = m_mem_mgr.get_total_memory();
     info.used_memory = m_mem_mgr.get_used_memory();
@@ -166,6 +187,40 @@ std::vector<shell::SysApi::ProcessInfo> Kernel::get_process_list() const {
     return result;
 }
 
+int Kernel::submit_async_command(const std::string& name, int cpuCycles, int priority) {
+    // Submit directly to scheduler (no memory allocation needed for command execution)
+    int pid = m_proc_manager.submit(name, cpuCycles, priority);
+    LOG_DEBUG("KERNEL", "Submitted async command '" + name + "' (PID=" + std::to_string(pid) + 
+              ", cycles=" + std::to_string(cpuCycles) + ")");
+    return pid;
+}
+
+bool Kernel::wait_for_process(int pid) {
+    // Poll until process completes
+    // The kernel event loop is running in another thread and calling scheduler tick
+    while (!is_process_complete(pid)) {
+        // Check for interrupt
+        if (shell::g_interrupt_requested.load()) {
+            LOG_DEBUG("KERNEL", "Process " + std::to_string(pid) + " interrupted by user");
+            m_scheduler.remove(pid);
+            return false;
+        }
+        
+        // Small sleep to avoid busy-waiting
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return true;
+}
+
+bool Kernel::is_process_complete(int pid) const {
+    // Process is complete if it's not in the scheduler anymore
+    return m_scheduler.getRemainingCycles(pid) < 0;
+}
+
+int Kernel::get_process_remaining_cycles(int pid) const {
+    return m_scheduler.getRemainingCycles(pid);
+}
+
 void Kernel::process_event(const KernelEvent& event) {
     switch (event.type) {
         case KernelEvent::Type::COMMAND:
@@ -191,18 +246,26 @@ void Kernel::process_event(const KernelEvent& event) {
 }
 
 void Kernel::handle_timer_tick() {
-    // This is where background tasks would run:
-    // - Process scheduling
-    // - Memory garbage collection
-    // - System monitoring
+    // Run scheduler tick - this advances all queued processes
+    if (m_scheduler.hasWork()) {
+        auto result = m_scheduler.tick();
+        
+        if (result.processCompleted) {
+            LOG_DEBUG("KERNEL", "Process " + std::to_string(result.completedPid) + " completed");
+        }
+        
+        if (result.contextSwitch && result.currentPid >= 0) {
+            LOG_DEBUG("KERNEL", "Context switch to process " + std::to_string(result.currentPid) + 
+                      " (remaining=" + std::to_string(result.remainingCycles) + ")");
+        }
+    }
     
-    // Example: Timer tick counter
+    // System monitoring
     static int tick_count = 0;
     static int last_logged_tick = 0;
     tick_count++;
     
     // Log system status periodically (every 50 ticks = ~5 seconds)
-    // In a real OS, this would be dmesg or system monitoring tools
     if (tick_count - last_logged_tick >= 50) {
         size_t used_mem = m_mem_mgr.get_used_memory();
         size_t total_mem = m_mem_mgr.get_total_memory();
@@ -218,7 +281,8 @@ void Kernel::run_event_loop() {
     LOG_INFO("KERNEL", "Kernel event loop started");
     
     auto last_tick = std::chrono::steady_clock::now();
-    const auto tick_interval = std::chrono::milliseconds(100); // 10 Hz tick rate
+    // Use the scheduler's configured tick interval
+    const auto tick_interval = std::chrono::milliseconds(m_scheduler.getTickIntervalMs());
     
     while (kernel_running.load()) {
         std::unique_lock<std::mutex> lock(queue_mutex);
