@@ -35,7 +35,7 @@ public:
     MOCK_METHOD(SysResult, loadFromDisk, (const std::string& fileName), (override));
     MOCK_METHOD(SysResult, resetStorage, (), (override));
     MOCK_METHOD(SysResult, listDataFiles, (std::vector<std::string>& out), (override));
-    MOCK_METHOD(SysInfo, get_sysinfo, (), (override));
+    MOCK_METHOD(SysInfo, getSysInfo, (), (override));
     MOCK_METHOD(void, requestShutdown, (), (override));
     MOCK_METHOD(void, sendSignal, (int signal), (override));
     MOCK_METHOD(SysResult, sendSignalToProcess, (int pid, int signal), (override));
@@ -44,6 +44,12 @@ public:
     MOCK_METHOD(std::string, readLine, (), (override));
     MOCK_METHOD(void, beginInteractiveMode, (), (override));
     MOCK_METHOD(void, endInteractiveMode, (), (override));
+    
+    // Async command execution
+    MOCK_METHOD(int, submitCommand, (const std::string& name, int cpuCycles, int priority), (override));
+    MOCK_METHOD(bool, waitForProcess, (int pid), (override));
+    MOCK_METHOD(bool, isProcessComplete, (int pid), (override));
+    MOCK_METHOD(int, getProcessRemainingCycles, (int pid), (override));
 };
 
 class ShellTest : public ::testing::Test {
@@ -57,6 +63,12 @@ protected:
         
         // Setup default return values
         ON_CALL(mock_sys, getWorkingDir()).WillByDefault(Return("/"));
+        
+        // Default async execution: instant completion
+        ON_CALL(mock_sys, submitCommand(_, _, _)).WillByDefault(Return(100)); // Return a fake PID
+        ON_CALL(mock_sys, waitForProcess(_)).WillByDefault(Return(true));     // Completes immediately
+        ON_CALL(mock_sys, isProcessComplete(_)).WillByDefault(Return(true));
+        ON_CALL(mock_sys, getProcessRemainingCycles(_)).WillByDefault(Return(-1));
     }
 };
 
@@ -118,7 +130,7 @@ TEST_F(ShellTest, MemInfoCommand) {
     info.total_memory = 4096;  // 4 KB
     info.used_memory = 2048;   // 2 KB
     
-    EXPECT_CALL(mock_sys, get_sysinfo()).WillOnce(Return(info));
+    EXPECT_CALL(mock_sys, getSysInfo()).WillOnce(Return(info));
     
     std::ostringstream output;
     shell.setOutputCallback([&output](const std::string& str) {
