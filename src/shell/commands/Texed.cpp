@@ -434,6 +434,7 @@ public:
     const char* getName() const override { return "texed"; }
     const char* getDescription() const override { return "Terminal text editor (ncurses)"; }
     const char* getUsage() const override { return "texed <fileName>"; }
+    int getCpuCost() const override { return 10; }
 };
 
 std::unique_ptr<ICommand> create_texed_command() { return std::make_unique<TexedCommand>(); }

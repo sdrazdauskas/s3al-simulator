@@ -31,6 +31,7 @@ public:
     const char* getName() const override { return "write"; }
     const char* getDescription() const override { return "Write content to a file (overwrite)"; }
     const char* getUsage() const override { return "write <fileName> <content>"; }
+    int getCpuCost() const override { return 4; }
 };
 
 std::unique_ptr<ICommand> create_write_command() {

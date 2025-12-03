@@ -33,6 +33,7 @@ public:
     const char* getName() const override { return "touch"; }
     const char* getDescription() const override { return "Create a new empty file or update the modification timestamp"; }
     const char* getUsage() const override { return "touch <fileName> [fileName...]"; }
+    int getCpuCost() const override { return 2; }
 };
 
 std::unique_ptr<ICommand> create_touch_command() {

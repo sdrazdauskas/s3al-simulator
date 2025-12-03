@@ -29,6 +29,7 @@ public:
     const char* getName() const override { return "mv"; }
     const char* getDescription() const override {return "Move or rename a file";}
     const char* getUsage() const override { return "mv <oldFile> <newFile>"; }
+    int getCpuCost() const override { return 3; }
 };
 
 std::unique_ptr<ICommand> create_mv_command() {

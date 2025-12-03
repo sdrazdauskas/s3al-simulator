@@ -34,6 +34,7 @@ public:
     const char* getName() const override { return "ls"; }
     const char* getDescription() const override { return "List contents of directory"; }
     const char* getUsage() const override { return "ls [dirName|..]"; }
+    int getCpuCost() const override { return 2; }
 };
 
 std::unique_ptr<ICommand> create_ls_command() {
