@@ -352,48 +352,47 @@ std::string Shell::executeCommand(const std::string& command,
         }
     }
 
-    // External command (processes and realtime output)
-    if (isConnectedToKernel()) {
-        ICommand* cmd = registry.find(command);
-        if (!cmd) return "Error: Command '" + command + "' not found.";
+    // External Commands
+    ICommand* cmd = registry.find(command);
+    if (!cmd) return "Error: Command '" + command + "' not found.";
 
-        // Start Process (Fork)
-        int memNeeded = std::max(64, static_cast<int>(args.size()) * 1024);
-        int cpuNeeded = std::max(2, static_cast<int>(args.size()) * 2);
-        int pid = sys.fork(command, cpuNeeded, memNeeded);
-        
-        if (pid > 0) log("INFO", "Process started: " + command + " (PID=" + std::to_string(pid) + ")");
-        else return "Error: Fork failed";
-
-        std::string pipeResult;
-        
-        if (inPipeChain) {
-            // If it is a pipe we must accumulate output
-            std::ostringstream out, err;
-            cmd->execute(argsWithInput, input, out, err, sys);
-            pipeResult = out.str();
-            if(!err.str().empty()) pipeResult += "\nError: " + err.str();
-        } else {
-            // If it is a simple command we output right now for real time output
-            CallbackStreamBuf out_buf(outputCallback);
-            CallbackStreamBuf err_buf(outputCallback);
-            std::ostream os(&out_buf);
-            std::ostream es(&err_buf);
-            
-            cmd->execute(argsWithInput, input, os, es, sys);
-            
-            os.flush(); 
-            es.flush();
+    if (!isConnectedToKernel()) {
+        std::ostringstream out, err;
+        cmd->execute(argsWithInput, input, out, err, sys);
+        std::string output = out.str();
+        if (!err.str().empty()) {
+            if (!output.empty()) output += "\n";
+            output += "Error: " + err.str();
         }
-
-        // Terminate (Kill)
-        sys.sendSignalToProcess(pid, 9);
-        log("INFO", "Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
-
-        return pipeResult;
+        return output;
     }
 
-    return "Error: Kernel disconnected";
+    int memNeeded = std::max(64, static_cast<int>(args.size()) * 1024);
+    int cpuNeeded = std::max(2, static_cast<int>(args.size()) * 2);
+    int pid = sys.fork(command, cpuNeeded, memNeeded);
+    if (pid <= 0) return "Error: Fork failed.";
+
+    log("INFO", "Process started: " + command + " (PID=" + std::to_string(pid) + ")");
+
+    if (inPipeChain) {
+        // Pipe output mode
+        std::ostringstream out, err;
+        cmd->execute(argsWithInput, input, out, err, sys);
+        sys.sendSignalToProcess(pid, 9);
+        return out.str() + err.str();
+    }
+
+    // Real time output
+    CallbackStreamBuf out_buf(outputCallback);
+    CallbackStreamBuf err_buf(outputCallback);
+    std::ostream os(&out_buf);
+    std::ostream es(&err_buf);
+    cmd->execute(argsWithInput, input, os, es, sys);
+    os.flush(); es.flush();
+
+    sys.sendSignalToProcess(pid, 9);
+    log("INFO", "Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
+    return "";
 }
 
 std::string Shell::executeScriptFile(const std::string& filename) {
