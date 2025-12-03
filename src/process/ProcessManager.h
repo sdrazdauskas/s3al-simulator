@@ -16,53 +16,72 @@ public:
     using LogCallback = std::function<void(const std::string& level, 
                                            const std::string& module, 
                                            const std::string& message)>;
+    
+    // Callback invoked when a process completes execution
+    using ProcessCompleteCallback = std::function<void(int pid, int exitCode)>;
 
     ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu);
 
-    void setLogCallback(LogCallback callback) { log_callback = callback; }
+    void setLogCallback(LogCallback callback) { log_callback_ = callback; }
+    void setProcessCompleteCallback(ProcessCompleteCallback cb) { complete_callback_ = cb; }
 
-    // One-shot orchestration: prepare -> run (alloc→execute→dealloc) -> stop
-    // Returns PID on success; -1 on validation failure.
+    // ============= Process Submission =============
+    // Submit a new process with given CPU cost (cycles needed)
+    // Returns PID on success, -1 on failure
+    int submit(const std::string& name,
+               int cpuCycles,
+               int memoryNeeded,
+               int priority = 0);
+
+    // ============= Process Lifecycle =============
+    // Query process existence
+    bool process_exists(int pid) const;
+    
+    // Process control - suspend/resume
+    bool suspend_process(int pid);
+    bool resume_process(int pid);
+    
+    // Signal handling
+    bool send_signal(int pid, int signal);
+    
+    using SignalCallback = std::function<void(int pid, int signal)>;
+    void setSignalCallback(SignalCallback callback) { signal_callback_ = callback; }
+
+    // Read-only access for kernel/UI/tests
+    std::vector<Process> snapshot() const;
+
+    // ============= Legacy API (kept for compatibility) =============
     int execute_process(const std::string& name,
                         int cpuTimeNeeded,
                         int memoryNeeded,
                         int priority = 0);
 
-    // Low-level steps (also used by execute_process)
     int  create_process(const std::string& name,
                         int cpuTimeNeeded,
                         int memoryNeeded,
-                        int priority = 0);   // prepare only; NO allocation
-    bool run_process(int pid);                 // alloc → execute → dealloc
-    bool stop_process(int pid);                 // mark terminated and remove
-    
-    // Query process existence
-    bool process_exists(int pid) const;
-    
-    // Process control - suspend/resume
-    bool suspend_process(int pid);   // SIGSTOP - suspend execution
-    bool resume_process(int pid);    // SIGCONT - resume execution
-    
-    // Signal handling
-    bool send_signal(int pid, int signal);  // Send signal to process
-    
-    // Callback for when a signal is sent to a process (so daemon threads can respond)
-    using SignalCallback = std::function<void(int pid, int signal)>;
-    void setSignalCallback(SignalCallback callback) { signal_callback = callback; }
-
-    // Read-only access for kernel/UI/tests
-    std::vector<Process> snapshot() const;
+                        int priority = 0);
+    bool run_process(int pid);
+    bool stop_process(int pid);
 
 private:
+    // ============= Core State =============
     int next_pid_{1};
-    std::vector<Process> table;
-    memory::MemoryManager& mem;
-    scheduler::CPUScheduler&  cpu;
-    LogCallback log_callback;
-    SignalCallback signal_callback;
+    std::vector<Process> table_;         // All processes (for metadata)
+    
+    // ============= Dependencies =============
+    memory::MemoryManager& mem_;
+    scheduler::CPUScheduler& cpu_;
+    
+    // ============= Callbacks =============
+    LogCallback log_callback_;
+    SignalCallback signal_callback_;
+    ProcessCompleteCallback complete_callback_;
 
-    Process*       find(int pid);
+    // ============= Internal Methods =============
+    Process* find(int pid);
+    const Process* find(int pid) const;
     void log(const std::string& level, const std::string& message);
+    void onProcessComplete(int pid);
 };
 
-}
+} // namespace process

@@ -16,13 +16,16 @@
 #include <Scheduler.h>
 #include "SysCallsAPI.h"
 
+// Forward declaration
+namespace config { struct Config; }
+
 namespace kernel {
 
 class Kernel {
 public:
     using CommandHandler = std::function<std::string(const std::vector<std::string>&)>;
 
-    explicit Kernel(size_t memory_size = 1024 * 1024);
+    explicit Kernel(const config::Config& config);
 
     /**
      * @brief Processes a single line of input as a command and returns the result.
@@ -51,7 +54,7 @@ public:
      */
     void boot();
 
-    shell::SysApi::SysInfo get_sysinfo() const;
+    shell::SysApi::SysInfo getSysInfo() const;
 
     std::string handle_quit(const std::vector<std::string>& args);
     
@@ -77,6 +80,18 @@ public:
     
     // Submit a command to be processed by the kernel
     void submit_command(const std::string& line);
+    
+    // Submit a command for scheduler-based execution
+    int submit_async_command(const std::string& name, int cpuCycles, int priority = 0);
+    
+    // Wait for a command process to complete (blocks)
+    bool wait_for_process(int pid);
+    
+    // Check if a process has completed
+    bool is_process_complete(int pid) const;
+    
+    // Get remaining cycles for a process
+    int get_process_remaining_cycles(int pid) const;
 
 private:
     struct KernelEvent {

@@ -4,6 +4,7 @@
 #include "MemoryManager.h"
 #include "ProcessManager.h"
 #include "Scheduler.h"
+#include "config/Config.h"
 #include <filesystem>
 
 using namespace kernel;
@@ -95,11 +96,13 @@ TEST_F(AcceptanceTest, UserSavesAndRestoresSessionScenario) {
 
 // Sys init
 TEST_F(AcceptanceTest, SystemInitializationScenario) {
-    Kernel kernel(4096);
+    config::Config cfg;
+    cfg.memory_size = 4096;
+    Kernel kernel(cfg);
     
     EXPECT_TRUE(kernel.is_running());
     
-    auto sysinfo = kernel.get_sysinfo();
+    auto sysinfo = kernel.getSysInfo();
     EXPECT_EQ(sysinfo.total_memory, 4096);
     EXPECT_EQ(sysinfo.used_memory, 0);
     

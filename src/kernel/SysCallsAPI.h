@@ -54,7 +54,7 @@ struct SysApi {
     virtual SysResult resetStorage() = 0;
     virtual SysResult listDataFiles(std::vector<std::string>& out) = 0;
 
-    virtual SysInfo get_sysinfo() = 0;
+    virtual SysInfo getSysInfo() = 0;
 
     virtual void requestShutdown() = 0;
     
