@@ -84,6 +84,20 @@ struct SysApi {
     virtual void beginInteractiveMode() = 0;
     virtual void endInteractiveMode() = 0;
 
+    // Submit a command to run through the scheduler with CPU cost cycles
+    // Returns process ID, or -1 on failure
+    virtual int submitCommand(const std::string& name, int cpuCycles, int priority = 0) = 0;
+    
+    // Wait for a submitted command to complete (blocks until done)
+    // Returns true if completed normally, false if interrupted
+    virtual bool waitForProcess(int pid) = 0;
+    
+    // Check if a process has completed
+    virtual bool isProcessComplete(int pid) = 0;
+    
+    // Get remaining cycles for a process (-1 if not found)
+    virtual int getProcessRemainingCycles(int pid) = 0;
+
     virtual ~SysApi() = default;
 };
 
