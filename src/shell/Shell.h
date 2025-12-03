@@ -98,6 +98,8 @@ namespace shell {
         bool isCommandAvailable(const std::string& name) const {
             return registry.find(name) != nullptr;
         }
+
+        bool isBuiltinCommand(const std::string& cmd) const;
     };
 
 } // namespace shell
