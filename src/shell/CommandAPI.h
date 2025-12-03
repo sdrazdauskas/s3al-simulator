@@ -30,6 +30,9 @@ public:
     virtual const char* getName() const = 0;
     virtual const char* getDescription() const = 0;
     virtual const char* getUsage() const = 0;
+    
+    // CPU cost in cycles (how many scheduler ticks to complete)
+    virtual int getCpuCost() const { return 1; }
 };
 
 struct CommandRegistry {
