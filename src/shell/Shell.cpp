@@ -340,6 +340,29 @@ std::string Shell::executeCommand(const std::string& command,
 
     g_interrupt_requested.store(false);
 
+    // Get CPU cost and submit to scheduler for async execution
+    int cpuCycles = cmd->getCpuCost();
+    int pid = sys.submitCommand(command, cpuCycles, 0);
+    
+    if (pid > 0) {
+        log("DEBUG", "Command '" + command + "' submitted (PID=" + std::to_string(pid) + 
+            ", cycles=" + std::to_string(cpuCycles) + ")");
+        
+        // Wait for the scheduler to complete this process
+        bool completed = sys.waitForProcess(pid);
+        
+        if (!completed) {
+            log("INFO", "Command '" + command + "' interrupted");
+            if (outputCallback && !inPipeChain) {
+                outputCallback("^C\nCommand interrupted\n");
+            }
+            return "";
+        }
+        
+        log("DEBUG", "Command '" + command + "' finished scheduling, executing...");
+    }
+    
+    // Now actually execute the command (scheduling is complete)
     int rc = 0;
     std::string result;
 
