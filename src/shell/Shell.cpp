@@ -465,7 +465,7 @@ bool Shell::isConnectedToKernel() const { return kernelCallback != nullptr; }
 
 bool Shell::isBuiltinCommand(const std::string& cmd) const {
     static const std::unordered_set<std::string> builtins = {
-        "cd", "pwd", "help", "quit", "kill", "meminfo", "ps", "reset", "exit"
+        "cd", "pwd", "help", "quit", "exit", "kill", "meminfo", "membar", "reset", "save", "load", "listdata"
     };
     return builtins.count(cmd) > 0;
 }
