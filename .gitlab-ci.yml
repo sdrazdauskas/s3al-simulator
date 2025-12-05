@@ -7,7 +7,7 @@ build:
   stage: build
   image: ubuntu:24.04
   before_script:
-    - apt-get update && apt-get install -y cmake ninja-build g++ libncurses-dev git
+    - apt-get update && apt-get install -y cmake ninja-build g++ libncurses-dev git lua5.4 liblua5.4-dev
   script:
     - cmake -B build -G Ninja
     - cmake --build build
