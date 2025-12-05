@@ -11,7 +11,36 @@ namespace shell {
 std::atomic<bool> g_interrupt_requested{false};
 
 Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
-    : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)) {}
+    : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)), luaState(nullptr) {}
+
+
+
+std::string Shell::runLuaScript(const std::string &luaCode) {
+
+    initLuaOnce();
+
+    if (!luaState) {
+        return "Error: Lua not initialized";
+    }
+
+    // Execute Lua code
+    int result = luaL_dostring(luaState, luaCode.c_str());
+
+    if (result != LUA_OK) {
+        const char *error = lua_tostring(luaState, -1);
+        lua_pop(luaState, 1);
+        return std::string("Lua Error: ") + (error ? error : "unknown");
+    }
+
+    // Get any return value from Lua
+    if (lua_gettop(luaState) > 0) {
+        const char *ret = lua_tostring(luaState, -1);
+        lua_pop(luaState, 1);
+        if (ret) return ret;
+    }
+
+    return "OK";
+}
 
 void Shell::setLogCallback(LogCallback callback) {
     log_callback = callback;
