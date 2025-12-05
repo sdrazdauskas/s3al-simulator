@@ -8,9 +8,7 @@
 #include <streambuf>
 #include "CommandAPI.h"
 #include <atomic>
-
-#include "../external/luacpp/Source/LuaCpp.hpp"
-#include <lua5.4/lua.hpp>
+#include <lua.hpp>
 
 extern std::atomic<bool> g_interrupt_requested;
 

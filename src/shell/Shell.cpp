@@ -4,7 +4,7 @@
 #include <atomic>
 #include <vector>
 #include <string>
-#include "../external/luacpp/Source/LuaCpp.hpp"
+#include <lua.hpp>
 
 namespace shell {
 
