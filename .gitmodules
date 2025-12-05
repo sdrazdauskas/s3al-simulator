@@ -1,0 +1,3 @@
+[submodule "external/luacpp"]
+	path = external/luacpp
+	url = https://github.com/jordanvrtanoski/luacpp

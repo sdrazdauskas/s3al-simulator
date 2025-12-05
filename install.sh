@@ -21,7 +21,9 @@ case "$OS" in
             cmake \
             ninja-build \
             g++ \
-            libncurses-dev
+            libncurses-dev \
+            lua5.4 \
+            liblua5.4-dev
         ;;
     fedora|rhel|centos)
         echo "Detected Fedora/RHEL/CentOS-based system"
@@ -31,7 +33,9 @@ case "$OS" in
             cmake \
             ninja-build \
             make \
-            ncurses-devel
+            ncurses-devel \
+            lua \
+            lua-devel
         ;;
     arch|manjaro)
         echo "Detected Arch-based system"
@@ -39,7 +43,8 @@ case "$OS" in
             base-devel \
             cmake \
             ninja \
-            ncurses
+            ncurses \
+            lua
         ;;
     *)
         echo "Unsupported OS: $OS"
