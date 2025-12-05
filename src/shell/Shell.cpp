@@ -13,7 +13,43 @@ std::atomic<bool> g_interrupt_requested{false};
 Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
     : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)), luaState(nullptr) {}
 
+void Shell::initLuaOnce() {
 
+    if (luaState) return;
+    luaState = luaL_newstate();
+    if (!luaState) {
+        log("ERROR", "Failed to create Lua state");
+        return;
+    }
+    luaL_openlibs(luaState);
+    lua_pushlightuserdata(luaState, this);
+    lua_setfield(luaState, LUA_REGISTRYINDEX, "__shell_ptr");
+
+    // Register function to run shell commands from Lua
+    lua_pushcfunction(luaState, [](lua_State* L) -> int {
+                      const char* cmd = lua_tostring(L, 1);
+                      if (!cmd) {
+                      lua_pushstring(L, "Error: No command provided");
+                      return 1;
+                      }
+                      // Get Shell inst from reg
+                      lua_getfield(L, LUA_REGISTRYINDEX, "__shell_ptr");
+                      Shell* shell = (Shell*)lua_touserdata(L, -1);
+                      lua_pop(L, 1);
+                      if (!shell) {
+                      lua_pushstring(L, "Error: Shell instance not found");
+                      return 1;
+                      }
+                      // Execute the command
+                      std::string result = shell->executeCommand(cmd, {}, "");
+                      lua_pushstring(L, result.c_str());
+                      return 1;
+                      });
+
+    lua_setglobal(luaState, "sh");
+    
+    log("INFO", "Lua engine initialized");
+}
 
 std::string Shell::runLuaScript(const std::string &luaCode) {
 
