@@ -86,6 +86,7 @@ namespace shell {
     public:
         explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
 
+        OutputCallback getOutputCallback() const { return outputCallback; }
         void setLogCallback(LogCallback callback);
         void setOutputCallback(OutputCallback callback);
         void setKernelCallback(KernelCallback callback) { kernelCallback = std::move(callback); }
