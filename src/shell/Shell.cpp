@@ -14,8 +14,7 @@ std::atomic<bool> g_interrupt_requested{false};
 Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
     : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)), luaState(nullptr) {}
 
-void Shell::initLuaOnce() {
-
+    void Shell::initLuaOnce() {
     if (luaState) return;
     luaState = luaL_newstate();
     if (!luaState) {
@@ -28,24 +27,42 @@ void Shell::initLuaOnce() {
 
     // Register function to run shell commands from Lua
     lua_pushcfunction(luaState, [](lua_State* L) -> int {
-                      const char* cmd = lua_tostring(L, 1);
-                      if (!cmd) {
-                      lua_pushstring(L, "Error: No command provided");
-                      return 1;
-                      }
-                      // Get Shell inst from reg
-                      lua_getfield(L, LUA_REGISTRYINDEX, "__shell_ptr");
-                      Shell* shell = (Shell*)lua_touserdata(L, -1);
-                      lua_pop(L, 1);
-                      if (!shell) {
-                      lua_pushstring(L, "Error: Shell instance not found");
-                      return 1;
-                      }
-                      // Execute the command
-                      std::string result = shell->executeCommand(cmd, {}, "");
-                      lua_pushstring(L, result.c_str());
-                      return 1;
-                      });
+        const char* cmdLine = lua_tostring(L, 1);
+        if (!cmdLine) {
+            lua_pushstring(L, "Error: No command provided");
+            return 1;
+        }
+
+        // Get Shell instance from registry
+        lua_getfield(L, LUA_REGISTRYINDEX, "__shell_ptr");
+        Shell* shell = (Shell*)lua_touserdata(L, -1);
+        lua_pop(L, 1);
+
+        if (!shell) {
+            lua_pushstring(L, "Error: Shell instance not found");
+            return 1;
+        }
+
+        // Store the original output cb
+        auto originalCallback = shell->getOutputCallback();
+
+        std::string capturedOutput;
+
+        // Set a temp cb that captures output
+        shell->setOutputCallback([&capturedOutput](const std::string& output) {
+            if (!capturedOutput.empty()) capturedOutput += "\n";
+            capturedOutput += output;
+        });
+
+        shell->processCommandLine(cmdLine);
+
+        // Restore the original callback
+        shell->setOutputCallback(originalCallback);
+
+        // Return the captured output to Lua
+        lua_pushstring(L, capturedOutput.c_str());
+        return 1;
+    });
 
     lua_setglobal(luaState, "sh");
 
