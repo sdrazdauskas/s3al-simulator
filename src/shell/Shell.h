@@ -9,6 +9,9 @@
 #include "CommandAPI.h"
 #include <atomic>
 
+#include "../external/luacpp/Source/LuaCpp.hpp"
+#include <lua5.4/lua.hpp>
+
 extern std::atomic<bool> g_interrupt_requested;
 
 namespace shell {
@@ -60,12 +63,15 @@ namespace shell {
 
     class Shell {
     private:
+        lua_State* luaState;
         SysApi& sys;
         const CommandRegistry& registry;
         OutputCallback outputCallback;
         LogCallback log_callback;
         KernelCallback kernelCallback;
 
+        void initLuaOnce();
+        std::string runLuaScript(const std::string& luaCode);
         void log(const std::string& level, const std::string& message);
         std::string parseQuotedToken(std::istringstream& iss, std::string token);
         std::vector<std::string> splitByAndOperator(const std::string& commandLine);

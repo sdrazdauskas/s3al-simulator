@@ -4,6 +4,7 @@
 #include <atomic>
 #include <vector>
 #include <string>
+#include "../external/luacpp/Source/LuaCpp.hpp"
 
 namespace shell {
 
@@ -47,7 +48,7 @@ void Shell::initLuaOnce() {
                       });
 
     lua_setglobal(luaState, "sh");
-    
+
     log("INFO", "Lua engine initialized");
 }
 
@@ -441,56 +442,26 @@ std::string Shell::executeCommand(const std::string& command,
     return result;
 }
 
-std::string Shell::executeScriptFile(const std::string& filename) {
+std::string Shell::executeScriptFile(const std::string &filename) {
     log("INFO", "Executing script file: " + filename);
 
-    std::ostringstream out, err;
-    std::vector<std::string> readArgs = { filename };
+
+    // Read file directly from memory filesystem
     std::string fileContent;
+    auto readResult = sys.readFile(filename, fileContent);
 
-    ICommand* catCmd = registry.find("cat");
-    if (catCmd) {
-        int rc = catCmd->execute(readArgs, "", out, err, sys);
-        if (!err.str().empty()) {
-            log("ERROR", err.str());
-            return "Error: Failed to read script: " + filename + "\n" + err.str();
-        }
-        fileContent = out.str();
-    } else {
-        log("ERROR", "No 'cat' command available to read script file");
-        return "Error: Missing 'cat' command to read file";
+    if (readResult != SysResult::OK) {
+        std::string error = "Error: Cannot read Lua file '" + filename + "': " + shell::toString(readResult);
+        log("ERROR", error);
+        return error;
     }
 
-    std::istringstream file(fileContent);
-    std::string line;
-    std::string output;
-
-    auto originalOutputCB = outputCallback;
-    outputCallback = [&](const std::string& outStr) {
-        if (!output.empty()) output += "\n";
-        output += outStr;
-    };
-
-    while (std::getline(file, line)) {
-        if (g_interrupt_requested.load()) {
-            log("INFO", "Script execution interrupted by user");
-            if (!output.empty()) output += "\n";
-            output += "^C\nScript interrupted";
-            break;
-        }
-
-        auto l = line.find_first_not_of(" \t\r\n");
-        if (l == std::string::npos) continue;
-        auto r = line.find_last_not_of(" \t\r\n");
-        std::string trimmed = line.substr(l, r - l + 1);
-        if (trimmed.empty() || trimmed.front() == '#') continue;
-
-        log("DEBUG", "Script line: " + trimmed);
-        processCommandLine(trimmed);
+    if (fileContent.empty()) {
+        return "Error: Lua file is empty";
     }
 
-    outputCallback = originalOutputCB;
-    return output;
+    log("DEBUG", "Executing Lua content: " + fileContent.substr(0, 50) + "...");
+    return runLuaScript(fileContent);
 }
 
 void Shell::parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args) {
