@@ -13,8 +13,8 @@ public:
                 SysApi& sys) override
     {
         auto info = sys.getSysInfo();
-        size_t total = info.total_memory;
-        size_t used = info.used_memory;
+        size_t total = info.totalMemory;
+        size_t used = info.usedMemory;
         size_t free = (total > used) ? (total - used) : 0;
 
         std::ostringstream oss;
@@ -41,8 +41,8 @@ public:
                 SysApi& sys) override
     {
         auto info = sys.getSysInfo();
-        size_t total = info.total_memory;
-        size_t used = info.used_memory;
+        size_t total = info.totalMemory;
+        size_t used = info.usedMemory;
         int bar_width = 40;
         int used_blocks = total > 0 ? static_cast<int>((double)used / total * bar_width) : 0;
 

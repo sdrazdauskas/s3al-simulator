@@ -23,7 +23,7 @@ public:
     static std::unique_ptr<Daemon> createDaemon(
         const std::string& name,
         shell::SysApi& sys,
-        LogCallback log_callback
+        LogCallback logCallback
     );
     
     // Get list of available daemon names

@@ -26,8 +26,8 @@ int main(int argc, char* argv[]) {
 
     // Start OS
     LOG_INFO("MAIN", "Starting s3al OS simulator");
-    LOG_INFO("MAIN", "Memory size: " + std::to_string(config.memory_size) + " bytes (" + 
-             std::to_string(config.memory_size / 1024) + " KB)");
+    LOG_INFO("MAIN", "Memory size: " + std::to_string(config.memorySize) + " bytes (" + 
+             std::to_string(config.memorySize / 1024) + " KB)");
 
     kernel::Kernel kernel(config);
     kernel.boot();

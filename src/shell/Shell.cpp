@@ -14,7 +14,7 @@ Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
     : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)) {}
 
 void Shell::setLogCallback(LogCallback callback) {
-    log_callback = callback;
+    logCallback = callback;
 }
 
 void Shell::setOutputCallback(OutputCallback callback) {
@@ -22,8 +22,8 @@ void Shell::setOutputCallback(OutputCallback callback) {
 }
 
 void Shell::log(const std::string& level, const std::string& message) {
-    if (log_callback) {
-        log_callback(level, "SHELL", message);
+    if (logCallback) {
+        logCallback(level, "SHELL", message);
     }
 }
 

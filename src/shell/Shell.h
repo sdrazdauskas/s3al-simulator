@@ -63,7 +63,7 @@ namespace shell {
         SysApi& sys;
         const CommandRegistry& registry;
         OutputCallback outputCallback;
-        LogCallback log_callback;
+        LogCallback logCallback;
         KernelCallback kernelCallback;
 
         void log(const std::string& level, const std::string& message);

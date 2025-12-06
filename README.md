@@ -86,5 +86,5 @@ docker run --rm -it -v ./logs:/app/logs -v ./data:/app/data s3al/simulator /app/
 ## Tests
 As project requires libraries that might not exist on your system, you can run the tests using docker:
 ```bash
-docker build --target build -t s3al-build . ; podman run --rm s3al-build bash -c "cd /app/build && ctest --output-on-failure"
+docker build --target build -t s3al-build . ; docker run --rm s3al-build bash -c "cd /app/build && ctest --output-on-failure"
 ```

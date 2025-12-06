@@ -35,7 +35,7 @@ std::unique_ptr<ICommand> create_cpdir_command();
 std::unique_ptr<ICommand> create_kill_command();
 std::unique_ptr<ICommand> create_ps_command();
 
-inline void init_commands(CommandRegistry& reg) {
+inline void initCommands(CommandRegistry& reg) {
     reg.add(create_cat_command());
     reg.add(create_touch_command());
     reg.add(create_echo_command());

@@ -14,31 +14,31 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
         } 
         else if ((arg == "--memory" || arg == "-m") && i + 1 < argc) {
             // Parse memory size (supports K/KB, M/MB, G/GB suffixes)
-            std::string mem_str = argv[++i];
+            std::string memStr = argv[++i];
             try {
                 size_t multiplier = 1;
                 
                 // Remove trailing 'B' if present (KB->K, MB->M, GB->G)
-                if (!mem_str.empty() && std::toupper(mem_str.back()) == 'B') {
-                    mem_str.pop_back();
+                if (!memStr.empty() && std::toupper(memStr.back()) == 'B') {
+                    memStr.pop_back();
                 }
                 
                 // Check for single letter suffix (K, M, G)
-                if (!mem_str.empty()) {
-                    char suffix = std::toupper(mem_str.back());
+                if (!memStr.empty()) {
+                    char suffix = std::toupper(memStr.back());
                     
                     switch (suffix) {
                         case 'K':
                             multiplier = 1024;
-                            mem_str.pop_back();
+                            memStr.pop_back();
                             break;
                         case 'M':
                             multiplier = 1024 * 1024;
-                            mem_str.pop_back();
+                            memStr.pop_back();
                             break;
                         case 'G':
                             multiplier = 1024 * 1024 * 1024;
-                            mem_str.pop_back();
+                            memStr.pop_back();
                             break;
                         default:
                             // No suffix, treat as bytes
@@ -48,10 +48,10 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
                 
                 // Parse the numeric part
                 size_t pos = 0;
-                config.memory_size = std::stoull(mem_str, &pos) * multiplier;
+                config.memorySize = std::stoull(memStr, &pos) * multiplier;
                 
                 // Check if entire string was consumed (no invalid characters)
-                if (pos != mem_str.length()) {
+                if (pos != memStr.length()) {
                     throw std::invalid_argument("contains non-numeric characters");
                 }
             } catch (const std::exception& e) {
@@ -70,11 +70,11 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
             std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
             
             if (algo == "fcfs") {
-                config.scheduler_algorithm = SchedulerAlgorithm::FCFS;
+                config.schedulerAlgorithm = SchedulerAlgorithm::FCFS;
             } else if (algo == "rr" || algo == "roundrobin") {
-                config.scheduler_algorithm = SchedulerAlgorithm::RoundRobin;
+                config.schedulerAlgorithm = SchedulerAlgorithm::RoundRobin;
             } else if (algo == "priority" || algo == "prio") {
-                config.scheduler_algorithm = SchedulerAlgorithm::Priority;
+                config.schedulerAlgorithm = SchedulerAlgorithm::Priority;
             } else {
                 std::cerr << "Unknown scheduler algorithm: " << algo << std::endl;
                 std::cerr << "Valid options: fcfs, rr (roundrobin), priority" << std::endl;
@@ -84,8 +84,8 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
         // Time quantum for RoundRobin
         else if ((arg == "--quantum" || arg == "-q") && i + 1 < argc) {
             try {
-                config.scheduler_quantum = std::stoi(argv[++i]);
-                if (config.scheduler_quantum < 1) {
+                config.schedulerQuantum = std::stoi(argv[++i]);
+                if (config.schedulerQuantum < 1) {
                     throw std::invalid_argument("must be positive");
                 }
             } catch (const std::exception& e) {
@@ -96,8 +96,8 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
         // Cycles per tick (CPU speed)
         else if ((arg == "--cycles" || arg == "-c") && i + 1 < argc) {
             try {
-                config.cycles_per_tick = std::stoi(argv[++i]);
-                if (config.cycles_per_tick < 1) {
+                config.cyclesPerTick = std::stoi(argv[++i]);
+                if (config.cyclesPerTick < 1) {
                     throw std::invalid_argument("must be positive");
                 }
             } catch (const std::exception& e) {
@@ -108,8 +108,8 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
         // Tick interval in ms
         else if ((arg == "--tick-ms" || arg == "-t") && i + 1 < argc) {
             try {
-                config.tick_interval_ms = std::stoi(argv[++i]);
-                if (config.tick_interval_ms < 1) {
+                config.tickIntervalMs = std::stoi(argv[++i]);
+                if (config.tickIntervalMs < 1) {
                     throw std::invalid_argument("must be positive");
                 }
             } catch (const std::exception& e) {
@@ -127,8 +127,8 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
     return true;
 }
 
-void Config::showHelp(const char* program_name) {
-    std::cout << "Usage: " << program_name << " [OPTIONS]\n";
+void Config::showHelp(const char* programName) {
+    std::cout << "Usage: " << programName << " [OPTIONS]\n";
     std::cout << "\n";
     std::cout << "s3al OS Simulator - A simple operating system simulator\n";
     std::cout << "\n";
@@ -149,11 +149,11 @@ void Config::showHelp(const char* program_name) {
     std::cout << "                         Default: 100 (10 ticks per second)\n";
     std::cout << "\n";
     std::cout << "Examples:\n";
-    std::cout << "  " << program_name << " --verbose\n";
-    std::cout << "  " << program_name << " --memory 2M\n";
-    std::cout << "  " << program_name << " -m 512KB -v\n";
-    std::cout << "  " << program_name << " --scheduler rr --quantum 3\n";
-    std::cout << "  " << program_name << " -s priority -c 2 -t 50  # Fast CPU\n";
+    std::cout << "  " << programName << " --verbose\n";
+    std::cout << "  " << programName << " --memory 2M\n";
+    std::cout << "  " << programName << " -m 512KB -v\n";
+    std::cout << "  " << programName << " --scheduler rr --quantum 3\n";
+    std::cout << "  " << programName << " -s priority -c 2 -t 50\n";
 }
 
 } // namespace config

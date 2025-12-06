@@ -11,7 +11,7 @@ StorageManager::StorageManager() {
 }
 
 void StorageManager::setLogCallback(LogCallback callback) {
-    log_callback = callback;
+    logCallback = callback;
 }
 
 StorageManager::StorageResponse StorageManager::reset() {

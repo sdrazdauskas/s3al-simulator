@@ -9,14 +9,14 @@
 namespace kernel {
 
 struct SysApiKernel : ::shell::SysApi {
-    storage::StorageManager& fs;
-    Kernel* kernel_owner{nullptr};
+    storage::StorageManager& storageManager;
+    Kernel* kernelOwner{nullptr};
     explicit SysApiKernel(storage::StorageManager& sm, Kernel* owner = nullptr)
-        : fs(sm), kernel_owner(owner) {}
+        : storageManager(sm), kernelOwner(owner) {}
 
     ::shell::SysResult readFile(const std::string& name, std::string& out) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.readFile(name, out);
+        auto res = storageManager.readFile(name, out);
         switch(res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::NotFound: return ::shell::SysResult::NotFound;
@@ -27,7 +27,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult createFile(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.touchFile(name);
+        auto res = storageManager.touchFile(name);
         switch(res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::AlreadyExists: return ::shell::SysResult::AlreadyExists;
@@ -40,7 +40,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult editFile(const std::string& name, const std::string& newContent) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.editFile(name, newContent);
+        auto res = storageManager.editFile(name, newContent);
         switch (res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::NotFound: return ::shell::SysResult::NotFound;
@@ -51,7 +51,7 @@ struct SysApiKernel : ::shell::SysApi {
     
     ::shell::SysResult deleteFile(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.deleteFile(name);
+        auto res = storageManager.deleteFile(name);
         switch(res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::NotFound: return ::shell::SysResult::NotFound;
@@ -72,7 +72,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult writeFile(const std::string& name, const std::string& content) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.writeFile(name, content);
+        auto res = storageManager.writeFile(name, content);
         switch(res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::NotFound: return ::shell::SysResult::NotFound;
@@ -83,7 +83,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult makeDir(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.makeDir(name);
+        auto res = storageManager.makeDir(name);
         switch(res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::NotFound: return shell::SysResult::NotFound;
@@ -95,7 +95,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult removeDir(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.removeDir(name);
+        auto res = storageManager.removeDir(name);
         switch(res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::NotFound: return ::shell::SysResult::NotFound;
@@ -106,7 +106,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult changeDir(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.changeDir(name);
+        auto res = storageManager.changeDir(name);
         switch(res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::AtRoot: return shell::SysResult::AtRoot;
@@ -118,7 +118,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult saveToDisk(const std::string& fileName) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.saveToDisk(fileName);
+        auto res = storageManager.saveToDisk(fileName);
         switch (res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
@@ -128,7 +128,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult loadFromDisk(const std::string& fileName) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.loadFromDisk(fileName);
+        auto res = storageManager.loadFromDisk(fileName);
         switch (res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::NotFound: return ::shell::SysResult::NotFound;
@@ -139,7 +139,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult listDataFiles(std::vector<std::string>& out) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.listDataFiles(out);
+        auto res = storageManager.listDataFiles(out);
         switch (res) {
             case Resp::OK: return shell::SysResult::OK;
             case Resp::NotFound: return shell::SysResult::NotFound;
@@ -149,7 +149,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult resetStorage() override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.reset();
+        auto res = storageManager.reset();
         switch (res) {
             case Resp::OK: return ::shell::SysResult::OK;
             default: return ::shell::SysResult::Error;
@@ -158,7 +158,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult copyFile(const std::string& src, const std::string& dest) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.copyFile(src, dest);
+        auto res = storageManager.copyFile(src, dest);
         switch (res) {
             case Resp::OK: return shell::SysResult::OK;
             case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
@@ -170,7 +170,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult copyDir(const std::string& src, const std::string& dest) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.copyDir(src, dest);
+        auto res = storageManager.copyDir(src, dest);
         switch (res) {
             case Resp::OK: return shell::SysResult::OK;
             case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
@@ -182,7 +182,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult moveFile(const std::string& src, const std::string& dest) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.moveFile(src, dest);
+        auto res = storageManager.moveFile(src, dest);
         switch (res) {
             case Resp::OK: return shell::SysResult::OK;
             case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
@@ -194,7 +194,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult moveDir(const std::string& src, const std::string& dest) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.moveDir(src, dest);
+        auto res = storageManager.moveDir(src, dest);
         switch (res) {
             case Resp::OK: return shell::SysResult::OK;
             case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
@@ -206,7 +206,7 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysResult listDir(const std::string& path, std::vector<std::string>& out) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.listDir(path, out);
+        auto res = storageManager.listDir(path, out);
         switch (res) {
             case Resp::OK: return shell::SysResult::OK;
             case Resp::NotFound: return shell::SysResult::NotFound;
@@ -215,12 +215,12 @@ struct SysApiKernel : ::shell::SysApi {
     }
 
     std::string getWorkingDir() override {
-        return fs.getWorkingDir();
+        return storageManager.getWorkingDir();
     }
 
     ::shell::SysResult fileExists(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
-        auto res = fs.fileExists(name);
+        auto res = storageManager.fileExists(name);
         switch(res) {
             case Resp::OK: return ::shell::SysResult::OK;
             case Resp::NotFound: return ::shell::SysResult::NotFound;
@@ -230,38 +230,38 @@ struct SysApiKernel : ::shell::SysApi {
 
     ::shell::SysApi::SysInfo getSysInfo() override {
         ::shell::SysApi::SysInfo info;
-        if (kernel_owner) {
-            info = kernel_owner->getSysInfo();
+        if (kernelOwner) {
+            info = kernelOwner->getSysInfo();
         }
         return info;
     }
 
     void requestShutdown() override {
-        if (kernel_owner) kernel_owner->handle_quit(std::vector<std::string>());
+        if (kernelOwner) kernelOwner->handleQuit(std::vector<std::string>());
     }
 
     void sendSignal(int signal) override {
-        if (kernel_owner) kernel_owner->handle_interrupt_signal(signal);
+        if (kernelOwner) kernelOwner->handleInterruptSignal(signal);
     }
     
     ::shell::SysResult sendSignalToProcess(int pid, int signal) override {
-        if (kernel_owner) {
-            bool success = kernel_owner->send_signal_to_process(pid, signal);
+        if (kernelOwner) {
+            bool success = kernelOwner->sendSignalToProcess(pid, signal);
             return success ? ::shell::SysResult::OK : ::shell::SysResult::Error;
         }
         return ::shell::SysResult::Error;
     }
     
     int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false) override {
-        if (kernel_owner) {
-            return kernel_owner->fork_process(name, cpuTimeNeeded, memoryNeeded, priority, persistent);
+        if (kernelOwner) {
+            return kernelOwner->forkProcess(name, cpuTimeNeeded, memoryNeeded, priority, persistent);
         }
         return -1;
     }
     
     std::vector<::shell::SysApi::ProcessInfo> getProcessList() override {
-        if (kernel_owner) {
-            return kernel_owner->get_process_list();
+        if (kernelOwner) {
+            return kernelOwner->getProcessList();
         }
         return {};
     }
@@ -292,29 +292,29 @@ struct SysApiKernel : ::shell::SysApi {
     
 
     int submitCommand(const std::string& name, int cpuCycles, int priority = 0) override {
-        if (kernel_owner) {
-            return kernel_owner->submit_async_command(name, cpuCycles, priority);
+        if (kernelOwner) {
+            return kernelOwner->submitAsyncCommand(name, cpuCycles, priority);
         }
         return -1;
     }
     
     bool waitForProcess(int pid) override {
-        if (kernel_owner) {
-            return kernel_owner->wait_for_process(pid);
+        if (kernelOwner) {
+            return kernelOwner->waitForProcess(pid);
         }
         return false;
     }
     
     bool isProcessComplete(int pid) override {
-        if (kernel_owner) {
-            return kernel_owner->is_process_complete(pid);
+        if (kernelOwner) {
+            return kernelOwner->isProcessComplete(pid);
         }
         return true; // If no kernel, consider it complete
     }
     
     int getProcessRemainingCycles(int pid) override {
-        if (kernel_owner) {
-            return kernel_owner->get_process_remaining_cycles(pid);
+        if (kernelOwner) {
+            return kernelOwner->getProcessRemainingCycles(pid);
         }
         return -1;
     }

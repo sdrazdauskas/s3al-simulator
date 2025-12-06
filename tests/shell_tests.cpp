@@ -59,7 +59,7 @@ protected:
     
     void SetUp() override {
         registry = std::make_unique<CommandRegistry>();
-        init_commands(*registry);
+        initCommands(*registry);
         
         // Setup default return values
         ON_CALL(mock_sys, getWorkingDir()).WillByDefault(Return("/"));
@@ -127,8 +127,8 @@ TEST_F(ShellTest, EmptyCommand) {
 TEST_F(ShellTest, MemInfoCommand) {
     Shell shell(mock_sys, *registry);
     SysApi::SysInfo info;
-    info.total_memory = 4096;  // 4 KB
-    info.used_memory = 2048;   // 2 KB
+    info.totalMemory = 4096;  // 4 KB
+    info.usedMemory = 2048;   // 2 KB
     
     EXPECT_CALL(mock_sys, getSysInfo()).WillOnce(Return(info));
     

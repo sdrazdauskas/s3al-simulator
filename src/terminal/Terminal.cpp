@@ -13,16 +13,16 @@ namespace terminal {
 namespace {
     std::atomic<bool> sigintReceived{false};
     // Store the signal callback globally so signal handler can access it
-    std::function<void(int)>* g_signalCallback = nullptr;
+    std::function<void(int)>* signalCallback = nullptr;
     // Store pointer to active terminal for redraw callback
-    Terminal* g_activeTerminal = nullptr;
+    Terminal* activeTerminal = nullptr;
 
     extern "C" void terminalSigintHandler(int sig) {
         sigintReceived.store(true);
         // Call the callback immediately from signal handler
         // This is safe if the callback only sets atomic flags
-        if (g_signalCallback && *g_signalCallback) {
-            (*g_signalCallback)(sig);
+        if (signalCallback && *signalCallback) {
+            (*signalCallback)(sig);
         }
     }
 }
@@ -37,18 +37,18 @@ void Terminal::setSendCallback(sendCallback cb) { sendCb = std::move(cb); }
 void Terminal::setSignalCallback(signalCallback cb) {
     sigCb = std::move(cb);
     // Store pointer to callback for signal handler
-    g_signalCallback = &sigCb;
+    ::terminal::signalCallback = &sigCb;
 }
 
 void Terminal::setPromptCallback(promptCallback cb) { promptCb = std::move(cb); }
 
 void Terminal::setLogCallback(LogCallback callback) {
-    log_callback = callback;
+    logCallback = callback;
 }
 
 void Terminal::log(const std::string& level, const std::string& message) {
-    if (log_callback) {
-        log_callback(level, "TERMINAL", message);
+    if (logCallback) {
+        logCallback(level, "TERMINAL", message);
     }
 }
 
@@ -57,31 +57,31 @@ void Terminal::print(const std::string& output) {
 }
 
 void Terminal::redrawPrompt() {
-    if (!is_reading_input.load()) return;
+    if (!isReadingInput.load()) return;
     
-    std::lock_guard<std::mutex> lock(input_mutex);
+    std::lock_guard<std::mutex> lock(inputMutex);
     // Redraw prompt and current input on a fresh line
     std::cout << "\r\33[2K";  // Clear current line
     if (promptCb) std::cout << promptCb();
-    std::cout << current_buffer;
+    std::cout << currentBuffer;
     // Move cursor to correct position
-    if (promptCb && current_cursor < current_buffer.size()) {
-        std::cout << "\r\33[" << (current_cursor + promptCb().size()) << "C";
+    if (promptCb && currentCursor < currentBuffer.size()) {
+        std::cout << "\r\33[" << (currentCursor + promptCb().size()) << "C";
     }
     std::cout << std::flush;
 }
 
 void Terminal::clearCurrentLine() {
-    if (!is_reading_input.load()) return;
+    if (!isReadingInput.load()) return;
     
     // Clear the current line before log output
     std::cout << "\r\33[2K" << std::flush;
 }
 
 void Terminal::updateInputState(const std::string& buffer, size_t cursor) {
-    std::lock_guard<std::mutex> lock(input_mutex);
-    current_buffer = buffer;
-    current_cursor = cursor;
+    std::lock_guard<std::mutex> lock(inputMutex);
+    currentBuffer = buffer;
+    currentCursor = cursor;
 }
 
 void Terminal::displayBuffer(const std::string& buffer, size_t cursor) {
@@ -146,7 +146,7 @@ bool Terminal::handleCursorMovement(char key, size_t& cursor, size_t bufferSize)
             return false;
     }
     
-    updateInputState(current_buffer, cursor);
+    updateInputState(currentBuffer, cursor);
     return true;
 }
 
@@ -158,26 +158,26 @@ void Terminal::handleCharInput(char c, std::string& buffer, size_t& cursor) {
 }
 
 void Terminal::requestShutdown() {
-    should_shutdown.store(true);
+    shouldShutdown.store(true);
 }
 
 void Terminal::start() {
     log("INFO", "Starting terminal thread");
-    should_shutdown.store(false);
-    terminal_thread = std::thread([this]() {
+    shouldShutdown.store(false);
+    terminalThread = std::thread([this]() {
         this->runBlockingStdioLoop();
     });
 }
 
 void Terminal::stop() {
     log("INFO", "Stopping terminal thread");
-    should_shutdown.store(true);
+    shouldShutdown.store(true);
 }
 
 void Terminal::join() {
-    if (terminal_thread.joinable()) {
+    if (terminalThread.joinable()) {
         log("INFO", "Waiting for terminal thread to finish");
-        terminal_thread.join();
+        terminalThread.join();
         log("INFO", "Terminal thread finished");
     }
 }
@@ -189,7 +189,7 @@ void Terminal::runBlockingStdioLoop() {
     log("INFO", "Terminal started, listening for input");
 
     // Register redraw callback with Logger
-    g_activeTerminal = this;
+    activeTerminal = this;
     logging::Logger::getInstance().setConsoleOutputCallback([this](bool before) {
         if (before) {
             clearCurrentLine();  // Clear before log is printed
@@ -208,11 +208,11 @@ void Terminal::runBlockingStdioLoop() {
     raw.c_cc[VTIME] = 0;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 
-    while (!should_shutdown.load()) {
+    while (!shouldShutdown.load()) {
         if (sigintReceived.load()) {
             sigintReceived.store(false);
-            log("DEBUG", "Received SIGINT (Ctrl+C) - already handled in signal handler");
-            if (should_shutdown.load()) break;
+            log("DEBUG", "Received SIGINT (Ctrl+C)");
+            if (shouldShutdown.load()) break;
             continue;
         }
 
@@ -223,21 +223,21 @@ void Terminal::runBlockingStdioLoop() {
         
         // Mark that we're now reading input and clear previous state
         {
-            std::lock_guard<std::mutex> lock(input_mutex);
-            current_buffer.clear();
-            current_cursor = 0;
+            std::lock_guard<std::mutex> lock(inputMutex);
+            currentBuffer.clear();
+            currentCursor = 0;
         }
-        is_reading_input.store(true);
+        isReadingInput.store(true);
 
         while (true) {
             char c;
             if (read(STDIN_FILENO, &c, 1) <= 0) {
-                should_shutdown.store(true);
+                shouldShutdown.store(true);
                 break;
             }
 
             if (c == '\n' || c == '\r') {
-                is_reading_input.store(false);
+                isReadingInput.store(false);
                 std::cout << "\n";
                 history.add(buffer);
                 
@@ -270,12 +270,12 @@ void Terminal::runBlockingStdioLoop() {
             handleCharInput(c, buffer, cursor);
         }
 
-        if (should_shutdown.load()) break;
+        if (shouldShutdown.load()) break;
     }
 
     // Cleanup
-    is_reading_input.store(false);
-    g_activeTerminal = nullptr;
+    isReadingInput.store(false);
+    activeTerminal = nullptr;
     logging::Logger::getInstance().setConsoleOutputCallback(nullptr);
     
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
