@@ -132,8 +132,9 @@ TEST_F(ShellTest, MemInfoCommand) {
     EXPECT_FALSE(out.empty());
     // Values are displayed in KB (divided by 1024), so 4096 -> 4, 2048 -> 2
     EXPECT_TRUE(out.find("Total") != std::string::npos);
-    EXPECT_TRUE(out.find("4 KB") != std::string::npos);  // 4096 / 1024 = 4
-    EXPECT_TRUE(out.find("2 KB") != std::string::npos);  // 2048 / 1024 = 2 (used or free)
+    EXPECT_TRUE(out.find("4.00") != std::string::npos);
+    EXPECT_TRUE(out.find("2.00") != std::string::npos);
+    EXPECT_TRUE(out.find("KB") != std::string::npos);
 }
 
 TEST_F(ShellTest, PsCommandDisplaysProcesses) {

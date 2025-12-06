@@ -47,8 +47,12 @@ public:
     int priority() const { return m_priority; }
     int parentPid() const { return m_parent_pid; }
     ProcessState state() const { return m_state; }
-    
+
+    void* memoryBlock() const { return m_memory_block; }
+
+    // Setters
     void setLogCallback(LogCallback callback) { m_log_callback = callback; }
+    void setMemoryBlock(void* block) { m_memory_block = block; }
 
     // State transitions - these validate and enforce valid state changes
     bool makeReady();
@@ -68,6 +72,7 @@ private:
     int m_parent_pid;
     ProcessState m_state;
     LogCallback m_log_callback;
+    void* m_memory_block = nullptr;
 
     void log(const std::string& level, const std::string& message);
 };

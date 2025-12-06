@@ -86,7 +86,7 @@ std::string Kernel::process_line(const std::string& line) {
     // Make it a bit dynamic by passing args size as resource needs
     const int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
     const int cpu_required = 2 * arg_count;
-    const int memory_required = 64 * arg_count;
+    const int memory_required = 1024 * arg_count;
     if (m_proc_manager.execute_process(command_name, cpu_required, memory_required, 0) != -1) {
         return "OK";
     } else {
@@ -208,8 +208,10 @@ void Kernel::handle_timer_tick() {
         size_t total_mem = m_mem_mgr.get_total_memory();
         double mem_usage = (double)used_mem / total_mem * 100.0;
         
-        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count) + 
-                  ", mem:" + std::to_string((int)mem_usage) + "%]");
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << mem_usage;
+        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count)
+                + ", mem:" + oss.str() + "%]");
         last_logged_tick = tick_count;
     }
 }

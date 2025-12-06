@@ -1,6 +1,7 @@
 #include "../CommandAPI.h"
 #include <sstream>
 #include <memory>
+#include <iomanip>
 
 namespace shell {
 
@@ -13,15 +14,16 @@ public:
                 SysApi& sys) override
     {
         auto info = sys.get_sysinfo();
-        size_t total = info.total_memory;
-        size_t used = info.used_memory;
-        size_t free = (total > used) ? (total - used) : 0;
+        double total_kb = static_cast<double>(info.total_memory) / 1024.0;
+        double used_kb  = static_cast<double>(info.used_memory) / 1024.0;
+        double free_kb  = total_kb > used_kb ? (total_kb - used_kb) : 0.0;
 
         std::ostringstream oss;
-        oss << "=== Memory Info ===\n";
-        oss << "Total: " << total / 1024 << " KB\n";
-        oss << "Used : " << used / 1024 << " KB\n";
-        oss << "Free : " << free / 1024 << " KB\n";
+        oss << "=== Memory Info ===\n"
+            << std::fixed << std::setprecision(2)
+            << "Total: " << total_kb << " KB\n"
+            << "Used : " << used_kb  << " KB\n"
+            << "Free : " << free_kb  << " KB\n";
 
         out << oss.str();
         return 0;
@@ -41,17 +43,19 @@ public:
                 SysApi& sys) override
     {
         auto info = sys.get_sysinfo();
-        size_t total = info.total_memory;
-        size_t used = info.used_memory;
+        double total = static_cast<double>(info.total_memory);
+        double used  = static_cast<double>(info.used_memory);
         int bar_width = 40;
-        int used_blocks = total > 0 ? static_cast<int>((double)used / total * bar_width) : 0;
+
+        double ratio = (total > 0.0) ? (used / total) : 0.0;
+        int used_blocks = static_cast<int>(ratio * bar_width);
 
         std::ostringstream oss;
         oss << "[Memory] [";
-        for (int i = 0; i < bar_width; ++i) {
+        for (int i = 0; i < bar_width; ++i)
             oss << (i < used_blocks ? '#' : '-');
-        }
-        oss << "] " << (total > 0 ? (used * 100 / total) : 0) << "% used\n";
+            oss << "] " << std::fixed << std::setprecision(2)
+            << (ratio * 100.0) << "% used\n";
 
         out << oss.str();
         return 0;
