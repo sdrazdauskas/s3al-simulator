@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <lua.hpp>
+#include <unordered_set>
 
 namespace shell {
 
