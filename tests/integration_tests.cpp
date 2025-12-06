@@ -34,21 +34,33 @@ TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
     EXPECT_EQ(snapshot.size(), 3);
     
     // Terminate processes using SIGTERM
-    procMgr.send_signal(pid1, 15);
-    procMgr.send_signal(pid2, 15);
-    procMgr.send_signal(pid3, 15);
+    procMgr.sendSignal(pid1, 15);
+    procMgr.sendSignal(pid2, 15);
+    procMgr.sendSignal(pid3, 15);
     
-    // Submit and let scheduler handle execution
+    // Verify processes were terminated
+    snapshot = procMgr.snapshot();
+    EXPECT_EQ(snapshot.size(), 0);
+    
+    // Submit new processes
     int execPid1 = procMgr.submit("exec1", 10, 512, 5);
     int execPid2 = procMgr.submit("exec2", 20, 256, 10);
     
     EXPECT_GT(execPid1, 0);
     EXPECT_GT(execPid2, 0);
     
-    // After executeProcess, snapshot should be empty
+    // Processes are queued but not yet completed, verify they exist
+    snapshot = procMgr.snapshot();
+    EXPECT_EQ(snapshot.size(), 2);
+    
+    // Terminate the new processes
+    procMgr.sendSignal(execPid1, 15);
+    procMgr.sendSignal(execPid2, 15);
+    
+    // After termination, snapshot should be empty
     snapshot = procMgr.snapshot();
     EXPECT_EQ(snapshot.size(), 0);
     
-    // As well as memory (subject to change in future versions of project)
-    EXPECT_EQ(memory.get_used_memory(), 0);
+    // Memory should be freed
+    EXPECT_EQ(memory.getUsedMemory(), 0);
 }

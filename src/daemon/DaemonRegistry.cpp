@@ -15,7 +15,7 @@ static const std::unordered_map<std::string, std::function<std::unique_ptr<Daemo
 std::unique_ptr<Daemon> DaemonRegistry::createDaemon(
     const std::string& name,
     shell::SysApi& sys,
-    LogCallback log_callback
+    LogCallback logCallback
 ) {
     auto it = daemon_factories.find(name);
     if (it == daemon_factories.end()) {
@@ -24,8 +24,8 @@ std::unique_ptr<Daemon> DaemonRegistry::createDaemon(
     
     auto daemon = it->second(sys);
     
-    if (daemon && log_callback) {
-        daemon->setLogCallback(log_callback);
+    if (daemon && logCallback) {
+        daemon->setLogCallback(logCallback);
     }
     
     return daemon;

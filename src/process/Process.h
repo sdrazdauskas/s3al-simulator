@@ -35,36 +35,35 @@ class Process {
 public:
     using LogCallback = std::function<void(const std::string& level, const std::string& message)>;
 
-    Process(const std::string& name, 
+    Process(const std::string& processName, 
             int pid,
             int cpuTimeNeeded,
             int memoryNeeded,
             int priority = 0,
             int parent_pid = 0);
 
-    // Getters
-    const std::string& name() const { return m_name; }
-    int pid() const { return m_pid; }
-    int cpuTimeNeeded() const { return m_cpuTimeNeeded; }
-    int remainingCycles() const { return m_remainingCycles; }
-    int memoryNeeded() const { return m_memoryNeeded; }
-    int priority() const { return m_priority; }
-    int parentPid() const { return m_parent_pid; }
-    ProcessState state() const { return m_state; }
-    bool isPersistent() const { return m_persistent; }
+    const std::string& getName() const { return processName; }
+    int getPid() const { return pid; }
+    int getCpuTimeNeeded() const { return cpuTimeNeeded; }
+    int getRemainingCycles() const { return remainingCycles; }
+    int getMemoryNeeded() const { return memoryNeeded; }
+    int getPriority() const { return priority; }
+    int getParentPid() const { return parentPid; }
+    ProcessState getState() const { return state; }
+    bool isPersistent() const { return persistent; }
     
     // Set process as persistent (won't terminate when cycles reach 0)
-    void setPersistent(bool persistent) { m_persistent = persistent; }
+    void setPersistent(bool persistent) { this->persistent = persistent; }
     
     // CPU cycle management
-    void setRemainingCycles(int cycles) { m_remainingCycles = cycles; }
+    void setRemainingCycles(int cycles) { remainingCycles = cycles; }
     bool consumeCycle();  // Returns true if process completed (remaining == 0)
     
     // Execution callback - called when process finishes
-    void setExecutionCallback(ExecutionCallback cb) { m_execCallback = cb; }
+    void setExecutionCallback(ExecutionCallback cb) { execCallback = cb; }
     void onComplete(int exitCode);
     
-    void setLogCallback(LogCallback callback) { m_log_callback = callback; }
+    void setLogCallback(LogCallback callback) { logCallback = callback; }
 
     // State transitions - these validate and enforce valid state changes
     bool makeReady();
@@ -76,17 +75,17 @@ public:
     bool makeZombie();
 
 private:
-    std::string m_name;
-    int m_pid;
-    int m_cpuTimeNeeded;
-    int m_remainingCycles{0};
-    int m_memoryNeeded;
-    int m_priority;
-    int m_parent_pid;
-    ProcessState m_state;
-    bool m_persistent{false};  // If true, process won't terminate when cycles reach 0
-    LogCallback m_log_callback;
-    ExecutionCallback m_execCallback;
+    std::string processName;
+    int pid;
+    int cpuTimeNeeded;
+    int remainingCycles{0};
+    int memoryNeeded;
+    int priority;
+    int parentPid;
+    ProcessState state;
+    bool persistent{false};  // If true, process won't terminate when cycles reach 0
+    LogCallback logCallback;
+    ExecutionCallback execCallback;
 
     void log(const std::string& level, const std::string& message);
 };

@@ -27,8 +27,8 @@ inline std::string toString(SysResult r) {
 
 struct SysApi {
     struct SysInfo {
-        size_t total_memory{0};
-        size_t used_memory{0};
+        size_t totalMemory{0};
+        size_t usedMemory{0};
     };
     virtual SysResult fileExists(const std::string& name) = 0;
     virtual SysResult readFile(const std::string& name, std::string& out) = 0;

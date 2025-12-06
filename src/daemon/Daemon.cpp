@@ -4,40 +4,40 @@
 namespace daemons {
 
 Daemon::Daemon(shell::SysApi& sys, const std::string& name)
-    : m_sys(sys), m_running(false), m_name(name) {}
+    : sysApi(sys), running(false), daemonName(name) {}
 
 void Daemon::log(const std::string& level, const std::string& message) {
-    if (log_callback) {
-        log_callback(level, m_name, message);
+    if (logCallback) {
+        logCallback(level, daemonName, message);
     }
 }
 
 void Daemon::start() {
-    if (m_running.load()) {
+    if (running.load()) {
         log("WARNING", "Daemon already running");
         return;
     }
     
-    m_running.store(true);
+    running.store(true);
     log("INFO", "Starting daemon...");
     
-    m_thread = std::thread([this]() {
+    thread = std::thread([this]() {
         this->run();
     });
 }
 
 void Daemon::stop() {
-    if (!m_running.load()) {
+    if (!running.load()) {
         return;
     }
     
     log("INFO", "Stopping daemon...");
-    m_running.store(false);
+    running.store(false);
 }
 
 void Daemon::join() {
-    if (m_thread.joinable()) {
-        m_thread.join();
+    if (thread.joinable()) {
+        thread.join();
     }
 }
 

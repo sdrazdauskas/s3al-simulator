@@ -31,8 +31,8 @@ public:
 
     Init(shell::SysApi& sys);
     
-    void setLogCallback(LogCallback callback) { log_callback = callback; }
-    void setShutdownCallback(ShutdownCallback callback) { shutdown_callback = callback; }
+    void setLogCallback(LogCallback callback) { logCallback = callback; }
+    void setShutdownCallback(ShutdownCallback callback) { shutdownCb = callback; }
     
     // Called by kernel to signal init to shutdown (like SIGTERM)
     void signalShutdown();
@@ -48,8 +48,8 @@ public:
 
 private:
     // Static registry for mapping PIDs to daemon instances
-    static std::unordered_map<int, daemons::Daemon*> s_daemon_registry;
-    static std::mutex s_registry_mutex;
+    static std::unordered_map<int, daemons::Daemon*> daemonRegistry;
+    static std::mutex registryMutex;
     // Custom deleter to allow forward declaration of Daemon
     struct DaemonDeleter {
         void operator()(daemons::Daemon* p) const;
@@ -63,16 +63,16 @@ private:
         daemons::Daemon* daemon_ptr() const { return daemon.get(); }
     };
     
-    shell::SysApi& m_sys;
-    LogCallback log_callback;
-    ShutdownCallback shutdown_callback;
-    terminal::Terminal* m_terminal = nullptr;
-    std::vector<DaemonProcess> m_daemons;
+    shell::SysApi& sysApi;
+    LogCallback logCallback;
+    ShutdownCallback shutdownCb;
+    terminal::Terminal* terminal = nullptr;
+    std::vector<DaemonProcess> daemons;
     
     void log(const std::string& level, const std::string& message);
-    void start_daemons();
-    void stop_daemons();
-    void initialize_shell();
+    void startDaemons();
+    void stopDaemons();
+    void initializeShell();
 };
 
 } // namespace init

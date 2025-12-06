@@ -32,7 +32,7 @@ public:
      * @param line The full command line to execute.
      * @return The output of the command.
      */
-    std::string execute_command(const std::string& line);
+    std::string executeCommand(const std::string& line);
 
     /**
      * @brief Executes a command with separated command name and arguments.
@@ -40,13 +40,13 @@ public:
      * @param args The command arguments.
      * @return The output of the command.
      */
-    std::string execute_command(const std::string& cmd, const std::vector<std::string>& args);
+    std::string executeCommand(const std::string& cmd, const std::vector<std::string>& args);
 
     /**
      * @brief Checks if the kernel is still in a running state.
      * @return true if the kernel should continue running, false otherwise.
      */
-    bool is_running() const;
+    bool isKernelRunning() const;
 
     /**
      * @brief Boot sequence: initialize subsystems, wire components, start init process.
@@ -56,42 +56,37 @@ public:
 
     shell::SysApi::SysInfo getSysInfo() const;
 
-    std::string handle_quit(const std::vector<std::string>& args);
+    std::string handleQuit(const std::vector<std::string>& args);
     
     // Signal handling - kernel receives interrupts from hardware/terminal
-    void handle_interrupt_signal(int signal);
+    void handleInterruptSignal(int signal);
     
     // Process signal handling
-    bool send_signal_to_process(int pid, int signal);
+    bool sendSignalToProcess(int pid, int signal);
     
     // Process creation - creates a process entry, returns PID
-    int fork_process(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false);
+    int forkProcess(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false);
     
     // Get list of all processes
-    std::vector<shell::SysApi::ProcessInfo> get_process_list() const;
+    std::vector<shell::SysApi::ProcessInfo> getProcessList() const;
     
-    // Set callback for daemon signal notifications
-    void setDaemonSignalCallback(std::function<void(int pid, int signal)> callback) {
-        m_daemon_signal_callback = callback;
-    }
-
     // Kernel event loop - runs background tasks
-    void run_event_loop();
+    void runEventLoop();
     
     // Submit a command to be processed by the kernel
-    void submit_command(const std::string& line);
+    void submitCommand(const std::string& line);
     
     // Submit a command for scheduler-based execution
-    int submit_async_command(const std::string& name, int cpuCycles, int priority = 0);
+    int submitAsyncCommand(const std::string& name, int cpuCycles, int priority = 0);
     
     // Wait for a command process to complete (blocks)
-    bool wait_for_process(int pid);
+    bool waitForProcess(int pid);
     
     // Check if a process has completed
-    bool is_process_complete(int pid) const;
+    bool isProcessComplete(int pid) const;
     
     // Get remaining cycles for a process
-    int get_process_remaining_cycles(int pid) const;
+    int getProcessRemainingCycles(int pid) const;
 
 private:
     struct KernelEvent {
@@ -104,35 +99,27 @@ private:
         
         Type type;
         std::string data;
-        int signal_number{0}; // For INTERRUPT_SIGNAL events
+        int signalNumber{0}; // For INTERRUPT_SIGNAL events
     };
     
-    void process_event(const KernelEvent& event);
-    void handle_timer_tick();
+    void processEvent(const KernelEvent& event);
+    void handleTimerTick();
     
-    std::queue<KernelEvent> event_queue;
-    std::mutex queue_mutex;
-    std::condition_variable queue_cv;
-    std::atomic<bool> kernel_running{true};
-    std::thread kernel_thread;
+    std::queue<KernelEvent> eventQueue;
+    std::mutex queueMutex;
+    std::condition_variable queueCondition;
+    std::atomic<bool> kernelRunning{true};
+    std::thread kernelThread;
     
-    std::string process_line(const std::string& line);
-    std::string handle_meminfo(const std::vector<std::string>& args);
-    std::string handle_membar(const std::vector<std::string>& args);
+    std::string processLine(const std::string& line);
 
-    std::map<std::string, CommandHandler> m_commands;
-    bool m_is_running;
-    
-    // Signal callback from ProcessManager to Init (for daemon notification)
-    std::function<void(int pid, int signal)> m_daemon_signal_callback;
-    
     // Callback to signal init process to shutdown
-    std::function<void()> m_init_shutdown;
-
-    storage::StorageManager m_storage;
-    memory::MemoryManager m_mem_mgr;
-    scheduler::CPUScheduler m_scheduler;
-    process::ProcessManager m_proc_manager;
+    std::function<void()> initShutdownCb;
+    
+    storage::StorageManager storageManager;
+    memory::MemoryManager memManager;
+    scheduler::CPUScheduler cpuScheduler;
+    process::ProcessManager procManager;
 };
 
 } // namespace kernel

@@ -22,10 +22,9 @@ public:
 
     ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu);
 
-    void setLogCallback(LogCallback callback) { log_callback_ = callback; }
-    void setProcessCompleteCallback(ProcessCompleteCallback cb) { complete_callback_ = cb; }
+    void setLogCallback(LogCallback callback) { logCallback = callback; }
+    void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
-    // ============= Process Submission =============
     // Submit a new process with given CPU cost (cycles needed)
     // Returns PID on success, -1 on failure
     // Set persistent=true for long-running processes (init, daemons) that shouldn't terminate
@@ -35,40 +34,34 @@ public:
                int priority = 0,
                bool persistent = false);
 
-    // ============= Process Lifecycle =============
     // Query process existence
-    bool process_exists(int pid) const;
+    bool processExists(int pid) const;
     
     // Process control - suspend/resume
-    bool suspend_process(int pid);
-    bool resume_process(int pid);
+    bool suspendProcess(int pid);
+    bool resumeProcess(int pid);
     
     // Signal handling
-    bool send_signal(int pid, int signal);
+    bool sendSignal(int pid, int signal);
     
     using SignalCallback = std::function<void(int pid, int signal)>;
-    void setSignalCallback(SignalCallback callback) { signal_callback_ = callback; }
+    void setSignalCallback(SignalCallback callback) { signalCallback = callback; }
 
     // Read-only access for kernel/UI/tests
     std::vector<Process> snapshot() const;
 
 private:
-    // ============= Core State =============
     int next_pid_{1};
-    std::vector<Process> table_;         // All processes (for metadata)
+    std::vector<Process> processTable;
     
-    // ============= Dependencies =============
-    memory::MemoryManager& mem_;
-    scheduler::CPUScheduler& cpu_;
+    memory::MemoryManager& memManager;
+    scheduler::CPUScheduler& cpuScheduler;
     
-    // ============= Callbacks =============
-    LogCallback log_callback_;
-    SignalCallback signal_callback_;
-    ProcessCompleteCallback complete_callback_;
+    LogCallback logCallback;
+    SignalCallback signalCallback;
+    ProcessCompleteCallback completeCallback;
 
-    // ============= Internal Methods =============
     Process* find(int pid);
-    const Process* find(int pid) const;
     void log(const std::string& level, const std::string& message);
     void onProcessComplete(int pid);
 };

@@ -4,7 +4,7 @@
 #include <queue>
 #include <functional>
 #include <string>
-#include "ProcessData.h"
+#include "ScheduledTask.h"
 
 namespace scheduler {
 
@@ -82,12 +82,6 @@ public:
     // Get process remaining cycles (-1 if not found)
     int getRemainingCycles(int pid) const;
 
-    // ============= Legacy API (for compatibility) =============
-    void execute_process(int pid, int burstTime, int priority);
-    void setProcesses(const std::vector<ScheduledTask>& plist);
-    void clear();
-    void run();
-
 private:
     // State
     int systemTime{0};
@@ -117,6 +111,10 @@ private:
     void preemptCurrent();
     void scheduleProcess(int pid);
     void completeProcess(int pid);
+    
+    // Algorithm-specific preemption checks
+    bool shouldPreemptRoundRobin();
+    bool shouldPreemptPriority();
 };
 
 inline std::string algorithmToString(Algorithm a) {

@@ -198,10 +198,10 @@ void CPUScheduler::scheduleProcess(int pid) {
     currentPid = pid;
     currentSlice = 0;
     
-    Process* p = findProcess(pid);
-    if (p) {
+    Process* process = findProcess(pid);
+    if (process) {
         log("DEBUG", "Scheduled process " + std::to_string(pid) + 
-            " (remaining=" + std::to_string(p->burstTime) + ")");
+            " (remaining=" + std::to_string(process->burstTime) + ")");
     }
 }
 
@@ -221,6 +221,35 @@ void CPUScheduler::completeProcess(int pid) {
     
     currentPid = -1;
     currentSlice = 0;
+}
+
+bool CPUScheduler::shouldPreemptRoundRobin() {
+    // Time slice expired and there are other processes waiting
+    if (currentSlice >= quantum && !readyQueue.empty()) {
+        return true;
+    }
+    return false;
+}
+
+bool CPUScheduler::shouldPreemptPriority() {
+    // Check if any ready process has higher priority than current
+    if (readyQueue.empty()) return false;
+    
+    Process* current = findProcess(currentPid);
+    if (!current) return false;
+    
+    std::queue<int> temp = readyQueue;
+    while (!temp.empty()) {
+        int pid = temp.front();
+        temp.pop();
+        Process* other = findProcess(pid);
+        if (other && other->priority > current->priority &&
+            std::find(suspended.begin(), suspended.end(), pid) == suspended.end()) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 TickResult CPUScheduler::tick() {
@@ -264,38 +293,19 @@ TickResult CPUScheduler::tick() {
             result.completedPid = currentPid;
             completeProcess(currentPid);
             
-        } else if (algo == Algorithm::RoundRobin && currentSlice >= quantum) {
-            // Time slice expired
-            if (!readyQueue.empty()) {
-                preemptCurrent();
-                
-                int nextPid = selectNextProcess();
-                if (nextPid >= 0) {
-                    scheduleProcess(nextPid);
-                    result.contextSwitch = true;
-                    result.currentPid = currentPid;
-                    Process* next = findProcess(currentPid);
-                    if (next) result.remainingCycles = next->burstTime;
-                }
-            } else {
-                // No other processes, continue with current
-                currentSlice = 0;
-            }
-            
-        } else if (algo == Algorithm::Priority && !readyQueue.empty()) {
-            // Check for higher priority process
-            std::queue<int> temp = readyQueue;
+        } else {
+            // Check algorithm-specific preemption conditions
             bool shouldPreempt = false;
             
-            while (!temp.empty()) {
-                int pid = temp.front();
-                temp.pop();
-                Process* other = findProcess(pid);
-                if (other && other->priority > p->priority &&
-                    std::find(suspended.begin(), suspended.end(), pid) == suspended.end()) {
-                    shouldPreempt = true;
-                    break;
+            if (algo == Algorithm::RoundRobin) {
+                shouldPreempt = shouldPreemptRoundRobin();
+                if (shouldPreempt && readyQueue.empty()) {
+                    // No other processes, just reset slice
+                    currentSlice = 0;
+                    shouldPreempt = false;
                 }
+            } else if (algo == Algorithm::Priority) {
+                shouldPreempt = shouldPreemptPriority();
             }
             
             if (shouldPreempt) {
@@ -317,40 +327,6 @@ TickResult CPUScheduler::tick() {
 
 bool CPUScheduler::hasWork() const {
     return currentPid >= 0 || !readyQueue.empty();
-}
-
-// ============= Legacy API =============
-
-void CPUScheduler::execute_process(int pid, int burstTime, int priority) {
-    enqueue(pid, burstTime, priority);
-    
-    // Run to completion (legacy blocking behavior)
-    while (hasWork()) {
-        tick();
-    }
-}
-
-void CPUScheduler::setProcesses(const std::vector<ScheduledTask>& plist) {
-    clear();
-    for (const auto& p : plist) {
-        enqueue(p.id, p.burstTime, p.priority);
-    }
-    log("INFO", "Loaded " + std::to_string(plist.size()) + " processes");
-}
-
-void CPUScheduler::clear() {
-    processes.clear();
-    while (!readyQueue.empty()) readyQueue.pop();
-    suspended.clear();
-    currentPid = -1;
-    currentSlice = 0;
-    log("DEBUG", "Scheduler cleared");
-}
-
-void CPUScheduler::run() {
-    while (hasWork()) {
-        tick();
-    }
 }
 
 } // namespace scheduler

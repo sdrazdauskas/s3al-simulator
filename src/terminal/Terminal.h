@@ -59,15 +59,15 @@ private:
     sendCallback sendCb;
     signalCallback sigCb;
     promptCallback promptCb;
-    LogCallback log_callback;
-    std::atomic<bool> should_shutdown{false};
-    std::thread terminal_thread;
+    LogCallback logCallback;
+    std::atomic<bool> shouldShutdown{false};
+    std::thread terminalThread;
     
     // State for redrawing prompt after external output (e.g., logs)
-    std::mutex input_mutex;
-    std::string current_buffer;
-    size_t current_cursor{0};
-    std::atomic<bool> is_reading_input{false};
+    std::mutex inputMutex;
+    std::string currentBuffer;
+    size_t currentCursor{0};
+    std::atomic<bool> isReadingInput{false};
     
     void redrawPrompt();
     void clearCurrentLine();
@@ -82,8 +82,5 @@ private:
 
     void log(const std::string& level, const std::string& message);
 };
-        using LogCallback = std::function<void(const std::string& level,
-                                               const std::string& module,
-                                               const std::string& message)>;
 
 } // namespace terminal

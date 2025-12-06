@@ -10,8 +10,8 @@
 namespace init {
 
 // Initialize static members
-std::unordered_map<int, daemons::Daemon*> Init::s_daemon_registry;
-std::mutex Init::s_registry_mutex;
+std::unordered_map<int, daemons::Daemon*> Init::daemonRegistry;
+std::mutex Init::registryMutex;
 
 // Implement the custom deleter
 void Init::DaemonDeleter::operator()(daemons::Daemon* p) const {
@@ -19,11 +19,11 @@ void Init::DaemonDeleter::operator()(daemons::Daemon* p) const {
 }
 
 Init::Init(shell::SysApi& sys)
-    : m_sys(sys) {}
+    : sysApi(sys) {}
 
 void Init::log(const std::string& level, const std::string& message) {
-    if (log_callback) {
-        log_callback(level, "INIT", message);
+    if (logCallback) {
+        logCallback(level, "INIT", message);
     }
 }
 
@@ -31,38 +31,38 @@ void Init::start() {
     log("INFO", "Init process (PID 1) starting...");
     
     // Start background daemons (system services)
-    start_daemons();
+    startDaemons();
     
     // Initialize shell (blocks until shell exits)
-    initialize_shell();
+    initializeShell();
     
     // Shutdown daemons when shell exits
-    stop_daemons();
+    stopDaemons();
     
     log("INFO", "Init process shutdown complete");
 }
 
-void Init::initialize_shell() {
+void Init::initializeShell() {
     log("INFO", "Starting shell service...");
     
     shell::CommandRegistry registry;
-    shell::init_commands(registry);
+    shell::initCommands(registry);
     
-    auto logger_callback = [this](const std::string& level, const std::string& module, const std::string& message){
-        if (log_callback) {
-            log_callback(level, module, message);
+    auto loggerCallback = [this](const std::string& level, const std::string& module, const std::string& message){
+        if (logCallback) {
+            logCallback(level, module, message);
         }
     };
     
-    shell::Shell sh(m_sys, registry);
-    sh.setLogCallback(logger_callback);
+    shell::Shell sh(sysApi, registry);
+    sh.setLogCallback(loggerCallback);
     
     terminal::Terminal term;
-    m_terminal = &term;
-    term.setLogCallback(logger_callback);
+    terminal = &term;
+    term.setLogCallback(loggerCallback);
     
     term.setPromptCallback([this](){
-        return m_sys.getWorkingDir() + "$ ";
+        return sysApi.getWorkingDir() + "$ ";
     });
     
     sh.setOutputCallback([&term](const std::string& output){
@@ -79,7 +79,7 @@ void Init::initialize_shell() {
     term.setSignalCallback([this](int sig){ 
         log("INFO", "Received signal " + std::to_string(sig) + " from terminal, forwarding to kernel");
         std::cout << "^C" << std::flush;
-        m_sys.sendSignal(sig);
+        sysApi.sendSignal(sig);
     });
     
     log("INFO", "Starting terminal...");
@@ -90,20 +90,20 @@ void Init::initialize_shell() {
     term.join();
     
     log("INFO", "Shell service terminated");
-    m_terminal = nullptr;
+    terminal = nullptr;
 }
 
 void Init::signalShutdown() {
     log("INFO", "Received shutdown signal from kernel (SIGTERM)");
     
-    if (m_terminal) {
-        m_terminal->requestShutdown();
+    if (terminal) {
+        terminal->requestShutdown();
     }
 }
 
 void Init::handleDaemonSignal(int pid, int signal) {
     // Find the daemon with this PID and notify it
-    for (auto& dp : m_daemons) {
+    for (auto& dp : daemons) {
         if (dp.pid == pid && dp.daemon) {
             dp.daemon->handleSignal(signal);
             break;
@@ -111,12 +111,12 @@ void Init::handleDaemonSignal(int pid, int signal) {
     }
 }
 
-void Init::start_daemons() {
+void Init::startDaemons() {
     log("INFO", "Starting system daemons...");
     
-    auto logger_callback = [this](const std::string& level, const std::string& module, const std::string& message){
-        if (log_callback) {
-            log_callback(level, module, message);
+    auto loggerCallback = [this](const std::string& level, const std::string& module, const std::string& message){
+        if (logCallback) {
+            logCallback(level, module, message);
         }
     };
     
@@ -124,79 +124,79 @@ void Init::start_daemons() {
     
     for (const auto& daemon_name : system_daemons) {
         // Fork a new persistent process for this daemon
-        int pid = m_sys.fork(daemon_name, 1, 512, 5, true);
+        int pid = sysApi.fork(daemon_name, 1, 512, 5, true);
         if (pid <= 0) {
             log("ERROR", "Failed to fork daemon: " + daemon_name);
             continue;
         }
         
         // Create the daemon instance using the registry
-        auto daemon = daemons::DaemonRegistry::createDaemon(daemon_name, m_sys, logger_callback);
+        auto daemon = daemons::DaemonRegistry::createDaemon(daemon_name, sysApi, loggerCallback);
         if (!daemon) {
             log("ERROR", "Unknown daemon type: " + daemon_name);
             continue;
         }
         
         // Convert to unique_ptr with custom deleter
-        std::unique_ptr<daemons::Daemon, DaemonDeleter> daemon_with_deleter(daemon.release());
+        std::unique_ptr<daemons::Daemon, DaemonDeleter> daemonWithDeleter(daemon.release());
         
-        daemon_with_deleter->setPid(pid);
+        daemonWithDeleter->setPid(pid);
         
         // Set up signal handler - when process gets signaled, notify daemon
-        auto daemon_ptr = daemon_with_deleter.get();
-        daemon_with_deleter->setSignalCallback([daemon_ptr](int sig) {
+        auto daemon_ptr = daemonWithDeleter.get();
+        daemonWithDeleter->setSignalCallback([daemon_ptr](int sig) {
             daemon_ptr->handleSignal(sig);
         });
         
-        daemon_with_deleter->start();
+        daemonWithDeleter->start();
         
         // Register in global registry for signal forwarding
         {
-            std::lock_guard<std::mutex> lock(s_registry_mutex);
-            s_daemon_registry[pid] = daemon_with_deleter.get();
+            std::lock_guard<std::mutex> lock(registryMutex);
+            daemonRegistry[pid] = daemonWithDeleter.get();
         }
         
-        m_daemons.push_back(DaemonProcess{std::move(daemon_with_deleter), pid});
+        daemons.push_back(DaemonProcess{std::move(daemonWithDeleter), pid});
     }
     
-    log("INFO", "Started " + std::to_string(m_daemons.size()) + " system daemons");
+    log("INFO", "Started " + std::to_string(daemons.size()) + " system daemons");
 }
 
-void Init::stop_daemons() {
+void Init::stopDaemons() {
     log("INFO", "Stopping system daemons...");
     
     // Send SIGTERM to all daemon processes
-    for (auto& dp : m_daemons) {
-        m_sys.sendSignalToProcess(dp.pid, 15);  // SIGTERM
+    for (auto& dp : daemons) {
+        sysApi.sendSignalToProcess(dp.pid, 15);  // SIGTERM
     }
     
     // Stop daemon threads
-    for (auto& dp : m_daemons) {
+    for (auto& dp : daemons) {
         dp.daemon->stop();
     }
     
     // Wait for daemon threads to finish
-    for (auto& dp : m_daemons) {
+    for (auto& dp : daemons) {
         dp.daemon->join();
     }
     
     // Unregister from global registry
     {
-        std::lock_guard<std::mutex> lock(s_registry_mutex);
-        for (auto& dp : m_daemons) {
-            s_daemon_registry.erase(dp.pid);
+        std::lock_guard<std::mutex> lock(registryMutex);
+        for (auto& dp : daemons) {
+            daemonRegistry.erase(dp.pid);
         }
     }
     
-    m_daemons.clear();
+    daemons.clear();
     
     log("INFO", "All system daemons stopped");
 }
 
 void Init::forwardSignalToDaemon(int pid, int signal) {
-    std::lock_guard<std::mutex> lock(s_registry_mutex);
-    auto it = s_daemon_registry.find(pid);
-    if (it != s_daemon_registry.end()) {
+    std::lock_guard<std::mutex> lock(registryMutex);
+    auto it = daemonRegistry.find(pid);
+    if (it != daemonRegistry.end()) {
         it->second->handleSignal(signal);
     }
 }
