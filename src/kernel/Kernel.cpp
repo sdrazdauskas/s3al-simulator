@@ -143,7 +143,7 @@ void Kernel::handleInterruptSignal(int signal) {
     
     // Set interrupt flag immediately for responsiveness
     // Commands check this flag and should exit promptly
-    shell::g_interrupt_requested.store(true);
+    shell::interruptRequested.store(true);
     
     // Also submit to kernel queue for proper processing
     {
@@ -193,9 +193,12 @@ bool Kernel::waitForProcess(int pid) {
     // The kernel event loop is running in another thread and calling scheduler tick
     while (!isProcessComplete(pid)) {
         // Check for interrupt
-        if (shell::g_interrupt_requested.load()) {
+        if (shell::interruptRequested.load()) {
             LOG_DEBUG("KERNEL", "Process " + std::to_string(pid) + " interrupted by user");
             cpuScheduler.remove(pid);
+            // Clean up interrupted process - free memory and remove from table
+            memManager.freeProcessMemory(pid);
+            procManager.sendSignal(pid, 9); // SIGKILL to terminate immediately
             return false;
         }
         

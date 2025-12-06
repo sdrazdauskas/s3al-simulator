@@ -45,7 +45,7 @@ public:
             for (int i = 0; i < seconds; ++i) {
                 // Check interrupt flag every 100ms (10 times per second)
                 for (int j = 0; j < 10; ++j) {
-                    if (g_interrupt_requested.load()) {
+                    if (interruptRequested.load()) {
                         out << "\nInterrupted after " << i << " seconds\n";
                         out << std::flush;
                         return 130; // Standard exit code for SIGINT
