@@ -1,10 +1,11 @@
-#include "Init.h"
-#include "../terminal/Terminal.h"
-#include "../shell/Shell.h"
-#include "../shell/CommandsInit.h"
-#include "../kernel/SysCallsAPI.h"
-#include "../daemon/Daemon.h"
-#include "../daemon/DaemonRegistry.h"
+#include "init/Init.h"
+#include "terminal/Terminal.h"
+#include "shell/Shell.h"
+#include "shell/CommandsInit.h"
+#include "kernel/SysCallsAPI.h"
+#include "kernel/SysCalls.h"
+#include "daemon/Daemon.h"
+#include "daemon/DaemonRegistry.h"
 #include <iostream>
 
 namespace init {
@@ -53,8 +54,26 @@ void Init::initializeShell() {
             logCallback(level, module, message);
         }
     };
-    
-    shell::Shell sh(sysApi, registry);
+
+    // Shell with Kernel callback
+    shell::Shell sh(
+        sysApi,
+        registry,
+        [&](const std::string& cmd, const std::vector<std::string>& args) {
+            auto* sysKernel = dynamic_cast<kernel::SysApiKernel*>(&sysApi);
+            if (!sysKernel) {
+                log("ERROR", "Init: sysApi is not SysApiKernel.");
+                return;
+            }
+            auto* kernelPtr = sysKernel->getKernel();
+            if (!kernelPtr) {
+                log("ERROR", "Init: Kernel pointer is null.");
+                return;
+            }
+            std::string result = kernelPtr->executeCommand(cmd, args);
+            log("DEBUG", "Kernel returned: " + result);
+    });
+
     sh.setLogCallback(loggerCallback);
     
     terminal::Terminal term;

@@ -1,11 +1,11 @@
-#include "Terminal.h"
+#include "terminal/Terminal.h"
 #include <algorithm>
 #include <iostream>
 #include <csignal>
 #include <termios.h>
 #include <unistd.h>
-#include "helper/History.h"
-#include "Logger.h"
+#include "terminal/helper/History.h"
+#include "logger/Logger.h"
 
 namespace terminal {
 

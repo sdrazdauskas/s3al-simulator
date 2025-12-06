@@ -6,7 +6,7 @@
 #include <sstream>
 #include <ostream>
 #include <streambuf>
-#include "CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <atomic>
 
 extern std::atomic<bool> g_interrupt_requested;
@@ -98,6 +98,8 @@ namespace shell {
         bool isCommandAvailable(const std::string& name) const {
             return registry.find(name) != nullptr;
         }
+
+        bool isBuiltinCommand(const std::string& cmd) const;
     };
 
 } // namespace shell

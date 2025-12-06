@@ -1,6 +1,6 @@
-#include "DaemonRegistry.h"
-#include "Daemon.h"
-#include "MonitoringDaemon.h"
+#include "daemon/DaemonRegistry.h"
+#include "daemon/Daemon.h"
+#include "daemon/MonitoringDaemon.h"
 #include <unordered_map>
 #include <functional>
 

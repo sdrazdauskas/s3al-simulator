@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 #include <functional>
-#include "Process.h"
+#include "process/Process.h"
 
 namespace memory { class MemoryManager; }
 namespace scheduler { class CPUScheduler; }

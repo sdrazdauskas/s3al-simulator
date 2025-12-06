@@ -1,17 +1,17 @@
-#include "Kernel.h"
+#include "kernel/Kernel.h"
 #include <sstream>
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
 #include <chrono>
-#include "Terminal.h"
-#include "Shell.h"
-#include "Logger.h"
-#include "SysCalls.h"
-#include "CommandsInit.h"
-#include "CommandAPI.h"
-#include "../init/Init.h"
-#include "../config/Config.h"
+#include "terminal/Terminal.h"
+#include "shell/Shell.h"
+#include "logger/Logger.h"
+#include "kernel/SysCalls.h"
+#include "shell/CommandsInit.h"
+#include "shell/CommandAPI.h"
+#include "init/Init.h"
+#include "config/Config.h"
 
 namespace kernel {
 
@@ -101,7 +101,7 @@ std::string Kernel::processLine(const std::string& line) {
     // Make it a bit dynamic by passing args size as resource needs
     const int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
     const int cpu_required = 2 * arg_count;
-    const int memory_required = 64 * arg_count;
+    const int memory_required = 1024 * arg_count;
     if (procManager.submit(command_name, cpu_required, memory_required, 0) != -1) {
         return "OK";
     } else {
@@ -264,8 +264,10 @@ void Kernel::handleTimerTick() {
         size_t total_mem = memManager.getTotalMemory();
         double mem_usage = (double)used_mem / total_mem * 100.0;
         
-        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count) + 
-                  ", mem:" + std::to_string((int)mem_usage) + "%]");
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << mem_usage;
+        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count)
+                + ", mem:" + oss.str() + "%]");
         last_logged_tick = tick_count;
     }
 }
@@ -346,7 +348,7 @@ void Kernel::boot(){
         init.handleDaemonSignal(pid, signal);
     });
 
-    // Store reference to init so kernel can signal it on shutdown (like sending SIGTERM to PID 1)
+    // Store reference to init so kernel can signal it on shutdown
     auto init_ptr = &init;
     initShutdownCb = [init_ptr]() {
         init_ptr->signalShutdown();
