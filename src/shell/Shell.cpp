@@ -338,10 +338,12 @@ std::string Shell::executeCommand(const std::string& command,
         std::ostringstream out, err;
         
         if (inPipeChain) {
+            std::cerr.flush();  // Flush logs before command output
             cmd->execute(argsWithInput, input, out, err, sys);
             if (!err.str().empty()) return out.str() + err.str();
             return out.str();
         } else {
+            std::cerr.flush();  // Flush logs before command output
             CallbackStreamBuf out_buf(outputCallback);
             CallbackStreamBuf err_buf(outputCallback);
             std::ostream os(&out_buf);
@@ -374,15 +376,27 @@ std::string Shell::executeCommand(const std::string& command,
 
     log("INFO", "Process started: " + command + " (PID=" + std::to_string(pid) + ")");
 
+    // Wait for scheduler to complete the process (simulate CPU time)
+    std::cerr.flush();  // Flush logs before waiting
+    if (!sys.waitForProcess(pid)) {
+        log("INFO", "Process interrupted: " + command + " (PID=" + std::to_string(pid) + ")");
+        return "";
+    }
+
+    // Now execute the actual command after scheduler completes
     if (inPipeChain) {
         // Pipe output mode
         std::ostringstream out, err;
+        std::cerr.flush();  // Flush logs before command output
         cmd->execute(argsWithInput, input, out, err, sys);
-        sys.sendSignalToProcess(pid, 9);
+        // Command finished - call exit() then wait()/reap
+        sys.exit(pid);
+        sys.reapProcess(pid);
         return out.str() + err.str();
     }
 
     // Real time output
+    std::cerr.flush();  // Flush logs before command output
     CallbackStreamBuf out_buf(outputCallback);
     CallbackStreamBuf err_buf(outputCallback);
     std::ostream os(&out_buf);
@@ -390,7 +404,9 @@ std::string Shell::executeCommand(const std::string& command,
     cmd->execute(argsWithInput, input, os, es, sys);
     os.flush(); es.flush();
 
-    sys.sendSignalToProcess(pid, 9);
+    // Command finished - call exit() then wait()/reap
+    sys.exit(pid);
+    sys.reapProcess(pid);
     log("INFO", "Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
     return "";
 }

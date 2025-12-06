@@ -48,6 +48,8 @@ public:
     // Async command execution
     MOCK_METHOD(int, submitCommand, (const std::string& name, int cpuCycles, int priority), (override));
     MOCK_METHOD(bool, waitForProcess, (int pid), (override));
+    MOCK_METHOD(bool, exit, (int pid, int exitCode), (override));
+    MOCK_METHOD(bool, reapProcess, (int pid), (override));
     MOCK_METHOD(bool, isProcessComplete, (int pid), (override));
     MOCK_METHOD(int, getProcessRemainingCycles, (int pid), (override));
 };
@@ -67,6 +69,8 @@ protected:
         // Default async execution: instant completion
         ON_CALL(mock_sys, submitCommand(_, _, _)).WillByDefault(Return(100)); // Return a fake PID
         ON_CALL(mock_sys, waitForProcess(_)).WillByDefault(Return(true));     // Completes immediately
+        ON_CALL(mock_sys, exit(_, _)).WillByDefault(Return(true));            // Exits successfully
+        ON_CALL(mock_sys, reapProcess(_)).WillByDefault(Return(true));        // Reaps successfully
         ON_CALL(mock_sys, isProcessComplete(_)).WillByDefault(Return(true));
         ON_CALL(mock_sys, getProcessRemainingCycles(_)).WillByDefault(Return(-1));
     }
