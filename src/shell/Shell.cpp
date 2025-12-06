@@ -14,7 +14,7 @@ std::atomic<bool> g_interrupt_requested{false};
 Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
     : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)), luaState(nullptr) {}
 
-    void Shell::initLuaOnce() {
+void Shell::initLuaOnce() {
     if (luaState) return;
     luaState = luaL_newstate();
     if (!luaState) {
@@ -49,7 +49,12 @@ Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
         std::string capturedOutput;
 
         // Set a temp cb that captures output
-        shell->setOutputCallback([&capturedOutput](const std::string& output) {
+        shell->setOutputCallback([&capturedOutput, originalCallback](const std::string& output) {
+
+            if (originalCallback) {
+                originalCallback(output);
+            }
+
             if (!capturedOutput.empty()) capturedOutput += "\n";
             capturedOutput += output;
         });
