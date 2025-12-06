@@ -205,6 +205,14 @@ bool Kernel::waitForProcess(int pid) {
     return true;
 }
 
+bool Kernel::exit(int pid, int exitCode) {
+    return procManager.exit(pid, exitCode);
+}
+
+bool Kernel::reapProcess(int pid) {
+    return procManager.reapProcess(pid);
+}
+
 bool Kernel::isProcessComplete(int pid) const {
     // Process is complete if it's not in the scheduler anymore
     return cpuScheduler.getRemainingCycles(pid) < 0;

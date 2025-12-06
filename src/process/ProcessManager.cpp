@@ -62,6 +62,11 @@ int ProcessManager::submit(const std::string& processName,
         return -1;
     }
     
+    // Persistent processes (init, daemons) start immediately in RUNNING state
+    if (persistent) {
+        process.start();
+    }
+    
     processTable.push_back(process);
     memManager.allocate(memoryNeeded, pid);
     cpuScheduler.enqueue(pid, cpuCycles, priority);
@@ -82,18 +87,55 @@ void ProcessManager::onProcessComplete(int pid) {
         return;  // Don't terminate persistent processes
     }
     
-    log("INFO", "Process '" + process->getName() + "' (PID=" + std::to_string(pid) + ") completed");
+    log("INFO", "Process '" + process->getName() + "' (PID=" + std::to_string(pid) + ") completed CPU scheduling");
     
+    // Ensure process is in RUNNING state
+    if (process->getState() == ProcessState::READY) {
+        process->start();
+    }
+    
+    // Free memory after CPU scheduling completes
     memManager.freeProcessMemory(pid);
+    
+    // Keep process in RUNNING state - shell will transition to ZOMBIE after executing command
     
     if (completeCallback) {
         completeCallback(pid, 0);  // Exit code 0 for normal completion
     }
+}
+
+bool ProcessManager::reapProcess(int pid) {
+    Process* process = find(pid);
+    if (!process) {
+        log("ERROR", "Cannot reap process: PID " + std::to_string(pid) + " not found");
+        return false;
+    }
     
-    process->terminate();
+    // Only reap zombie processes
+    if (process->getState() != ProcessState::ZOMBIE) {
+        log("WARN", "Cannot reap process PID " + std::to_string(pid) + ": not in ZOMBIE state");
+        return false;
+    }
+    
+    log("INFO", "Reaping zombie process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
+    
+    // Remove from process table
     processTable.erase(std::remove_if(processTable.begin(), processTable.end(),
-                               [pid](const Process& pr) { return pr.getPid() == pid; }),
-                processTable.end());
+                                      [pid](const Process& pr){ return pr.getPid() == pid; }),
+                      processTable.end());
+    
+    return true;
+}
+
+bool ProcessManager::exit(int pid, int exitCode) {
+    Process* process = find(pid);
+    if (!process) {
+        log("ERROR", "Cannot exit: PID " + std::to_string(pid) + " not found");
+        return false;
+    }
+    
+    log("DEBUG", "Process '" + process->getName() + "' exited with code " + std::to_string(exitCode) + " (PID=" + std::to_string(pid) + ")");
+    return process->makeZombie();
 }
 
 bool ProcessManager::suspendProcess(int pid) {

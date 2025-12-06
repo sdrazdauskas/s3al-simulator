@@ -44,6 +44,12 @@ public:
     // Signal handling
     bool sendSignal(int pid, int signal);
     
+    // Process exit (transitions to ZOMBIE state)
+    bool exit(int pid, int exitCode = 0);
+    
+    // Reap a zombie process (remove from process table after completion)
+    bool reapProcess(int pid);
+    
     using SignalCallback = std::function<void(int pid, int signal)>;
     void setSignalCallback(SignalCallback callback) { signalCallback = callback; }
 

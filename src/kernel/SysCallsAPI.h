@@ -92,6 +92,12 @@ struct SysApi {
     // Returns true if completed normally, false if interrupted
     virtual bool waitForProcess(int pid) = 0;
     
+    // Exit syscall - process terminates and becomes zombie
+    virtual bool exit(int pid, int exitCode = 0) = 0;
+    
+    // Reap a zombie process (clean up after completion)
+    virtual bool reapProcess(int pid) = 0;
+    
     // Check if a process has completed
     virtual bool isProcessComplete(int pid) = 0;
     

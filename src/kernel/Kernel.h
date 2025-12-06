@@ -81,6 +81,12 @@ public:
     // Wait for a command process to complete (blocks)
     bool waitForProcess(int pid);
     
+    // Process exit syscall (transitions to ZOMBIE)
+    bool exit(int pid, int exitCode = 0);
+    
+    // Reap a zombie process (clean up after completion)
+    bool reapProcess(int pid);
+    
     // Check if a process has completed
     bool isProcessComplete(int pid) const;
     

@@ -307,6 +307,20 @@ struct SysApiKernel : ::shell::SysApi {
         return false;
     }
     
+    bool exit(int pid, int exitCode = 0) override {
+        if (kernelOwner) {
+            return kernelOwner->exit(pid, exitCode);
+        }
+        return false;
+    }
+    
+    bool reapProcess(int pid) override {
+        if (kernelOwner) {
+            return kernelOwner->reapProcess(pid);
+        }
+        return false;
+    }
+    
     bool isProcessComplete(int pid) override {
         if (kernelOwner) {
             return kernelOwner->isProcessComplete(pid);
