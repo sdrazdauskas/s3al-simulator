@@ -19,13 +19,13 @@ public:
     void setLogCallback(LogCallback callback) { log_callback = callback; }
 
     // Allocate memory for a process
-    virtual void *allocate(size_t size, int process_id = 0);
+    virtual void *allocate(size_t size, int processId = 0);
 
     // Deallocate specific pointer
     virtual void deallocate(void* ptr);
     
     // Deallocate ALL memory owned by a process
-    virtual void free_process_memory(int process_id);
+    virtual void freeProcessMemory(int processId);
 
     size_t get_total_memory() const { return total_memory; }
     size_t get_used_memory() const { return used_memory; }
@@ -34,7 +34,7 @@ public:
 private:
     struct Allocation {
         size_t size;
-        int process_id;
+        int processId;
     };
 
     std::map<void*, Allocation> allocations;

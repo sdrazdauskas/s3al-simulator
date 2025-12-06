@@ -39,7 +39,7 @@ public:
     MOCK_METHOD(void, requestShutdown, (), (override));
     MOCK_METHOD(void, sendSignal, (int signal), (override));
     MOCK_METHOD(SysResult, sendSignalToProcess, (int pid, int signal), (override));
-    MOCK_METHOD(int, fork, (const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority), (override));
+    MOCK_METHOD(int, fork, (const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority, bool persistent), (override));
     MOCK_METHOD(std::vector<ProcessInfo>, getProcessList, (), (override));
     MOCK_METHOD(std::string, readLine, (), (override));
     MOCK_METHOD(void, beginInteractiveMode, (), (override));

@@ -51,6 +51,10 @@ public:
     int priority() const { return m_priority; }
     int parentPid() const { return m_parent_pid; }
     ProcessState state() const { return m_state; }
+    bool isPersistent() const { return m_persistent; }
+    
+    // Set process as persistent (won't terminate when cycles reach 0)
+    void setPersistent(bool persistent) { m_persistent = persistent; }
     
     // CPU cycle management
     void setRemainingCycles(int cycles) { m_remainingCycles = cycles; }
@@ -80,6 +84,7 @@ private:
     int m_priority;
     int m_parent_pid;
     ProcessState m_state;
+    bool m_persistent{false};  // If true, process won't terminate when cycles reach 0
     LogCallback m_log_callback;
     ExecutionCallback m_execCallback;
 

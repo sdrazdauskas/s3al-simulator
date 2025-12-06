@@ -65,7 +65,7 @@ public:
     bool send_signal_to_process(int pid, int signal);
     
     // Process creation - creates a process entry, returns PID
-    int fork_process(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0);
+    int fork_process(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false);
     
     // Get list of all processes
     std::vector<shell::SysApi::ProcessInfo> get_process_list() const;

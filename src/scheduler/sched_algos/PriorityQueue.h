@@ -8,14 +8,14 @@
 namespace scheduler {
 
 class PriorityQueueSched {
-    std::vector<Process>& process_queue;
+    std::vector<ScheduledTask>& process_queue;
 
 public:
-    PriorityQueueSched(std::vector<Process>& p) : process_queue(p) {}
+    PriorityQueueSched(std::vector<ScheduledTask>& p) : process_queue(p) {}
 
     void run() {
         std::sort(process_queue.begin(), process_queue.end(),
-             [](const Process& a, const Process& b) {
+             [](const ScheduledTask& a, const ScheduledTask& b) {
                  if (a.arrivalTime == b.arrivalTime)
                      return a.priority > b.priority;
                  return a.arrivalTime < b.arrivalTime;

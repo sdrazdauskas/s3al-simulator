@@ -252,9 +252,9 @@ struct SysApiKernel : ::shell::SysApi {
         return ::shell::SysResult::Error;
     }
     
-    int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0) override {
+    int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false) override {
         if (kernel_owner) {
-            return kernel_owner->fork_process(name, cpuTimeNeeded, memoryNeeded, priority);
+            return kernel_owner->fork_process(name, cpuTimeNeeded, memoryNeeded, priority, persistent);
         }
         return -1;
     }

@@ -64,7 +64,7 @@ struct SysApi {
     virtual SysResult sendSignalToProcess(int pid, int signal) = 0;
     
     // Process creation - returns PID of new process or -1 on failure
-    virtual int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0) = 0;
+    virtual int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false) = 0;
     
     // Process information
     struct ProcessInfo {
