@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include "Kernel.h"
-#include "Storage.h"
-#include "MemoryManager.h"
-#include "ProcessManager.h"
-#include "Scheduler.h"
+#include "kernel/Kernel.h"
+#include "storage/Storage.h"
+#include "memory/MemoryManager.h"
+#include "process/ProcessManager.h"
+#include "scheduler/Scheduler.h"
 
 using namespace kernel;
 using namespace storage;

@@ -6,7 +6,7 @@
 #include <memory>
 #include <ostream>
 #include <atomic>
-#include "SysCallsAPI.h"
+#include "kernel/SysCallsAPI.h"
 
 namespace shell {
 

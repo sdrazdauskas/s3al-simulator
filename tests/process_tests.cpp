@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "ProcessManager.h"
-#include "MemoryManager.h"
-#include "Scheduler.h"
-#include "Logger.h"
+#include "process/ProcessManager.h"
+#include "memory/MemoryManager.h"
+#include "scheduler/Scheduler.h"
+#include "logger/Logger.h"
 
 using namespace process;
 using namespace memory;

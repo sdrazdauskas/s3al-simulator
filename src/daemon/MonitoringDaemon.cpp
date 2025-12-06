@@ -1,5 +1,5 @@
-#include "MonitoringDaemon.h"
-#include "../kernel/SysCallsAPI.h"
+#include "daemon/MonitoringDaemon.h"
+#include "kernel/SysCallsAPI.h"
 #include <thread>
 #include <chrono>
 #include <sstream>
@@ -31,7 +31,7 @@ void MonitoringDaemon::collect_stats() {
     double mem_usage_percent = (double)info.usedMemory / info.totalMemory * 100.0;
     
     std::ostringstream oss;
-    oss << std::fixed << std::setprecision(1);
+    oss << std::fixed << std::setprecision(2);
     oss << "System stats: Memory " << info.usedMemory << "/" << info.totalMemory 
         << " bytes (" << mem_usage_percent << "% used)";
     

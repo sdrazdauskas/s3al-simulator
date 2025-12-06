@@ -1,5 +1,5 @@
 #pragma once
-#include "CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -20,8 +20,8 @@ std::unique_ptr<ICommand> create_ls_command();
 std::unique_ptr<ICommand> create_pwd_command();
 std::unique_ptr<ICommand> create_help_command();
 std::unique_ptr<ICommand> create_quit_command();
-std::unique_ptr<ICommand> create_meminfo_command();
-std::unique_ptr<ICommand> create_membar_command();
+std::unique_ptr<ICommand> createMeminfoCommand();
+std::unique_ptr<ICommand> createMembarCommand();
 std::unique_ptr<ICommand> create_save_command();
 std::unique_ptr<ICommand> create_load_command();
 std::unique_ptr<ICommand> create_reset_command();
@@ -64,8 +64,8 @@ inline void initCommands(CommandRegistry& reg) {
     reg.add(create_help_command(&reg));
     
     reg.add(create_quit_command());
-    reg.add(create_meminfo_command());
-    reg.add(create_membar_command());
+    reg.add(createMeminfoCommand());
+    reg.add(createMembarCommand());
     
     // Add alias for exit -> quit
     auto exit_cmd = create_quit_command();
