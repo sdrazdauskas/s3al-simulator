@@ -9,13 +9,13 @@
 namespace scheduler {
 
 class FCFS {
-    std::vector<Process>& process_queue;
+    std::vector<ScheduledTask>& process_queue;
 public:
-    FCFS(std::vector<Process>& p) : process_queue(p) {}
+    FCFS(std::vector<ScheduledTask>& p) : process_queue(p) {}
 
     void run() {
         sort(process_queue.begin(), process_queue.end(),
-             [](const Process& a, const Process& b) { return a.arrivalTime < b.arrivalTime; });
+             [](const ScheduledTask& a, const ScheduledTask& b) { return a.arrivalTime < b.arrivalTime; });
 
         for (auto& p : process_queue) {
             p.burstTime--;

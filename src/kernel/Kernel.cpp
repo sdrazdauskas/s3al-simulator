@@ -108,7 +108,7 @@ std::string Kernel::process_line(const std::string& line) {
     const int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
     const int cpu_required = 2 * arg_count;
     const int memory_required = 64 * arg_count;
-    if (m_proc_manager.execute_process(command_name, cpu_required, memory_required, 0) != -1) {
+    if (m_proc_manager.submit(command_name, cpu_required, memory_required, 0) != -1) {
         return "OK";
     } else {
         return "Error: Unable to execute process for command '" + command_name + "'.";
@@ -167,8 +167,8 @@ bool Kernel::send_signal_to_process(int pid, int signal) {
     return m_proc_manager.send_signal(pid, signal);
 }
 
-int Kernel::fork_process(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority) {
-    return m_proc_manager.create_process(name, cpuTimeNeeded, memoryNeeded, priority);
+int Kernel::fork_process(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority, bool persistent) {
+    return m_proc_manager.submit(name, cpuTimeNeeded, memoryNeeded, priority, persistent);
 }
 
 std::vector<shell::SysApi::ProcessInfo> Kernel::get_process_list() const {
@@ -337,8 +337,8 @@ void Kernel::boot(){
     
     LOG_INFO("KERNEL", "Starting init process (PID 1)...");
     
-    // Create init as actual process with PID 1
-    int init_pid = m_proc_manager.create_process("init", 1, 1024, 10);
+    // Create init as actual process with PID 1 (persistent process)
+    int init_pid = m_proc_manager.submit("init", 1, 1024, 10, true);
     if (init_pid != 1) {
         LOG_ERROR("KERNEL", "Failed to create init process");
         return;
@@ -366,7 +366,7 @@ void Kernel::boot(){
     
     // Init has exited - remove from process table
     if (m_proc_manager.process_exists(1)) {
-        m_proc_manager.stop_process(1);
+        m_proc_manager.send_signal(1, 15);  // SIGTERM
     }
     
     // After init exits, stop kernel event loop

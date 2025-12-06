@@ -330,7 +330,7 @@ void CPUScheduler::execute_process(int pid, int burstTime, int priority) {
     }
 }
 
-void CPUScheduler::setProcesses(const std::vector<Process>& plist) {
+void CPUScheduler::setProcesses(const std::vector<ScheduledTask>& plist) {
     clear();
     for (const auto& p : plist) {
         enqueue(p.id, p.burstTime, p.priority);

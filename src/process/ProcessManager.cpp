@@ -44,7 +44,8 @@ bool ProcessManager::process_exists(int pid) const {
 int ProcessManager::submit(const std::string& name,
                            int cpuCycles,
                            int memoryNeeded,
-                           int priority) {
+                           int priority,
+                           bool persistent) {
     if (name.empty() || cpuCycles < 1 || memoryNeeded < 0) {
         log("ERROR", "Invalid process parameters: name=" + name);
         return -1;
@@ -55,6 +56,7 @@ int ProcessManager::submit(const std::string& name,
     // Create process metadata
     Process p(name, pid, cpuCycles, memoryNeeded, priority, 0);
     p.setRemainingCycles(cpuCycles);
+    p.setPersistent(persistent);
     
     // Set up process logging
     p.setLogCallback([this](const std::string& level, const std::string& message){
@@ -88,10 +90,16 @@ void ProcessManager::onProcessComplete(int pid) {
     Process* p = find(pid);
     if (!p) return;
     
+    // Check if process is persistent (long-running like init/daemons)
+    if (p->isPersistent()) {
+        log("DEBUG", "Persistent process '" + p->name() + "' (PID=" + std::to_string(pid) + ") cycle completed, keeping alive");
+        return;  // Don't terminate persistent processes
+    }
+    
     log("INFO", "Process '" + p->name() + "' (PID=" + std::to_string(pid) + ") completed");
     
     // Free memory
-    mem_.free_process_memory(pid);
+    mem_.freeProcessMemory(pid);
     
     // Notify user callback
     if (complete_callback_) {
@@ -152,7 +160,16 @@ bool ProcessManager::send_signal(int pid, int signal) {
         case 9:  // SIGKILL
         case 15: // SIGTERM
             log("INFO", "Terminating process '" + p->name() + "' (PID=" + std::to_string(pid) + ")");
-            return stop_process(pid);
+            // Remove from scheduler
+            cpu_.remove(pid);
+            // Free memory
+            mem_.freeProcessMemory(pid);
+            // Terminate and remove from table
+            p->terminate();
+            table_.erase(std::remove_if(table_.begin(), table_.end(),
+                           [pid](const Process& pr){ return pr.pid() == pid; }),
+                         table_.end());
+            return true;
         default:
             log("WARN", "Signal " + std::to_string(signal) + " not implemented");
             return true;
@@ -161,96 +178,6 @@ bool ProcessManager::send_signal(int pid, int signal) {
 
 std::vector<Process> ProcessManager::snapshot() const {
     return table_;
-}
-
-// ============= Legacy API =============
-
-int ProcessManager::execute_process(const std::string& name,
-                                    int cpuTimeNeeded,
-                                    int memoryNeeded,
-                                    int priority) {
-    const int pid = create_process(name, cpuTimeNeeded, memoryNeeded, priority);
-    if (pid == -1) return -1;
-
-    run_process(pid);
-    stop_process(pid);
-
-    return pid;
-}
-
-int ProcessManager::create_process(const std::string& name,
-                                   int cpuTimeNeeded,
-                                   int memoryNeeded,
-                                   int priority) {
-    if (name.empty() || cpuTimeNeeded < 0 || memoryNeeded < 0) {
-        log("ERROR", "Invalid process parameters: name=" + name);
-        return -1;
-    }
-
-    const int pid = next_pid_++;
-
-    Process p(name, pid, cpuTimeNeeded, memoryNeeded, priority, 0);
-    
-    p.setLogCallback([this](const std::string& level, const std::string& message){
-        if (log_callback_) {
-            log_callback_(level, "PROCESS", message);
-        }
-    });
-    
-    if (!p.makeReady()) {
-        log("ERROR", "Failed to initialize process '" + name + "'");
-        return -1;
-    }
-    
-    table_.push_back(p);
-
-    log("INFO", "Created process '" + name + "' (PID=" + std::to_string(pid) + ")");
-    return pid;
-}
-
-bool ProcessManager::run_process(int pid) {
-    Process* p = find(pid);
-    if (!p) {
-        log("ERROR", "Cannot run process: PID " + std::to_string(pid) + " not found");
-        return false;
-    }
-    
-    if (!p->start()) {
-        return false;
-    }
-
-    log("INFO", "Running process '" + p->name() + "' (PID=" + std::to_string(pid) + ")");
-
-    mem_.allocate(p->memoryNeeded(), p->pid());
-    cpu_.execute_process(p->pid(), p->cpuTimeNeeded(), p->priority());
-    mem_.free_process_memory(p->pid());
-
-    return true;
-}
-
-bool ProcessManager::stop_process(int pid) {
-    Process* p = find(pid);
-    if (!p) {
-        log("ERROR", "Cannot stop process: PID " + std::to_string(pid) + " not found");
-        return false;
-    }
-
-    // Remove from scheduler
-    cpu_.remove(pid);
-    
-    // Free memory
-    mem_.free_process_memory(pid);
-
-    if (!p->terminate()) {
-        return false;
-    }
-
-    log("INFO", "Stopped process '" + p->name() + "' (PID=" + std::to_string(pid) + ")");
-
-    table_.erase(std::remove_if(table_.begin(), table_.end(),
-                   [pid](const Process& pr){ return pr.pid() == pid; }),
-                 table_.end());
-    return true;
 }
 
 } // namespace process

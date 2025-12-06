@@ -123,8 +123,8 @@ void Init::start_daemons() {
     auto system_daemons = daemons::DaemonRegistry::getAvailableDaemons();
     
     for (const auto& daemon_name : system_daemons) {
-        // Fork a new process for this daemon
-        int pid = m_sys.fork(daemon_name, 1, 512, 5);
+        // Fork a new persistent process for this daemon
+        int pid = m_sys.fork(daemon_name, 1, 512, 5, true);
         if (pid <= 0) {
             log("ERROR", "Failed to fork daemon: " + daemon_name);
             continue;

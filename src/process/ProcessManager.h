@@ -28,10 +28,12 @@ public:
     // ============= Process Submission =============
     // Submit a new process with given CPU cost (cycles needed)
     // Returns PID on success, -1 on failure
+    // Set persistent=true for long-running processes (init, daemons) that shouldn't terminate
     int submit(const std::string& name,
                int cpuCycles,
                int memoryNeeded,
-               int priority = 0);
+               int priority = 0,
+               bool persistent = false);
 
     // ============= Process Lifecycle =============
     // Query process existence
@@ -49,19 +51,6 @@ public:
 
     // Read-only access for kernel/UI/tests
     std::vector<Process> snapshot() const;
-
-    // ============= Legacy API (kept for compatibility) =============
-    int execute_process(const std::string& name,
-                        int cpuTimeNeeded,
-                        int memoryNeeded,
-                        int priority = 0);
-
-    int  create_process(const std::string& name,
-                        int cpuTimeNeeded,
-                        int memoryNeeded,
-                        int priority = 0);
-    bool run_process(int pid);
-    bool stop_process(int pid);
 
 private:
     // ============= Core State =============

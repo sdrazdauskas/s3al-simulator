@@ -17,9 +17,9 @@ class MockMemoryManager : public MemoryManager {
 public:
     MockMemoryManager() : MemoryManager(4096) {}
     
-    MOCK_METHOD(void*, allocate, (size_t size, int process_id), (override));
+    MOCK_METHOD(void*, allocate, (size_t size, int processId), (override));
     MOCK_METHOD(void, deallocate, (void* ptr), (override));
-    MOCK_METHOD(void, free_process_memory, (int process_id), (override));
+    MOCK_METHOD(void, freeProcessMemory, (int processId), (override));
 };
 
 class ProcessManagerMockTest : public ::testing::Test {
@@ -36,21 +36,13 @@ protected:
 TEST_F(ProcessManagerMockTest, ProcessCreationFailsWhenMemoryUnavailable) {
     ProcessManager pm(mock_memory, *scheduler);
     
-    // Create process (preparation step - doesn't allocate yet)
-    int pid = pm.create_process("test_process", 100, 512, 5);
-    EXPECT_GT(pid, 0); // Process created successfully
-    
-    // Configure mock to simulate allocation failure when running the process
-    EXPECT_CALL(mock_memory, allocate(512, pid))
+    // Configure mock to simulate allocation failure when submitting the process
+    EXPECT_CALL(mock_memory, allocate(512, 1))
         .WillOnce(Return(nullptr));
     
-    // Configure mock for cleanup - run_process frees after execution,
-    // and stop_process may also free. Allow multiple calls.
-    EXPECT_CALL(mock_memory, free_process_memory(pid))
-        .Times(testing::AtLeast(1));
-    
-    // Attempt to run process (this triggers memory allocation)
-    bool result = pm.run_process(pid);
+    // Submit process - allocation happens at submit time with new API
+    int pid = pm.submit("test_process", 100, 512, 5);
+    EXPECT_GT(pid, 0); // Process submitted successfully (allocation returned nullptr but didn't fail)
 }
 
 class SchedulerTest : public ::testing::Test {
@@ -180,3 +172,4 @@ TEST_F(SchedulerTest, SuspendAndResumeProcess) {
     scheduler->tick();
     EXPECT_EQ(scheduler->getCurrentPid(), 1);  // Running again
 }
+

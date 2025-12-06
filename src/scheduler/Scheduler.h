@@ -8,6 +8,9 @@
 
 namespace scheduler {
 
+// Type alias for internal use
+using Process = ScheduledTask;
+
 enum class Algorithm {
     FCFS,           // First Come First Serve - no preemption
     RoundRobin,     // Time-slice based preemption
@@ -81,7 +84,7 @@ public:
 
     // ============= Legacy API (for compatibility) =============
     void execute_process(int pid, int burstTime, int priority);
-    void setProcesses(const std::vector<Process>& plist);
+    void setProcesses(const std::vector<ScheduledTask>& plist);
     void clear();
     void run();
 
