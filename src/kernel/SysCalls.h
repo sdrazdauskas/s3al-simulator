@@ -1,6 +1,6 @@
 #pragma once
 #include "SysCallsAPI.h"
-#include "Storage.h"
+#include "../storage/Storage.h"
 #include "Kernel.h"
 #include "Logger.h"
 #include <string>
@@ -13,6 +13,8 @@ struct SysApiKernel : ::shell::SysApi {
     Kernel* kernel_owner{nullptr};
     explicit SysApiKernel(storage::StorageManager& sm, Kernel* owner = nullptr)
         : fs(sm), kernel_owner(owner) {}
+
+    Kernel* getKernel() { return kernel_owner; }
 
     ::shell::SysResult readFile(const std::string& name, std::string& out) override {
         using Resp = storage::StorageManager::StorageResponse;

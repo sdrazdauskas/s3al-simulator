@@ -9,11 +9,10 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
-
-#include <Storage.h>
-#include <MemoryManager.h>
-#include <ProcessManager.h>
-#include <Scheduler.h>
+#include "../storage/Storage.h"
+#include "../memory/MemoryManager.h"
+#include "../process/ProcessManager.h"
+#include "../scheduler/Scheduler.h"
 #include "SysCallsAPI.h"
 
 namespace kernel {

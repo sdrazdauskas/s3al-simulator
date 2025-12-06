@@ -4,6 +4,7 @@
 #include <atomic>
 #include <vector>
 #include <string>
+#include <unordered_set>
 
 namespace shell {
 
@@ -328,52 +329,70 @@ std::string Shell::executeCommand(const std::string& command,
     if (!input.empty())
         argsWithInput.push_back(input);
 
+    // Built in commands
+    if (isBuiltinCommand(command)) {
+        ICommand* cmd = registry.find(command);
+        if (!cmd) return "Error: Builtin missing: " + command;
+
+        g_interrupt_requested.store(false);
+        std::ostringstream out, err;
+        
+        if (inPipeChain) {
+            cmd->execute(argsWithInput, input, out, err, sys);
+            if (!err.str().empty()) return out.str() + err.str();
+            return out.str();
+        } else {
+            CallbackStreamBuf out_buf(outputCallback);
+            CallbackStreamBuf err_buf(outputCallback);
+            std::ostream os(&out_buf);
+            std::ostream es(&err_buf);
+            cmd->execute(argsWithInput, input, os, es, sys);
+            os.flush(); es.flush();
+            return "";
+        }
+    }
+
+    // External Commands
     ICommand* cmd = registry.find(command);
-    if (!cmd) {
-        log("ERROR", "Unknown command: " + command);
-        return "Error: Unknown command: " + command;
+    if (!cmd) return "Error: Command '" + command + "' not found.";
+
+    if (!isConnectedToKernel()) {
+        std::ostringstream out, err;
+        cmd->execute(argsWithInput, input, out, err, sys);
+        std::string output = out.str();
+        if (!err.str().empty()) {
+            if (!output.empty()) output += "\n";
+            output += "Error: " + err.str();
+        }
+        return output;
     }
 
-    if (kernelCallback) {
-        kernelCallback(command, argsWithInput);
-    }
+    int memNeeded = std::max(64, static_cast<int>(args.size()) * 1024);
+    int cpuNeeded = std::max(2, static_cast<int>(args.size()) * 2);
+    int pid = sys.fork(command, cpuNeeded, memNeeded);
+    if (pid <= 0) return "Error: Fork failed.";
 
-    g_interrupt_requested.store(false);
-
-    int rc = 0;
-    std::string result;
+    log("INFO", "Process started: " + command + " (PID=" + std::to_string(pid) + ")");
 
     if (inPipeChain) {
+        // Pipe output mode
         std::ostringstream out, err;
-        rc = cmd->execute(argsWithInput, input, out, err, sys);
-
-        if (!err.str().empty()) {
-            log("ERROR", err.str());
-            result += err.str();
-        }
-        result += out.str();
-    } else {
-        CallbackStreamBuf out_buf(outputCallback);
-        CallbackStreamBuf err_buf(outputCallback);
-        std::ostream out(&out_buf);
-        std::ostream err(&err_buf);
-
-        rc = cmd->execute(argsWithInput, input, out, err, sys);
-
-        out.flush();
-        err.flush();
+        cmd->execute(argsWithInput, input, out, err, sys);
+        sys.sendSignalToProcess(pid, 9);
+        return out.str() + err.str();
     }
 
-    if (g_interrupt_requested.load()) {
-        log("INFO", "Command interrupted by user");
-        g_interrupt_requested.store(false);
-        if (outputCallback && !inPipeChain) {
-            outputCallback("^C\nCommand interrupted\n");
-        }
-        return "";
-    }
+    // Real time output
+    CallbackStreamBuf out_buf(outputCallback);
+    CallbackStreamBuf err_buf(outputCallback);
+    std::ostream os(&out_buf);
+    std::ostream es(&err_buf);
+    cmd->execute(argsWithInput, input, os, es, sys);
+    os.flush(); es.flush();
 
-    return result;
+    sys.sendSignalToProcess(pid, 9);
+    log("INFO", "Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
+    return "";
 }
 
 std::string Shell::executeScriptFile(const std::string& filename) {
@@ -442,8 +461,13 @@ void Shell::parseCommand(const std::string& commandLine, std::string& command, s
     }
 }
 
-bool Shell::isConnectedToKernel() const {
-    return kernelCallback != nullptr;
+bool Shell::isConnectedToKernel() const { return kernelCallback != nullptr; }
+
+bool Shell::isBuiltinCommand(const std::string& cmd) const {
+    static const std::unordered_set<std::string> builtins = {
+        "cd", "pwd", "help", "quit", "exit", "kill", "meminfo", "membar", "reset", "save", "load", "listdata"
+    };
+    return builtins.count(cmd) > 0;
 }
 
 } // namespace shell
