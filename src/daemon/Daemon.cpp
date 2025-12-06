@@ -51,12 +51,12 @@ void Daemon::handleSignal(int signal) {
             stop();
             break;
         case 19: // SIGSTOP
-            log("INFO", "Stop signal received (SIGSTOP)");
-            // Could pause operations here if needed
+            log("INFO", "Suspending daemon operations");
+            suspended.store(true);
             break;
         case 18: // SIGCONT
-            log("INFO", "Continue signal received (SIGCONT)");
-            // Could resume operations here if needed
+            log("INFO", "Resuming daemon operations");
+            suspended.store(false);
             break;
         default:
             log("WARN", "Unknown signal " + std::to_string(signal));

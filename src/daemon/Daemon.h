@@ -23,8 +23,8 @@ public:
     
     void setLogCallback(LogCallback callback) { logCallback = callback; }
     void setSignalCallback(SignalCallback callback) { signalCallback = callback; }
-    void setPid(int pid) { m_pid = pid; }
-    int pid() const { return m_pid; }
+    void setPid(int pid) { this->pid = pid; }
+    int getPid() const { return pid; }
     
     // Start daemon in background thread
     void start();
@@ -37,14 +37,15 @@ public:
     
     const std::string& name() const { return daemonName; }
     bool isRunning() const { return running.load(); }
-    
+    bool isSuspended() const { return suspended.load(); }
     // Called when process receives a signal
     void handleSignal(int signal);
 
 protected:
     shell::SysApi& sysApi;
     std::atomic<bool> running;
-    int m_pid{-1};
+    std::atomic<bool> suspended{false};
+    int pid{-1};
     
     void log(const std::string& level, const std::string& message);
     

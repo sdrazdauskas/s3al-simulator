@@ -11,10 +11,13 @@ MonitoringDaemon::MonitoringDaemon(shell::SysApi& sys)
     : Daemon(sys, "SYSMON") {}
 
 void MonitoringDaemon::run() {
-    log("INFO", "System monitoring daemon started (PID " + std::to_string(m_pid) + ")");
+    log("INFO", "System monitoring daemon started (PID " + std::to_string(pid) + ")");
     
     while (running.load()) {
-        collect_stats();
+        // Only collect stats if not suspended
+        if (!suspended.load()) {
+            collect_stats();
+        }
         
         // Sleep for 10 seconds between collections
         for (int i = 0; i < 100 && running.load(); ++i) {
@@ -22,7 +25,7 @@ void MonitoringDaemon::run() {
         }
     }
     
-    log("INFO", "System monitoring daemon stopped (PID " + std::to_string(m_pid) + ")");
+    log("INFO", "System monitoring daemon stopped (PID " + std::to_string(pid) + ")");
 }
 
 void MonitoringDaemon::collect_stats() {
