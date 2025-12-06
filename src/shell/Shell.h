@@ -9,7 +9,7 @@
 #include "shell/CommandAPI.h"
 #include <atomic>
 
-extern std::atomic<bool> g_interrupt_requested;
+extern std::atomic<bool> interruptRequested;
 
 namespace shell {
 

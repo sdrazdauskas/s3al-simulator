@@ -9,7 +9,7 @@
 namespace shell {
 
 // Global interrupt flag for Ctrl+C handling
-std::atomic<bool> g_interrupt_requested{false};
+std::atomic<bool> interruptRequested{false};
 
 Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
     : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)) {}
@@ -207,7 +207,7 @@ void Shell::processCommandLine(const std::string& commandLine) {
         ICommand* cmd = registry.find(command);
         if (cmd) {
             // write/edit commands should go directly to std::cout / std::cerr
-            g_interrupt_requested.store(false);
+            interruptRequested.store(false);
 
             int rc = cmd->execute(args, "", std::cout, std::cerr, sys);
 
@@ -215,9 +215,9 @@ void Shell::processCommandLine(const std::string& commandLine) {
             std::cerr.flush();
 
             // handle interruption
-            if (g_interrupt_requested.load()) {
+            if (interruptRequested.load()) {
                 log("INFO", "Command interrupted by user");
-                g_interrupt_requested.store(false);
+                interruptRequested.store(false);
                 if (outputCallback) {
                     outputCallback("^C\nCommand interrupted\n");
                 }
@@ -334,7 +334,7 @@ std::string Shell::executeCommand(const std::string& command,
         ICommand* cmd = registry.find(command);
         if (!cmd) return "Error: Builtin missing: " + command;
 
-        g_interrupt_requested.store(false);
+        interruptRequested.store(false);
         std::ostringstream out, err;
         
         if (inPipeChain) {
@@ -371,6 +371,10 @@ std::string Shell::executeCommand(const std::string& command,
 
     int memNeeded = std::max(64, static_cast<int>(args.size()) * 1024);
     int cpuNeeded = std::max(2, static_cast<int>(args.size()) * 2);
+    
+    // Clear any previous interrupt before starting new process
+    interruptRequested.store(false);
+    
     int pid = sys.fork(command, cpuNeeded, memNeeded);
     if (pid <= 0) return "Error: Fork failed.";
 
@@ -442,7 +446,7 @@ std::string Shell::executeScriptFile(const std::string& filename) {
     };
 
     while (std::getline(file, line)) {
-        if (g_interrupt_requested.load()) {
+        if (interruptRequested.load()) {
             log("INFO", "Script execution interrupted by user");
             if (!output.empty()) output += "\n";
             output += "^C\nScript interrupted";
