@@ -33,7 +33,7 @@ target_include_directories(config PUBLIC src/config)
 
 # Kernel library
 add_library(kernel STATIC src/kernel/Kernel.cpp)
-target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal)
+target_include_directories(kernel PUBLIC src/kernel src/shell src/terminal src/storage)
 target_link_libraries(kernel PUBLIC terminal shell logging memory process storage scheduler init Threads::Threads)
 
 # Storage library
