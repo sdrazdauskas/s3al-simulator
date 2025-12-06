@@ -34,6 +34,14 @@ void Init::start() {
     // Start background daemons (system services)
     startDaemons();
     
+    // Wait for all persistent processes (init + daemons) to complete their first scheduling cycle
+    // This ensures the scheduler has processed them before we start accepting user input
+    log("INFO", "Waiting for system initialization...");
+    for (const auto& daemonProc : daemons) {
+        sysApi.waitForProcess(daemonProc.pid);
+    }
+    sysApi.waitForProcess(1); // Wait for init itself
+    
     // Initialize shell (blocks until shell exits)
     initializeShell();
     
