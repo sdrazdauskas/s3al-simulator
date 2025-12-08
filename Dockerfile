@@ -9,6 +9,8 @@ RUN apt-get update \
         cmake \
         ninja-build \
         libncurses-dev \
+        lua5.4 \
+        liblua5.4-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

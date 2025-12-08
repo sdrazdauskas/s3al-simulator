@@ -79,9 +79,13 @@ target_include_directories(scheduler PUBLIC src/scheduler)
 add_library(logging STATIC src/logger/Logger.cpp)
 target_include_directories(logging PUBLIC src/logger)
 
+find_package(Lua 5.4 REQUIRED)
+target_include_directories(shell PUBLIC ${LUA_INCLUDE_DIR})
+target_link_libraries(shell PUBLIC ${LUA_LIBRARIES})
+
 # Main executable
 add_executable(s3al_sim src/main.cpp)
-target_link_libraries(s3al_sim PRIVATE config kernel logging)
+target_link_libraries(s3al_sim PRIVATE config kernel logging ${LUA_LIBRARIES})
 target_include_directories(s3al_sim PRIVATE src)
 
 # --- Unit Tests ---
