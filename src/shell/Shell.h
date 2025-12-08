@@ -8,6 +8,7 @@
 #include <streambuf>
 #include "CommandAPI.h"
 #include <atomic>
+#include <lua.hpp>
 
 extern std::atomic<bool> g_interrupt_requested;
 
@@ -60,12 +61,15 @@ namespace shell {
 
     class Shell {
     private:
+        lua_State* luaState;
         SysApi& sys;
         const CommandRegistry& registry;
         OutputCallback outputCallback;
         LogCallback log_callback;
         KernelCallback kernelCallback;
 
+        void initLuaOnce();
+        std::string runLuaScript(const std::string& luaCode);
         void log(const std::string& level, const std::string& message);
         std::string parseQuotedToken(std::istringstream& iss, std::string token);
         std::vector<std::string> splitByAndOperator(const std::string& commandLine);
@@ -82,6 +86,7 @@ namespace shell {
     public:
         explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
 
+        OutputCallback getOutputCallback() const { return outputCallback; }
         void setLogCallback(LogCallback callback);
         void setOutputCallback(OutputCallback callback);
         void setKernelCallback(KernelCallback callback) { kernelCallback = std::move(callback); }
