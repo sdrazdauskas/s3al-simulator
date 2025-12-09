@@ -1,5 +1,5 @@
-#include "../CommandAPI.h"
-#include "../../kernel/SysCallsAPI.h"
+#include "shell/CommandAPI.h"
+#include "kernel/SysCallsAPI.h"
 #include <sstream>
 #include <iomanip>
 #include <memory>

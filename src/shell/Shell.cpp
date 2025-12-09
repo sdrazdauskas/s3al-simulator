@@ -1,4 +1,4 @@
-#include "Shell.h"
+#include "shell/Shell.h"
 #include <sstream>
 #include <iostream>
 #include <atomic>
@@ -10,7 +10,7 @@
 namespace shell {
 
 // Global interrupt flag for Ctrl+C handling
-std::atomic<bool> g_interrupt_requested{false};
+std::atomic<bool> interruptRequested{false};
 
 Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
     : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)), luaState(nullptr) {}
@@ -103,7 +103,7 @@ std::string Shell::runLuaScript(const std::string &luaCode) {
 }
 
 void Shell::setLogCallback(LogCallback callback) {
-    log_callback = callback;
+    logCallback = callback;
 }
 
 void Shell::setOutputCallback(OutputCallback callback) {
@@ -111,8 +111,8 @@ void Shell::setOutputCallback(OutputCallback callback) {
 }
 
 void Shell::log(const std::string& level, const std::string& message) {
-    if (log_callback) {
-        log_callback(level, "SHELL", message);
+    if (logCallback) {
+        logCallback(level, "SHELL", message);
     }
 }
 
@@ -295,7 +295,7 @@ void Shell::processCommandLine(const std::string& commandLine) {
         ICommand* cmd = registry.find(command);
         if (cmd) {
             // write/edit commands should go directly to std::cout / std::cerr
-            g_interrupt_requested.store(false);
+            interruptRequested.store(false);
 
             int rc = cmd->execute(args, "", std::cout, std::cerr, sys);
 
@@ -303,9 +303,9 @@ void Shell::processCommandLine(const std::string& commandLine) {
             std::cerr.flush();
 
             // handle interruption
-            if (g_interrupt_requested.load()) {
+            if (interruptRequested.load()) {
                 log("INFO", "Command interrupted by user");
-                g_interrupt_requested.store(false);
+                interruptRequested.store(false);
                 if (outputCallback) {
                     outputCallback("^C\nCommand interrupted\n");
                 }
@@ -422,14 +422,16 @@ std::string Shell::executeCommand(const std::string& command,
         ICommand* cmd = registry.find(command);
         if (!cmd) return "Error: Builtin missing: " + command;
 
-        g_interrupt_requested.store(false);
+        interruptRequested.store(false);
         std::ostringstream out, err;
         
         if (inPipeChain) {
+            std::cerr.flush();  // Flush logs before command output
             cmd->execute(argsWithInput, input, out, err, sys);
             if (!err.str().empty()) return out.str() + err.str();
             return out.str();
         } else {
+            std::cerr.flush();  // Flush logs before command output
             CallbackStreamBuf out_buf(outputCallback);
             CallbackStreamBuf err_buf(outputCallback);
             std::ostream os(&out_buf);
@@ -457,20 +459,36 @@ std::string Shell::executeCommand(const std::string& command,
 
     int memNeeded = std::max(64, static_cast<int>(args.size()) * 1024);
     int cpuNeeded = std::max(2, static_cast<int>(args.size()) * 2);
+    
+    // Clear any previous interrupt before starting new process
+    interruptRequested.store(false);
+    
     int pid = sys.fork(command, cpuNeeded, memNeeded);
     if (pid <= 0) return "Error: Fork failed.";
 
     log("INFO", "Process started: " + command + " (PID=" + std::to_string(pid) + ")");
 
+    // Wait for scheduler to complete the process (simulate CPU time)
+    std::cerr.flush();  // Flush logs before waiting
+    if (!sys.waitForProcess(pid)) {
+        log("INFO", "Process interrupted: " + command + " (PID=" + std::to_string(pid) + ")");
+        return "";
+    }
+
+    // Now execute the actual command after scheduler completes
     if (inPipeChain) {
         // Pipe output mode
         std::ostringstream out, err;
+        std::cerr.flush();  // Flush logs before command output
         cmd->execute(argsWithInput, input, out, err, sys);
-        sys.sendSignalToProcess(pid, 9);
+        // Command finished - call exit() then wait()/reap
+        sys.exit(pid);
+        sys.reapProcess(pid);
         return out.str() + err.str();
     }
 
     // Real time output
+    std::cerr.flush();  // Flush logs before command output
     CallbackStreamBuf out_buf(outputCallback);
     CallbackStreamBuf err_buf(outputCallback);
     std::ostream os(&out_buf);
@@ -478,7 +496,9 @@ std::string Shell::executeCommand(const std::string& command,
     cmd->execute(argsWithInput, input, os, es, sys);
     os.flush(); es.flush();
 
-    sys.sendSignalToProcess(pid, 9);
+    // Command finished - call exit() then wait()/reap
+    sys.exit(pid);
+    sys.reapProcess(pid);
     log("INFO", "Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
     return "";
 }

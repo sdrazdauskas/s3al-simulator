@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -27,6 +27,7 @@ public:
     const char* getName() const override { return "mkdir"; }
     const char* getDescription() const override { return "Create a new directory"; }
     const char* getUsage() const override { return "mkdir <dirName>"; }
+    int getCpuCost() const override { return 2; }
 };
 
 std::unique_ptr<ICommand> create_mkdir_command() {

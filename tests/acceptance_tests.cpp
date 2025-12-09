@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
-#include "Kernel.h"
-#include "Storage.h"
-#include "MemoryManager.h"
-#include "ProcessManager.h"
-#include "Scheduler.h"
+#include "kernel/Kernel.h"
+#include "storage/Storage.h"
+#include "memory/MemoryManager.h"
+#include "process/ProcessManager.h"
+#include "scheduler/Scheduler.h"
+#include "config/Config.h"
 #include <filesystem>
 
 using namespace kernel;
@@ -95,16 +96,18 @@ TEST_F(AcceptanceTest, UserSavesAndRestoresSessionScenario) {
 
 // Sys init
 TEST_F(AcceptanceTest, SystemInitializationScenario) {
-    Kernel kernel(4096);
+    config::Config cfg;
+    cfg.memorySize = 4096;
+    Kernel kernel(cfg);
     
-    EXPECT_TRUE(kernel.is_running());
+    EXPECT_TRUE(kernel.isKernelRunning());
     
-    auto sysinfo = kernel.get_sysinfo();
-    EXPECT_EQ(sysinfo.total_memory, 4096);
-    EXPECT_EQ(sysinfo.used_memory, 0);
+    auto sysinfo = kernel.getSysInfo();
+    EXPECT_EQ(sysinfo.totalMemory, 4096);
+    EXPECT_EQ(sysinfo.usedMemory, 0);
     
-    std::string result = kernel.execute_command("ls");
+    std::string result = kernel.executeCommand("ls");
     EXPECT_FALSE(result.empty());
     
-    EXPECT_TRUE(kernel.is_running());
+    EXPECT_TRUE(kernel.isKernelRunning());
 }

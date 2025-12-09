@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "Shell.h"
-#include "CommandsInit.h"
-#include "SysCallsAPI.h"
-#include "Logger.h"
+#include "shell/Shell.h"
+#include "shell/CommandsInit.h"
+#include "kernel/SysCallsAPI.h"
+#include "logger/Logger.h"
 #include <sstream>
 
 using namespace shell;
@@ -35,15 +35,23 @@ public:
     MOCK_METHOD(SysResult, loadFromDisk, (const std::string& fileName), (override));
     MOCK_METHOD(SysResult, resetStorage, (), (override));
     MOCK_METHOD(SysResult, listDataFiles, (std::vector<std::string>& out), (override));
-    MOCK_METHOD(SysInfo, get_sysinfo, (), (override));
+    MOCK_METHOD(SysInfo, getSysInfo, (), (override));
     MOCK_METHOD(void, requestShutdown, (), (override));
     MOCK_METHOD(void, sendSignal, (int signal), (override));
     MOCK_METHOD(SysResult, sendSignalToProcess, (int pid, int signal), (override));
-    MOCK_METHOD(int, fork, (const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority), (override));
+    MOCK_METHOD(int, fork, (const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority, bool persistent), (override));
     MOCK_METHOD(std::vector<ProcessInfo>, getProcessList, (), (override));
     MOCK_METHOD(std::string, readLine, (), (override));
     MOCK_METHOD(void, beginInteractiveMode, (), (override));
     MOCK_METHOD(void, endInteractiveMode, (), (override));
+    
+    // Async command execution
+    MOCK_METHOD(int, submitCommand, (const std::string& name, int cpuCycles, int priority), (override));
+    MOCK_METHOD(bool, waitForProcess, (int pid), (override));
+    MOCK_METHOD(bool, exit, (int pid, int exitCode), (override));
+    MOCK_METHOD(bool, reapProcess, (int pid), (override));
+    MOCK_METHOD(bool, isProcessComplete, (int pid), (override));
+    MOCK_METHOD(int, getProcessRemainingCycles, (int pid), (override));
 };
 
 class ShellTest : public ::testing::Test {
@@ -53,10 +61,18 @@ protected:
     
     void SetUp() override {
         registry = std::make_unique<CommandRegistry>();
-        init_commands(*registry);
+        initCommands(*registry);
         
         // Setup default return values
         ON_CALL(mock_sys, getWorkingDir()).WillByDefault(Return("/"));
+        
+        // Default async execution: instant completion
+        ON_CALL(mock_sys, submitCommand(_, _, _)).WillByDefault(Return(100)); // Return a fake PID
+        ON_CALL(mock_sys, waitForProcess(_)).WillByDefault(Return(true));     // Completes immediately
+        ON_CALL(mock_sys, exit(_, _)).WillByDefault(Return(true));            // Exits successfully
+        ON_CALL(mock_sys, reapProcess(_)).WillByDefault(Return(true));        // Reaps successfully
+        ON_CALL(mock_sys, isProcessComplete(_)).WillByDefault(Return(true));
+        ON_CALL(mock_sys, getProcessRemainingCycles(_)).WillByDefault(Return(-1));
     }
 };
 
@@ -115,10 +131,10 @@ TEST_F(ShellTest, EmptyCommand) {
 TEST_F(ShellTest, MemInfoCommand) {
     Shell shell(mock_sys, *registry);
     SysApi::SysInfo info;
-    info.total_memory = 4096;  // 4 KB
-    info.used_memory = 2048;   // 2 KB
+    info.totalMemory = 4096;  // 4 KB
+    info.usedMemory = 2048;   // 2 KB
     
-    EXPECT_CALL(mock_sys, get_sysinfo()).WillOnce(Return(info));
+    EXPECT_CALL(mock_sys, getSysInfo()).WillOnce(Return(info));
     
     std::ostringstream output;
     shell.setOutputCallback([&output](const std::string& str) {

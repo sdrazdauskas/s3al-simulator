@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <sstream>
 #include <memory>
 #include <iomanip>
@@ -13,17 +13,17 @@ public:
                 std::ostream& /*err*/,
                 SysApi& sys) override
     {
-        auto info = sys.get_sysinfo();
-        double total_kb = static_cast<double>(info.total_memory) / 1024.0;
-        double used_kb  = static_cast<double>(info.used_memory) / 1024.0;
-        double free_kb  = total_kb > used_kb ? (total_kb - used_kb) : 0.0;
+        auto info = sys.getSysInfo();
+        double totalKb = static_cast<double>(info.totalMemory) / 1024.0;
+        double usedKb  = static_cast<double>(info.usedMemory) / 1024.0;
+        double freeKb  = totalKb > usedKb ? (totalKb - usedKb) : 0.0;
 
         std::ostringstream oss;
         oss << "=== Memory Info ===\n"
             << std::fixed << std::setprecision(2)
-            << "Total: " << total_kb << " KB\n"
-            << "Used : " << used_kb  << " KB\n"
-            << "Free : " << free_kb  << " KB\n";
+            << "Total: " << totalKb << " KB\n"
+            << "Used : " << usedKb  << " KB\n"
+            << "Free : " << freeKb  << " KB\n";
 
         out << oss.str();
         return 0;
@@ -42,18 +42,18 @@ public:
                 std::ostream& /*err*/,
                 SysApi& sys) override
     {
-        auto info = sys.get_sysinfo();
-        double total = static_cast<double>(info.total_memory);
-        double used  = static_cast<double>(info.used_memory);
-        int bar_width = 40;
+        auto info = sys.getSysInfo();
+        double total = static_cast<double>(info.totalMemory);
+        double used  = static_cast<double>(info.usedMemory);
+        int barWidth = 40;
 
         double ratio = (total > 0.0) ? (used / total) : 0.0;
-        int used_blocks = static_cast<int>(ratio * bar_width);
+        int usedBlocks = static_cast<int>(ratio * barWidth);
 
         std::ostringstream oss;
         oss << "[Memory] [";
-        for (int i = 0; i < bar_width; ++i)
-            oss << (i < used_blocks ? '#' : '-');
+        for (int i = 0; i < barWidth; ++i)
+            oss << (i < usedBlocks ? '#' : '-');
             oss << "] " << std::fixed << std::setprecision(2)
             << (ratio * 100.0) << "% used\n";
 
@@ -66,11 +66,11 @@ public:
     const char* getUsage() const override { return "membar"; }
 };
 
-std::unique_ptr<ICommand> create_meminfo_command() {
+std::unique_ptr<ICommand> createMeminfoCommand() {
     return std::make_unique<MeminfoCommand>();
 }
 
-std::unique_ptr<ICommand> create_membar_command() {
+std::unique_ptr<ICommand> createMembarCommand() {
     return std::make_unique<MembarCommand>();
 }
 
