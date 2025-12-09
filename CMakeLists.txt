@@ -125,6 +125,10 @@ target_include_directories(logging
     PRIVATE src/logger
 )
 
+find_package(Lua 5.4 REQUIRED)
+target_include_directories(shell PUBLIC ${LUA_INCLUDE_DIR})
+target_link_libraries(shell PUBLIC ${LUA_LIBRARIES})
+
 # Main executable
 add_executable(s3al_sim)
 target_sources(s3al_sim PRIVATE src/main.cpp)
