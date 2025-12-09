@@ -1,8 +1,18 @@
 #include "shell/CommandAPI.h"
 #include <memory>
 #include <sstream>
+#include <unordered_map>
+#include <cctype>
 
 namespace shell {
+
+// Map signal names/numbers to values
+static const std::unordered_map<std::string, int> signalMap = {
+    {"STOP", 19}, {"19", 19},
+    {"CONT", 18}, {"18", 18},
+    {"TERM", 15}, {"15", 15},
+    {"KILL", 9},  {"9", 9}
+};
 
 class KillCommand : public ICommand {
 public:
@@ -13,49 +23,44 @@ public:
                 SysApi& sys) override
     {
         if (args.size() < 1) {
-            out << "Usage: kill [-SIGNAL] <pid>\n"
-                   "Signals:\n"
-                   "  -STOP (19)  - Suspend process\n"
-                   "  -CONT (18)  - Resume process\n"
-                   "  -TERM (15)  - Terminate gracefully (default)\n"
-                   "  -KILL (9)   - Force terminate" << std::endl;
+            out << getUsage() << std::endl;
             return 1;
         }
         
         int signal = 15; // SIGTERM by default
-        int pidArgIdx = 0;
+        const std::string* pidArg = &args[0];
         
         // Parse signal if provided
         if (args[0][0] == '-') {
+            if (args.size() < 2) {
+                err << "Error: PID required" << std::endl;
+                return 1;
+            }
+            
             std::string sigName = args[0].substr(1);
             
-            if (sigName == "STOP" || sigName == "19") {
-                signal = 19;
-            } else if (sigName == "CONT" || sigName == "18") {
-                signal = 18;
-            } else if (sigName == "TERM" || sigName == "15") {
-                signal = 15;
-            } else if (sigName == "KILL" || sigName == "9") {
-                signal = 9;
+            // Convert to uppercase for case-insensitive comparison
+            for (char& c : sigName) {
+                c = std::toupper(static_cast<unsigned char>(c));
+            }
+            
+            auto it = signalMap.find(sigName);
+            if (it != signalMap.end()) {
+                signal = it->second;
             } else {
                 err << "Error: Unknown signal: " << sigName << std::endl;
                 return 1;
             }
             
-            pidArgIdx = 1;
-            
-            if (args.size() < 2) {
-                err << "Error: PID required" << std::endl;
-                return 1;
-            }
+            pidArg = &args[1];
         }
         
         // Parse PID
         int pid;
         try {
-            pid = std::stoi(args[pidArgIdx]);
+            pid = std::stoi(*pidArg);
         } catch (...) {
-            err << "Error: Invalid PID: " << args[pidArgIdx] << std::endl;
+            err << "Error: Invalid PID: " << *pidArg << std::endl;
             return 1;
         }
         

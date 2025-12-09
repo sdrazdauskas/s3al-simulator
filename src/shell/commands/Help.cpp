@@ -49,8 +49,8 @@ public:
         for (const auto& cmdName : cmds) {
             maxNameLen = std::max(maxNameLen, cmdName.size());
             if (ICommand* cmd = registry->find(cmdName)) {
-                const char* cdesc = cmd->getDescription();
-                std::string_view desc = cdesc ? std::string_view(cdesc) : std::string_view();
+                const char* commandDesc = cmd->getDescription();
+                std::string_view desc = commandDesc ? std::string_view(commandDesc) : std::string_view();
                 maxDescLen = std::max(maxDescLen, desc.size());
             }
         }
