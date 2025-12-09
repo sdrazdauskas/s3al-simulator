@@ -4,72 +4,71 @@
 
 namespace shell {
 
-// Forward declarations of factory functions
-std::unique_ptr<ICommand> create_cat_command();
-std::unique_ptr<ICommand> create_touch_command();
-std::unique_ptr<ICommand> create_echo_command();
-std::unique_ptr<ICommand> create_add_command();
-std::unique_ptr<ICommand> create_rm_command();
-std::unique_ptr<ICommand> create_write_command();
-std::unique_ptr<ICommand> create_edit_command();
-std::unique_ptr<ICommand> create_texed_command();
-std::unique_ptr<ICommand> create_mkdir_command();
-std::unique_ptr<ICommand> create_rmdir_command();
-std::unique_ptr<ICommand> create_cd_command();
-std::unique_ptr<ICommand> create_ls_command();
-std::unique_ptr<ICommand> create_pwd_command();
-std::unique_ptr<ICommand> create_help_command();
-std::unique_ptr<ICommand> create_quit_command();
+// Forward declarations of factory functions (camelCase)
+std::unique_ptr<ICommand> createCatCommand();
+std::unique_ptr<ICommand> createTouchCommand();
+std::unique_ptr<ICommand> createEchoCommand();
+std::unique_ptr<ICommand> createAddCommand();
+std::unique_ptr<ICommand> createRmCommand();
+std::unique_ptr<ICommand> createWriteCommand();
+std::unique_ptr<ICommand> createEditCommand();
+std::unique_ptr<ICommand> createTexedCommand();
+std::unique_ptr<ICommand> createMkdirCommand();
+std::unique_ptr<ICommand> createRmdirCommand();
+std::unique_ptr<ICommand> createCdCommand();
+std::unique_ptr<ICommand> createLsCommand();
+std::unique_ptr<ICommand> createPwdCommand();
+std::unique_ptr<ICommand> createQuitCommand();
 std::unique_ptr<ICommand> createMeminfoCommand();
 std::unique_ptr<ICommand> createMembarCommand();
-std::unique_ptr<ICommand> create_save_command();
-std::unique_ptr<ICommand> create_load_command();
-std::unique_ptr<ICommand> create_reset_command();
-std::unique_ptr<ICommand> create_sleep_command();
-std::unique_ptr<ICommand> create_help_command(CommandRegistry* reg);
-std::unique_ptr<ICommand> create_listdata_command();
-std::unique_ptr<ICommand> create_mv_command();
-std::unique_ptr<ICommand> create_cp_command();
-std::unique_ptr<ICommand> create_mvdir_command();
-std::unique_ptr<ICommand> create_cpdir_command();
-std::unique_ptr<ICommand> create_kill_command();
-std::unique_ptr<ICommand> create_ps_command();
+std::unique_ptr<ICommand> createSaveCommand();
+std::unique_ptr<ICommand> createLoadCommand();
+std::unique_ptr<ICommand> createResetCommand();
+std::unique_ptr<ICommand> createSleepCommand();
+std::unique_ptr<ICommand> createHelpCommand(CommandRegistry* reg);
+std::unique_ptr<ICommand> createListdataCommand();
+std::unique_ptr<ICommand> createMvCommand();
+std::unique_ptr<ICommand> createCpCommand();
+std::unique_ptr<ICommand> createMvdirCommand();
+std::unique_ptr<ICommand> createCpdirCommand();
+std::unique_ptr<ICommand> createKillCommand();
+std::unique_ptr<ICommand> createPsCommand();
 
 inline void initCommands(CommandRegistry& reg) {
-    reg.add(create_cat_command());
-    reg.add(create_touch_command());
-    reg.add(create_echo_command());
-    reg.add(create_add_command());
-    reg.add(create_rm_command());
-    reg.add(create_write_command());
-    reg.add(create_edit_command());
-    reg.add(create_texed_command());
-    reg.add(create_mkdir_command());
-    reg.add(create_rmdir_command());
-    reg.add(create_cd_command());
-    reg.add(create_ls_command());
-    reg.add(create_pwd_command());
-    reg.add(create_save_command());
-    reg.add(create_load_command());
-    reg.add(create_reset_command());
-    reg.add(create_sleep_command());
-    reg.add(create_listdata_command());
-    reg.add(create_mv_command());
-    reg.add(create_cp_command());
-    reg.add(create_mvdir_command());
-    reg.add(create_cpdir_command());
-    reg.add(create_kill_command());
-    reg.add(create_ps_command());
+    reg.add(createCatCommand());
+    reg.add(createTouchCommand());
+    reg.add(createEchoCommand());
+    reg.add(createAddCommand());
+    reg.add(createRmCommand());
+    reg.add(createWriteCommand());
+    reg.add(createEditCommand());
+    reg.add(createTexedCommand());
+    reg.add(createMkdirCommand());
+    reg.add(createRmdirCommand());
+    reg.add(createCdCommand());
+    reg.add(createLsCommand());
+    reg.add(createPwdCommand());
+    reg.add(createSaveCommand());
+    reg.add(createLoadCommand());
+    reg.add(createResetCommand());
+    reg.add(createSleepCommand());
+    reg.add(createListdataCommand());
+    reg.add(createMvCommand());
+    reg.add(createCpCommand());
+    reg.add(createMvdirCommand());
+    reg.add(createCpdirCommand());
+    reg.add(createKillCommand());
+    reg.add(createPsCommand());
     
-    reg.add(create_help_command(&reg));
+    reg.add(createHelpCommand(&reg));
     
-    reg.add(create_quit_command());
+    reg.add(createQuitCommand());
     reg.add(createMeminfoCommand());
     reg.add(createMembarCommand());
     
     // Add alias for exit -> quit
-    auto exit_cmd = create_quit_command();
-    reg.map["exit"] = std::move(exit_cmd);
+    auto exitCmd = createQuitCommand();
+    reg.map["exit"] = std::move(exitCmd);
 }
 
 } // namespace shell

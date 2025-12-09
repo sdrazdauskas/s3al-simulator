@@ -20,7 +20,7 @@ public:
     const char* getUsage() const override { return "pwd"; }
 };
 
-std::unique_ptr<ICommand> create_pwd_command() {
+std::unique_ptr<ICommand> createPwdCommand() {
     return std::make_unique<PwdCommand>();
 }
 

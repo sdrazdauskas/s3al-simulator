@@ -27,7 +27,7 @@ public:
     const char* getUsage() const override { return "echo <text>"; }
 };
 
-std::unique_ptr<ICommand> create_echo_command() {
+std::unique_ptr<ICommand> createEchoCommand() {
     return std::make_unique<EchoCommand>();
 }
 

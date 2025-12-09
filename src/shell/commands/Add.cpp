@@ -28,7 +28,7 @@ public:
     const char* getUsage() const override { return "add <num1> [num2] [num...]"; }
 };
 
-std::unique_ptr<ICommand> create_add_command() {
+std::unique_ptr<ICommand> createAddCommand() {
     return std::make_unique<AddCommand>();
 }
 
