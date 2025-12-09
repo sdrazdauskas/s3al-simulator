@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 #include <sstream>
 

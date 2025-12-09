@@ -1,97 +1,111 @@
-#include "Process.h"
+#include "process/Process.h"
 
 namespace process {
 
-Process::Process(const std::string& name, 
+Process::Process(const std::string& processName, 
                  int pid,
                  int cpuTimeNeeded,
                  int memoryNeeded,
                  int priority,
                  int parent_pid)
-    : m_name(name),
-      m_pid(pid),
-      m_cpuTimeNeeded(cpuTimeNeeded),
-      m_memoryNeeded(memoryNeeded),
-      m_priority(priority),
-      m_parent_pid(parent_pid),
-      m_state(ProcessState::NEW)
+    : processName(processName),
+            pid(pid),
+            cpuTimeNeeded(cpuTimeNeeded),
+            memoryNeeded(memoryNeeded),
+            priority(priority),
+            parentPid(parent_pid),
+            state(ProcessState::NEW)
 {}
 
 bool Process::makeReady() {
-    if (m_state != ProcessState::NEW && m_state != ProcessState::WAITING) {
-        log("ERROR", "Cannot transition to READY from " + stateToString(m_state));
+    if (state != ProcessState::NEW && state != ProcessState::WAITING) {
+        log("ERROR", "Cannot transition to READY from " + stateToString(state));
         return false;
     }
-    m_state = ProcessState::READY;
-    log("DEBUG", "State: " + stateToString(m_state));
+    state = ProcessState::READY;
+    log("DEBUG", "State: " + stateToString(state));
     return true;
 }
 
 bool Process::start() {
-    if (m_state != ProcessState::READY) {
-        log("ERROR", "Cannot start process from " + stateToString(m_state) + " state");
+    if (state != ProcessState::READY) {
+        log("ERROR", "Cannot start process from " + stateToString(state) + " state");
         return false;
     }
-    m_state = ProcessState::RUNNING;
-    log("DEBUG", "State: " + stateToString(m_state));
+    state = ProcessState::RUNNING;
+    log("DEBUG", "State: " + stateToString(state));
     return true;
 }
 
 bool Process::suspend() {
-    if (m_state != ProcessState::RUNNING && m_state != ProcessState::READY) {
-        log("ERROR", "Cannot suspend process from " + stateToString(m_state) + " state");
+    if (state != ProcessState::RUNNING && state != ProcessState::READY) {
+        log("ERROR", "Cannot suspend process from " + stateToString(state) + " state");
         return false;
     }
-    ProcessState prev = m_state;
-    m_state = ProcessState::STOPPED;
+    ProcessState prev = state;
+    state = ProcessState::STOPPED;
     log("INFO", "Suspended from " + stateToString(prev));
     return true;
 }
 
 bool Process::resume() {
-    if (m_state != ProcessState::STOPPED) {
+    if (state != ProcessState::STOPPED) {
         log("ERROR", "Cannot resume process - not in STOPPED state");
         return false;
     }
-    m_state = ProcessState::READY;
+    state = ProcessState::READY;
     log("INFO", "Resumed to READY");
     return true;
 }
 
 bool Process::wait() {
-    if (m_state != ProcessState::RUNNING) {
+    if (state != ProcessState::RUNNING) {
         log("ERROR", "Cannot wait - not in RUNNING state");
         return false;
     }
-    m_state = ProcessState::WAITING;
-    log("DEBUG", "State: " + stateToString(m_state));
+    state = ProcessState::WAITING;
+    log("DEBUG", "State: " + stateToString(state));
     return true;
 }
 
 bool Process::terminate() {
     // Can terminate from any state except already terminated
-    if (m_state == ProcessState::TERMINATED) {
+    if (state == ProcessState::TERMINATED) {
         log("WARN", "Process already terminated");
         return false;
     }
-    m_state = ProcessState::TERMINATED;
+    state = ProcessState::TERMINATED;
     log("INFO", "Terminated");
     return true;
 }
 
 bool Process::makeZombie() {
-    if (m_state != ProcessState::RUNNING && m_state != ProcessState::WAITING) {
-        log("ERROR", "Cannot become zombie from " + stateToString(m_state));
+    if (state != ProcessState::RUNNING && state != ProcessState::WAITING) {
+        log("ERROR", "Cannot become zombie from " + stateToString(state));
         return false;
     }
-    m_state = ProcessState::ZOMBIE;
-    log("DEBUG", "State: " + stateToString(m_state));
+    state = ProcessState::ZOMBIE;
+    log("DEBUG", "State: " + stateToString(state));
     return true;
 }
 
+bool Process::consumeCycle() {
+    if (remainingCycles > 0) {
+        --remainingCycles;
+        log("DEBUG", "Consumed cycle, remaining: " + std::to_string(remainingCycles));
+    }
+    return remainingCycles == 0;
+}
+
+void Process::onComplete(int exitCode) {
+    if (execCallback) {
+        execCallback(pid, exitCode);
+    }
+}
+
 void Process::log(const std::string& level, const std::string& message) {
-    if (m_log_callback) {
-        m_log_callback(level, "PID=" + std::to_string(m_pid) + " '" + m_name + "': " + message);
+    if (logCallback) {
+        logCallback(level, "PID=" + std::to_string(pid) + " '" + processName + "': " + message);
     }
 }
 

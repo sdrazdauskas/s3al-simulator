@@ -6,11 +6,11 @@
 #include <sstream>
 #include <ostream>
 #include <streambuf>
-#include "CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <atomic>
 #include <lua.hpp>
 
-extern std::atomic<bool> g_interrupt_requested;
+extern std::atomic<bool> interruptRequested;
 
 namespace shell {
 
@@ -65,7 +65,7 @@ namespace shell {
         SysApi& sys;
         const CommandRegistry& registry;
         OutputCallback outputCallback;
-        LogCallback log_callback;
+        LogCallback logCallback;
         KernelCallback kernelCallback;
 
         void initLuaOnce();

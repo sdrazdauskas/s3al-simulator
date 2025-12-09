@@ -21,10 +21,10 @@ public:
     Daemon(shell::SysApi& sys, const std::string& name);
     virtual ~Daemon() = default;
     
-    void setLogCallback(LogCallback callback) { log_callback = callback; }
-    void setSignalCallback(SignalCallback callback) { signal_callback = callback; }
-    void setPid(int pid) { m_pid = pid; }
-    int pid() const { return m_pid; }
+    void setLogCallback(LogCallback callback) { logCallback = callback; }
+    void setSignalCallback(SignalCallback callback) { signalCallback = callback; }
+    void setPid(int pid) { this->pid = pid; }
+    int getPid() const { return pid; }
     
     // Start daemon in background thread
     void start();
@@ -35,16 +35,17 @@ public:
     // Wait for daemon to finish
     void join();
     
-    const std::string& name() const { return m_name; }
-    bool is_running() const { return m_running.load(); }
-    
+    const std::string& name() const { return daemonName; }
+    bool isRunning() const { return running.load(); }
+    bool isSuspended() const { return suspended.load(); }
     // Called when process receives a signal
     void handleSignal(int signal);
 
 protected:
-    shell::SysApi& m_sys;
-    std::atomic<bool> m_running;
-    int m_pid{-1};
+    shell::SysApi& sysApi;
+    std::atomic<bool> running;
+    std::atomic<bool> suspended{false};
+    int pid{-1};
     
     void log(const std::string& level, const std::string& message);
     
@@ -52,10 +53,10 @@ protected:
     virtual void run() = 0;
 
 private:
-    std::string m_name;
-    LogCallback log_callback;
-    SignalCallback signal_callback;
-    std::thread m_thread;
+    std::string daemonName;
+    LogCallback logCallback;
+    SignalCallback signalCallback;
+    std::thread thread;
 };
 
 } // namespace daemons

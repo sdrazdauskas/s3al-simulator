@@ -1,43 +1,43 @@
-#include "Daemon.h"
+#include "daemon/Daemon.h"
 #include <iostream>
 
 namespace daemons {
 
 Daemon::Daemon(shell::SysApi& sys, const std::string& name)
-    : m_sys(sys), m_running(false), m_name(name) {}
+    : sysApi(sys), running(false), daemonName(name) {}
 
 void Daemon::log(const std::string& level, const std::string& message) {
-    if (log_callback) {
-        log_callback(level, m_name, message);
+    if (logCallback) {
+        logCallback(level, daemonName, message);
     }
 }
 
 void Daemon::start() {
-    if (m_running.load()) {
+    if (running.load()) {
         log("WARNING", "Daemon already running");
         return;
     }
     
-    m_running.store(true);
+    running.store(true);
     log("INFO", "Starting daemon...");
     
-    m_thread = std::thread([this]() {
+    thread = std::thread([this]() {
         this->run();
     });
 }
 
 void Daemon::stop() {
-    if (!m_running.load()) {
+    if (!running.load()) {
         return;
     }
     
     log("INFO", "Stopping daemon...");
-    m_running.store(false);
+    running.store(false);
 }
 
 void Daemon::join() {
-    if (m_thread.joinable()) {
-        m_thread.join();
+    if (thread.joinable()) {
+        thread.join();
     }
 }
 
@@ -51,12 +51,12 @@ void Daemon::handleSignal(int signal) {
             stop();
             break;
         case 19: // SIGSTOP
-            log("INFO", "Stop signal received (SIGSTOP)");
-            // Could pause operations here if needed
+            log("INFO", "Suspending daemon operations");
+            suspended.store(true);
             break;
         case 18: // SIGCONT
-            log("INFO", "Continue signal received (SIGCONT)");
-            // Could resume operations here if needed
+            log("INFO", "Resuming daemon operations");
+            suspended.store(false);
             break;
         default:
             log("WARN", "Unknown signal " + std::to_string(signal));

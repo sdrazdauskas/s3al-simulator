@@ -26,6 +26,7 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libncurses6 \
+        liblua5.4-0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/build/s3al_sim /app/s3al_sim

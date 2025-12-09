@@ -27,8 +27,8 @@ inline std::string toString(SysResult r) {
 
 struct SysApi {
     struct SysInfo {
-        size_t total_memory{0};
-        size_t used_memory{0};
+        size_t totalMemory{0};
+        size_t usedMemory{0};
     };
     virtual SysResult fileExists(const std::string& name) = 0;
     virtual SysResult readFile(const std::string& name, std::string& out) = 0;
@@ -54,7 +54,7 @@ struct SysApi {
     virtual SysResult resetStorage() = 0;
     virtual SysResult listDataFiles(std::vector<std::string>& out) = 0;
 
-    virtual SysInfo get_sysinfo() = 0;
+    virtual SysInfo getSysInfo() = 0;
 
     virtual void requestShutdown() = 0;
     
@@ -64,7 +64,7 @@ struct SysApi {
     virtual SysResult sendSignalToProcess(int pid, int signal) = 0;
     
     // Process creation - returns PID of new process or -1 on failure
-    virtual int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0) = 0;
+    virtual int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false) = 0;
     
     // Process information
     struct ProcessInfo {
@@ -83,6 +83,26 @@ struct SysApi {
     // Call beginInteractiveMode() before taking over the terminal, endInteractiveMode() when done
     virtual void beginInteractiveMode() = 0;
     virtual void endInteractiveMode() = 0;
+
+    // Submit a command to run through the scheduler with CPU cost cycles
+    // Returns process ID, or -1 on failure
+    virtual int submitCommand(const std::string& name, int cpuCycles, int priority = 0) = 0;
+    
+    // Wait for a submitted command to complete (blocks until done)
+    // Returns true if completed normally, false if interrupted
+    virtual bool waitForProcess(int pid) = 0;
+    
+    // Exit syscall - process terminates and becomes zombie
+    virtual bool exit(int pid, int exitCode = 0) = 0;
+    
+    // Reap a zombie process (clean up after completion)
+    virtual bool reapProcess(int pid) = 0;
+    
+    // Check if a process has completed
+    virtual bool isProcessComplete(int pid) = 0;
+    
+    // Get remaining cycles for a process (-1 if not found)
+    virtual int getProcessRemainingCycles(int pid) = 0;
 
     virtual ~SysApi() = default;
 };
