@@ -114,8 +114,8 @@ Response StorageManager::listDataFiles(std::vector<std::string>& outFiles) const
         for (auto& entry : std::filesystem::directory_iterator(dataDir)) {
             if (entry.is_regular_file() &&
                 entry.path().extension() == ".json") {
-                std::string filename = entry.path().stem().string();
-                outFiles.push_back(filename);
+                std::string fileName = entry.path().stem().string();
+                outFiles.push_back(fileName);
             }
         }
 

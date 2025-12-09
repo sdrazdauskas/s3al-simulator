@@ -37,7 +37,7 @@ public:
     int getCpuCost() const override { return 2; }
 };
 
-std::unique_ptr<ICommand> create_ls_command() {
+std::unique_ptr<ICommand> createLsCommand() {
     return std::make_unique<LsCommand>();
 }
 

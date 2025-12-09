@@ -23,26 +23,26 @@ public:
         }
         
         int signal = 15; // SIGTERM by default
-        int pid_arg_idx = 0;
+        int pidArgIdx = 0;
         
         // Parse signal if provided
         if (args[0][0] == '-') {
-            std::string sig_name = args[0].substr(1);
+            std::string sigName = args[0].substr(1);
             
-            if (sig_name == "STOP" || sig_name == "19") {
+            if (sigName == "STOP" || sigName == "19") {
                 signal = 19;
-            } else if (sig_name == "CONT" || sig_name == "18") {
+            } else if (sigName == "CONT" || sigName == "18") {
                 signal = 18;
-            } else if (sig_name == "TERM" || sig_name == "15") {
+            } else if (sigName == "TERM" || sigName == "15") {
                 signal = 15;
-            } else if (sig_name == "KILL" || sig_name == "9") {
+            } else if (sigName == "KILL" || sigName == "9") {
                 signal = 9;
             } else {
-                err << "Error: Unknown signal: " << sig_name << std::endl;
+                err << "Error: Unknown signal: " << sigName << std::endl;
                 return 1;
             }
             
-            pid_arg_idx = 1;
+            pidArgIdx = 1;
             
             if (args.size() < 2) {
                 err << "Error: PID required" << std::endl;
@@ -53,9 +53,9 @@ public:
         // Parse PID
         int pid;
         try {
-            pid = std::stoi(args[pid_arg_idx]);
+            pid = std::stoi(args[pidArgIdx]);
         } catch (...) {
-            err << "Error: Invalid PID: " << args[pid_arg_idx] << std::endl;
+            err << "Error: Invalid PID: " << args[pidArgIdx] << std::endl;
             return 1;
         }
         
@@ -87,7 +87,7 @@ public:
     }
 };
 
-std::unique_ptr<ICommand> create_kill_command() {
+std::unique_ptr<ICommand> createKillCommand() {
     return std::make_unique<KillCommand>();
 }
 

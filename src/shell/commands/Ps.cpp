@@ -41,7 +41,7 @@ public:
     const char* getUsage() const override { return "ps"; }
 };
 
-std::unique_ptr<ICommand> create_ps_command() {
+std::unique_ptr<ICommand> createPsCommand() {
     return std::make_unique<PsCommand>();
 }
 

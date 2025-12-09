@@ -36,7 +36,7 @@ public:
     int getCpuCost() const override { return 2; }
 };
 
-std::unique_ptr<ICommand> create_touch_command() {
+std::unique_ptr<ICommand> createTouchCommand() {
     return std::make_unique<TouchCommand>();
 }
 
