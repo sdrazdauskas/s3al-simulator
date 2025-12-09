@@ -42,7 +42,7 @@ public:
     const char* getUsage() const override { return "cat <fileName> [fileName...]"; }
 };
 
-std::unique_ptr<ICommand> create_cat_command() {
+std::unique_ptr<ICommand> createCatCommand() {
     return std::make_unique<CatCommand>();
 }
 

@@ -30,7 +30,7 @@ public:
     const char* getUsage() const override { return "reset"; }
 };
 
-std::unique_ptr<ICommand> create_reset_command() {
+std::unique_ptr<ICommand> createResetCommand() {
     return std::make_unique<ResetCommand>();
 }
 

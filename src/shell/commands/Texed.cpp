@@ -10,10 +10,10 @@ namespace shell {
 
 // Flag for handling Ctrl+C in editor
 namespace {
-    volatile sig_atomic_t g_texed_sigint = 0;
+    volatile sig_atomic_t texedSigint = 0;
     
-    extern "C" void texed_sigint_handler(int) {
-        g_texed_sigint = 1;
+    extern "C" void texedSigintHandler(int) {
+        texedSigint = 1;
     }
 }
 
@@ -25,7 +25,7 @@ constexpr ::shell::SysResult SYS_NOTFOUND = static_cast<::shell::SysResult>(2);
 
 struct Editor {
     std::vector<std::string> lines{1, ""};
-    std::string filename;
+    std::string fileName;
     std::string statusMsg;
     std::string cmdline;
     bool isFileChanged = false;
@@ -44,14 +44,14 @@ struct Editor {
     void setStatus(const std::string& s) { statusMsg = s; }
 
     void loadFromSys(::shell::SysApi& sys) {
-        if (filename.empty()) {
+        if (fileName.empty()) {
             lines.assign(1, "");
             setStatus("New file");
             return;
         }
 
         std::string content;
-        auto res = sys.readFile(filename, content);
+        auto res = sys.readFile(fileName, content);
         if (res != SYS_OK) {
             lines.assign(1, "");
             isFileChanged = false;
@@ -72,7 +72,7 @@ struct Editor {
             lines.push_back("");
 
         isFileChanged = false;
-        setStatus(std::string("Opened ") + filename);
+        setStatus(std::string("Opened ") + fileName);
     }
 
     ::shell::SysResult saveToSys(::shell::SysApi& sys, const std::string& outname) {
@@ -94,7 +94,7 @@ struct Editor {
 
         if (res == SYS_OK) {
             isFileChanged = false;
-            filename = outname;
+            fileName = outname;
             setStatus(std::string("Wrote ") + outname);
         } else {
             setStatus(std::string("Write failed: ") + ::shell::toString(res));
@@ -190,7 +190,7 @@ struct Editor {
             requestClose = true;
             return;
         } else if (s == "w") {
-            saveToSys(sys, filename);
+            saveToSys(sys, fileName);
         } else if (s == "set number") {
             showNumbers = true;
             setStatus("number");
@@ -198,7 +198,7 @@ struct Editor {
             showNumbers = false;
             setStatus("nonumber");
         } else if (s == "wq") {
-            saveToSys(sys, filename);
+            saveToSys(sys, fileName);
             requestClose = true;
             return;         
         } else if (s == "help") {
@@ -216,7 +216,7 @@ struct Editor {
                                                            : "-- NORMAL --");
 
         std::ostringstream right;
-        right << (filename.empty() ? "[No Name]" : filename)
+        right << (fileName.empty() ? "[No Name]" : fileName)
               << (isFileChanged ? " +" : "  ") << "  " << (cy + 1) << "," << (cx + 1);
 
         std::string left = modeStr;
@@ -314,15 +314,15 @@ public:
         }
 
         Editor ed;
-        ed.filename = args[0];
+        ed.fileName = args[0];
         ed.loadFromSys(sys);
 
         // Enter interactive mode (disables console logging)
         sys.beginInteractiveMode();
         
         // Install our own SIGINT handler to catch Ctrl+C
-        auto prev_handler = std::signal(SIGINT, texed_sigint_handler);
-        g_texed_sigint = 0;
+        auto prevHandler = std::signal(SIGINT, texedSigintHandler);
+        texedSigint = 0;
 
         initscr();              // init ncurses mode
         raw();                  // pass keypresses DIRECTLY to program
@@ -335,8 +335,8 @@ public:
 
         while (!ed.requestClose) {
             // Handle Ctrl+C: return to normal mode
-            if (g_texed_sigint) {
-                g_texed_sigint = 0;
+            if (texedSigint) {
+                texedSigint = 0;
                 ed.mode = Mode::NORMAL;
                 ed.cmdline.clear();
                 ed.setStatus("Interrupted");
@@ -423,7 +423,7 @@ public:
         endwin();
         
         // Restore previous signal handler
-        std::signal(SIGINT, prev_handler);
+        std::signal(SIGINT, prevHandler);
 
         // Exit interactive mode (restores console logging)
         sys.endInteractiveMode();
@@ -437,6 +437,6 @@ public:
     int getCpuCost() const override { return 10; }
 };
 
-std::unique_ptr<ICommand> create_texed_command() { return std::make_unique<TexedCommand>(); }
+std::unique_ptr<ICommand> createTexedCommand() { return std::make_unique<TexedCommand>(); }
 
 } // namespace shell

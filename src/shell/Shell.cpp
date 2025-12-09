@@ -192,9 +192,9 @@ std::string Shell::extractBeforeSymbol(const std::string &s, const std::string &
 }
 
 std::string Shell::handleInputRedirection(const std::string &segment) {
-    std::string filename = extractAfterSymbol(segment, "<");
-    if (filename.empty()) {
-        log("ERROR", "Input redirection missing filename");
+    std::string fileName = extractAfterSymbol(segment, "<");
+    if (fileName.empty()) {
+        log("ERROR", "Input redirection missing fileName");
         return "";
     }
 
@@ -205,7 +205,7 @@ std::string Shell::handleInputRedirection(const std::string &segment) {
     }
 
     std::ostringstream out, err;
-    std::vector<std::string> readArgs = { filename };
+    std::vector<std::string> readArgs = { fileName };
     int rc = catCmd->execute(readArgs, "", out, err, sys);
     if (!err.str().empty()) {
         log("ERROR", err.str());
@@ -216,10 +216,10 @@ std::string Shell::handleInputRedirection(const std::string &segment) {
 }
 
 std::string Shell::handleOutputRedirection(std::string segment, const std::string &output) {
-    std::string filename = extractAfterSymbol(segment, ">");
+    std::string fileName = extractAfterSymbol(segment, ">");
     segment = extractBeforeSymbol(segment, ">");
-    if (filename.empty()) {
-        log("ERROR", "Output redirection missing filename");
+    if (fileName.empty()) {
+        log("ERROR", "Output redirection missing fileName");
         return "";
     }
 
@@ -233,12 +233,12 @@ std::string Shell::handleOutputRedirection(std::string segment, const std::strin
     if (!cleaned.empty() && cleaned.back() == '\n')
         cleaned.pop_back();
 
-    if (sys.fileExists(filename) != shell::SysResult::OK) {
-        sys.createFile(filename);
+    if (sys.fileExists(fileName) != shell::SysResult::OK) {
+        sys.createFile(fileName);
     }
 
     std::ostringstream out, err;
-    std::vector<std::string> writeArgs = { filename, cleaned };
+    std::vector<std::string> writeArgs = { fileName, cleaned };
     int rc = writeCmd->execute(writeArgs, "", out, err, sys);
     if (!err.str().empty()) {
         log("ERROR", err.str());
@@ -249,11 +249,11 @@ std::string Shell::handleOutputRedirection(std::string segment, const std::strin
 }
 
 std::string Shell::handleAppendRedirection(std::string segment, const std::string &output) {
-    std::string filename = extractAfterSymbol(segment, ">>");
+    std::string fileName = extractAfterSymbol(segment, ">>");
     segment = extractBeforeSymbol(segment, ">>");
 
-    if (filename.empty()) {
-        log("ERROR", "Append redirection missing filename");
+    if (fileName.empty()) {
+        log("ERROR", "Append redirection missing fileName");
         return "";
     }
 
@@ -261,17 +261,17 @@ std::string Shell::handleAppendRedirection(std::string segment, const std::strin
     if (!cleaned.empty() && cleaned.back() == '\n')
         cleaned.pop_back();
 
-    if (sys.fileExists(filename) != shell::SysResult::OK) {
-        sys.createFile(filename);
+    if (sys.fileExists(fileName) != shell::SysResult::OK) {
+        sys.createFile(fileName);
     }
 
-    auto result = sys.appendFile(filename, cleaned);
+    auto result = sys.appendFile(fileName, cleaned);
     if (result != shell::SysResult::OK) {
         log("ERROR", "appendFile failed: " + shell::toString(result));
         return "";
     }
 
-    return "append: " + filename + ": OK";
+    return "append: " + fileName + ": OK";
 }
 
 void Shell::processCommandLine(const std::string& commandLine) {
@@ -339,7 +339,7 @@ void Shell::processCommandLine(const std::string& commandLine) {
 
             if (segmentCopy.find(">>") != std::string::npos) {
                 std::string cleanCommand = extractBeforeSymbol(segmentCopy, ">>");
-                std::string filename = extractAfterSymbol(segmentCopy, ">>");
+                std::string fileName = extractAfterSymbol(segmentCopy, ">>");
 
                 std::string command;
                 std::vector<std::string> args;
@@ -358,9 +358,9 @@ void Shell::processCommandLine(const std::string& commandLine) {
 
             bool hasOutputRedirect = (segmentCopy.find('>') != std::string::npos && segmentCopy.find(">>") == std::string::npos);
 
-            std::string filename;
+            std::string fileName;
             if (hasOutputRedirect) {
-                filename = extractAfterSymbol(segmentCopy, ">");
+                fileName = extractAfterSymbol(segmentCopy, ">");
                 segmentCopy = extractBeforeSymbol(segmentCopy, ">");
             }
 
@@ -374,8 +374,8 @@ void Shell::processCommandLine(const std::string& commandLine) {
             bool inPipeChain = hasOutputRedirect ? true : (i < pipeCommands.size() - 1);
             std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData, inPipeChain);
 
-            if (hasOutputRedirect && !filename.empty()) {
-                handleOutputRedirection(">" + filename, result);
+            if (hasOutputRedirect && !fileName.empty()) {
+                handleOutputRedirection(">" + fileName, result);
                 pipeInput.clear();
             } else {
                 pipeInput = result;
@@ -409,8 +409,8 @@ std::string Shell::executeCommand(const std::string& command,
     log("INFO", "Executing command: " + command);
 
     if (command.rfind("./", 0) == 0) {
-        std::string filename = command.substr(2);
-        return executeScriptFile(filename);
+        std::string fileName = command.substr(2);
+        return executeScriptFile(fileName);
     }
 
     std::vector<std::string> argsWithInput = args;
@@ -503,16 +503,16 @@ std::string Shell::executeCommand(const std::string& command,
     return "";
 }
 
-std::string Shell::executeScriptFile(const std::string &filename) {
-    log("INFO", "Executing script file: " + filename);
+std::string Shell::executeScriptFile(const std::string &fileName) {
+    log("INFO", "Executing script file: " + fileName);
 
 
     // Read file directly from memory filesystem
     std::string fileContent;
-    auto readResult = sys.readFile(filename, fileContent);
+    auto readResult = sys.readFile(fileName, fileContent);
 
     if (readResult != SysResult::OK) {
-        std::string error = "Error: Cannot read Lua file '" + filename + "': " + shell::toString(readResult);
+        std::string error = "Error: Cannot read Lua file '" + fileName + "': " + shell::toString(readResult);
         log("ERROR", error);
         return error;
     }

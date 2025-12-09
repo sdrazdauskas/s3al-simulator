@@ -29,7 +29,7 @@ public:
     const char* getUsage() const override { return "cd <dirName|..>"; }
 };
 
-std::unique_ptr<ICommand> create_cd_command() {
+std::unique_ptr<ICommand> createCdCommand() {
     return std::make_unique<CdCommand>();
 }
 
