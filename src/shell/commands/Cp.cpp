@@ -32,7 +32,7 @@ public:
     int getCpuCost() const override { return 5; }
 };
 
-std::unique_ptr<ICommand> create_cp_command() {
+std::unique_ptr<ICommand> createCpCommand() {
     return std::make_unique<CpCommand>();
 }
 

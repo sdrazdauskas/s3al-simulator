@@ -9,22 +9,22 @@ Logger& Logger::getInstance() {
     return instance;
 }
 
-void Logger::init(const std::string& filename, LogLevel min_level) {
+void Logger::init(const std::string& fileName, LogLevel minLevel) {
     std::lock_guard<std::mutex> lock(mutex);
     
     if (file.is_open()) {
         file.close();
     }
 
-    file.open(filename, std::ios::out | std::ios::app);
-    this->min_level = min_level;
+    file.open(fileName, std::ios::out | std::ios::app);
+    this->minLevel = minLevel;
 
     if (file.is_open()) {
         file << getCurrentTime() << " "
-             << "[INFO] [LOGGER] Logger initialized: " << filename << "\n";
+             << "[INFO] [LOGGER] Logger initialized: " << fileName << "\n";
         file.flush();
     } else {
-        std::cerr << "ERROR: Failed to open log file: " << filename << std::endl;
+        std::cerr << "ERROR: Failed to open log file: " << fileName << std::endl;
     }
 }
 
@@ -36,7 +36,7 @@ Logger::~Logger() {
 }
 
 void Logger::log(LogLevel level, const std::string& module, const std::string& message) {
-    if (level < min_level) return;
+    if (level < minLevel) return;
 
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -50,15 +50,15 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
         file.flush();
     }
 
-    if (log_to_console) {
+    if (logToConsole) {
         // Call callback before output to clear the current input line
-        if (console_output_callback) {
-            console_output_callback(true);  // true = before log
+        if (consoleOutputCallback) {
+            consoleOutputCallback(true);  // true = before log
         }
         std::cerr << log_entry << std::endl;
         // Call callback after output to redraw the prompt
-        if (console_output_callback) {
-            console_output_callback(false);  // false = after log
+        if (consoleOutputCallback) {
+            consoleOutputCallback(false);  // false = after log
         }
     }
 }

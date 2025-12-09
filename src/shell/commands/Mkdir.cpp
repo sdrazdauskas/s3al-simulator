@@ -30,7 +30,7 @@ public:
     int getCpuCost() const override { return 2; }
 };
 
-std::unique_ptr<ICommand> create_mkdir_command() {
+std::unique_ptr<ICommand> createMkdirCommand() {
     return std::make_unique<MkdirCommand>();
 }
 

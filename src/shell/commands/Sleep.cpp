@@ -65,7 +65,7 @@ public:
     }
 };
 
-std::unique_ptr<ICommand> create_sleep_command() {
+std::unique_ptr<ICommand> createSleepCommand() {
     return std::make_unique<SleepCommand>();
 }
 

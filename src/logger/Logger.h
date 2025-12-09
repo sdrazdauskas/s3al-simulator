@@ -21,18 +21,18 @@ class Logger {
 public:
     static Logger& getInstance();
     
-    void init(const std::string& filename, LogLevel min_level = LogLevel::INFO);
+    void init(const std::string& fileName, LogLevel minLevel = LogLevel::INFO);
     void log(LogLevel level, const std::string& module, const std::string& message);
     void log(const std::string& level, const std::string& module, const std::string& message);
     void flush();
     
-    void setConsoleOutput(bool enabled) { log_to_console = enabled; }
-    bool getConsoleOutput() const { return log_to_console; }
+    void setConsoleOutput(bool enabled) { logToConsole = enabled; }
+    bool getConsoleOutput() const { return logToConsole; }
     
     // Callback called before/after console output, allowing terminal to redraw prompt
     // Parameter: true = before log output (clear line), false = after log output (redraw prompt)
     using ConsoleOutputCallback = std::function<void(bool)>;
-    void setConsoleOutputCallback(ConsoleOutputCallback cb) { console_output_callback = std::move(cb); }
+    void setConsoleOutputCallback(ConsoleOutputCallback cb) { consoleOutputCallback = std::move(cb); }
     
     // Disable copy/move, enforce existence of single instance
     Logger(const Logger&) = delete;
@@ -43,10 +43,10 @@ private:
     ~Logger();
     
     std::ofstream file;
-    LogLevel min_level = LogLevel::INFO;
+    LogLevel minLevel = LogLevel::INFO;
     std::mutex mutex;
-    bool log_to_console = false;
-    ConsoleOutputCallback console_output_callback;
+    bool logToConsole = false;
+    ConsoleOutputCallback consoleOutputCallback;
     
     std::string levelToString(LogLevel level);
     std::string getCurrentTime();

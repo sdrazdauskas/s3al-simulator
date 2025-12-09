@@ -34,7 +34,7 @@ public:
     int getCpuCost() const override { return 4; }
 };
 
-std::unique_ptr<ICommand> create_write_command() {
+std::unique_ptr<ICommand> createWriteCommand() {
     return std::make_unique<WriteCommand>();
 }
 

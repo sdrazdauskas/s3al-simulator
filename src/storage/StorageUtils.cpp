@@ -124,7 +124,7 @@ StorageManager::PathInfo StorageManager::parsePath(const std::string& path) cons
         return {current, ""};
     }
 
-    // return folder and filename/dirname
+    // return folder and fileName/dirname
     return {current, parts.back()};
 }
 
