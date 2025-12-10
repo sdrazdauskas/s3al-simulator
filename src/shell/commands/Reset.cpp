@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 #include <iostream>
 
@@ -12,9 +12,8 @@ public:
                 std::ostream& /*err*/,
                 SysApi& sys) override
     {
-        std::string confirm;
         std::cout << "Are you sure you want to reset current storage? (yes/no): ";
-        std::getline(std::cin, confirm);
+        std::string confirm = sys.readLine();
 
         if (confirm != "yes") {
             out << "Reset aborted.\n";
@@ -31,7 +30,7 @@ public:
     const char* getUsage() const override { return "reset"; }
 };
 
-std::unique_ptr<ICommand> create_reset_command() {
+std::unique_ptr<ICommand> createResetCommand() {
     return std::make_unique<ResetCommand>();
 }
 

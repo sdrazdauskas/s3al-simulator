@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "Storage.h"
+#include "storage/Storage.h"
 
 using namespace storage;
 using Response = StorageManager::StorageResponse;

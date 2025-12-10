@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <iostream>
 #include <memory>
 
@@ -17,16 +17,16 @@ public:
             return 1;
         }
 
-        const std::string& filename = args[0];
+        const std::string& fileName = args[0];
 
         std::string content;
-        auto readResult = sys.readFile(filename, content);
+        auto readResult = sys.readFile(fileName, content);
         if (readResult != SysResult::OK) {
-            err << "edit: " << filename << ": " << shell::toString(readResult) << "\n";
+            err << "edit: " << fileName << ": " << shell::toString(readResult) << "\n";
             return 1;
         }
 
-        out << "=== contents of " << filename << " ===\n";
+        out << "=== contents of " << fileName << " ===\n";
         if (content.empty())
             out << "(empty)\n";
         else
@@ -36,16 +36,16 @@ public:
         out << "Type ':wq' on a new line to save and exit.\n";
         out << "--------------------------------------\n";
 
-        std::string newLines, line;
+        std::string newLines;
         while (true) {
-            std::getline(std::cin, line);
+            std::string line = sys.readLine();
             if (line == ":wq")
                 break;
             newLines += line + "\n";
         }
 
-        auto res = sys.editFile(filename, newLines);
-        out << "edit: " << filename << ": " << shell::toString(res) << "\n";
+        auto res = sys.editFile(fileName, newLines);
+        out << "edit: " << fileName << ": " << shell::toString(res) << "\n";
         return (res == SysResult::OK) ? 0 : 1;
     }
 
@@ -54,7 +54,7 @@ public:
     const char* getUsage() const override { return "edit <fileName>"; }
 };
 
-std::unique_ptr<ICommand> create_edit_command() {
+std::unique_ptr<ICommand> createEditCommand() {
     return std::make_unique<EditCommand>();
 }
 

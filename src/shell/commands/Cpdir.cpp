@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -31,7 +31,7 @@ public:
     const char* getUsage() const override { return "cpdir <srcDir> <destDir>"; }
 };
 
-std::unique_ptr<ICommand> create_cpdir_command() {
+std::unique_ptr<ICommand> createCpdirCommand() {
     return std::make_unique<CpDirCommand>();
 }
 

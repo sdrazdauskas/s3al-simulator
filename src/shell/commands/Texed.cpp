@@ -1,11 +1,21 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <ncurses.h>
 #include <algorithm>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <csignal>
 
 namespace shell {
+
+// Flag for handling Ctrl+C in editor
+namespace {
+    volatile sig_atomic_t texedSigint = 0;
+    
+    extern "C" void texedSigintHandler(int) {
+        texedSigint = 1;
+    }
+}
 
 enum class Mode { NORMAL, INSERT, COMMAND };
 
@@ -15,7 +25,7 @@ constexpr ::shell::SysResult SYS_NOTFOUND = static_cast<::shell::SysResult>(2);
 
 struct Editor {
     std::vector<std::string> lines{1, ""};
-    std::string filename;
+    std::string fileName;
     std::string statusMsg;
     std::string cmdline;
     bool isFileChanged = false;
@@ -34,14 +44,14 @@ struct Editor {
     void setStatus(const std::string& s) { statusMsg = s; }
 
     void loadFromSys(::shell::SysApi& sys) {
-        if (filename.empty()) {
+        if (fileName.empty()) {
             lines.assign(1, "");
             setStatus("New file");
             return;
         }
 
         std::string content;
-        auto res = sys.readFile(filename, content);
+        auto res = sys.readFile(fileName, content);
         if (res != SYS_OK) {
             lines.assign(1, "");
             isFileChanged = false;
@@ -62,7 +72,7 @@ struct Editor {
             lines.push_back("");
 
         isFileChanged = false;
-        setStatus(std::string("Opened ") + filename);
+        setStatus(std::string("Opened ") + fileName);
     }
 
     ::shell::SysResult saveToSys(::shell::SysApi& sys, const std::string& outname) {
@@ -84,7 +94,7 @@ struct Editor {
 
         if (res == SYS_OK) {
             isFileChanged = false;
-            filename = outname;
+            fileName = outname;
             setStatus(std::string("Wrote ") + outname);
         } else {
             setStatus(std::string("Write failed: ") + ::shell::toString(res));
@@ -180,7 +190,7 @@ struct Editor {
             requestClose = true;
             return;
         } else if (s == "w") {
-            saveToSys(sys, filename);
+            saveToSys(sys, fileName);
         } else if (s == "set number") {
             showNumbers = true;
             setStatus("number");
@@ -188,7 +198,7 @@ struct Editor {
             showNumbers = false;
             setStatus("nonumber");
         } else if (s == "wq") {
-            saveToSys(sys, filename);
+            saveToSys(sys, fileName);
             requestClose = true;
             return;         
         } else if (s == "help") {
@@ -206,7 +216,7 @@ struct Editor {
                                                            : "-- NORMAL --");
 
         std::ostringstream right;
-        right << (filename.empty() ? "[No Name]" : filename)
+        right << (fileName.empty() ? "[No Name]" : fileName)
               << (isFileChanged ? " +" : "  ") << "  " << (cy + 1) << "," << (cx + 1);
 
         std::string left = modeStr;
@@ -237,7 +247,9 @@ struct Editor {
             if (gut > 0) {
                 if (fileRow < (int)lines.size()) {
                     char buf[32];
-                    std::snprintf(buf, sizeof(buf), "%*d ", gut - 1, fileRow + 1);
+                    int width = std::min(gut - 1, 10);  // Clamp width to reasonable value to avoid overflow
+                    int lineNum = std::min(fileRow + 1, 999999999);  // Clamp line number to avoid overflow
+                    std::snprintf(buf, sizeof(buf), "%*d ", width, lineNum);
                     attron(A_DIM);
                     addnstr(buf, gut);
                     attroff(A_DIM);
@@ -302,8 +314,15 @@ public:
         }
 
         Editor ed;
-        ed.filename = args[0];
+        ed.fileName = args[0];
         ed.loadFromSys(sys);
+
+        // Enter interactive mode (disables console logging)
+        sys.beginInteractiveMode();
+        
+        // Install our own SIGINT handler to catch Ctrl+C
+        auto prevHandler = std::signal(SIGINT, texedSigintHandler);
+        texedSigint = 0;
 
         initscr();              // init ncurses mode
         raw();                  // pass keypresses DIRECTLY to program
@@ -315,6 +334,15 @@ public:
         ed.setStatus("Press :help for help");
 
         while (!ed.requestClose) {
+            // Handle Ctrl+C: return to normal mode
+            if (texedSigint) {
+                texedSigint = 0;
+                ed.mode = Mode::NORMAL;
+                ed.cmdline.clear();
+                ed.setStatus("Interrupted");
+                continue;
+            }
+            
             ed.refreshScreen();
             int ch = getch();
             if (ch == KEY_RESIZE)
@@ -357,6 +385,14 @@ public:
             case Mode::INSERT:
                 if (ch == 27) { // ascii: 27=1B=ESC
                     ed.mode = Mode::NORMAL;
+                } else if (ch == KEY_LEFT) {
+                    ed.moveCursor(0, -1);
+                } else if (ch == KEY_RIGHT) {
+                    ed.moveCursor(0, 1);
+                } else if (ch == KEY_UP) {
+                    ed.moveCursor(-1, 0);
+                } else if (ch == KEY_DOWN) {
+                    ed.moveCursor(1, 0);
                 } else if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
                     ed.backspace();
                 } else if (ch == '\n' || ch == '\r') {
@@ -385,6 +421,12 @@ public:
 
         // ends ncurses mode
         endwin();
+        
+        // Restore previous signal handler
+        std::signal(SIGINT, prevHandler);
+
+        // Exit interactive mode (restores console logging)
+        sys.endInteractiveMode();
 
         return 0;
     }
@@ -392,8 +434,9 @@ public:
     const char* getName() const override { return "texed"; }
     const char* getDescription() const override { return "Terminal text editor (ncurses)"; }
     const char* getUsage() const override { return "texed <fileName>"; }
+    int getCpuCost() const override { return 10; }
 };
 
-std::unique_ptr<ICommand> create_texed_command() { return std::make_unique<TexedCommand>(); }
+std::unique_ptr<ICommand> createTexedCommand() { return std::make_unique<TexedCommand>(); }
 
 } // namespace shell

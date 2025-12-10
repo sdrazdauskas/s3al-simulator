@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -38,10 +38,11 @@ public:
     
     const char* getName() const override { return "cat"; }
     const char* getDescription() const override { return "Display file contents"; }
+    int getCpuCost() const override { return 3; }
     const char* getUsage() const override { return "cat <fileName> [fileName...]"; }
 };
 
-std::unique_ptr<ICommand> create_cat_command() {
+std::unique_ptr<ICommand> createCatCommand() {
     return std::make_unique<CatCommand>();
 }
 

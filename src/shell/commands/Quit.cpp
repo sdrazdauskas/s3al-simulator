@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -21,7 +21,7 @@ public:
     const char* getUsage() const override { return "quit"; }
 };
 
-std::unique_ptr<ICommand> create_quit_command() {
+std::unique_ptr<ICommand> createQuitCommand() {
     return std::make_unique<QuitCommand>();
 }
 

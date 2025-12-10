@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -31,7 +31,7 @@ public:
     const char* getUsage() const override { return "mvdir <oldDir> <newDir>"; }
 };
 
-std::unique_ptr<ICommand> create_mvdir_command() {
+std::unique_ptr<ICommand> createMvdirCommand() {
     return std::make_unique<MvDirCommand>();
 }
 
