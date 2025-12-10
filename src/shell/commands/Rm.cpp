@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -33,7 +33,7 @@ public:
     const char* getUsage() const override { return "rm <fileName> [fileName...]"; }
 };
 
-std::unique_ptr<ICommand> create_rm_command() {
+std::unique_ptr<ICommand> createRmCommand() {
     return std::make_unique<RmCommand>();
 }
 

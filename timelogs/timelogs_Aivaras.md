@@ -2,9 +2,9 @@
 
 | Period      | Hours spent |
 |----------------|-------------|
-| Previous        | 42       |
-| 11-06 to 11-26  | 22       |
-|  Total hours spent   | 64       |
+| Previous        | 64       |
+| 11-27 to 12-10  |    33    |
+|  Total hours spent   |    97    |
 
 
 ---

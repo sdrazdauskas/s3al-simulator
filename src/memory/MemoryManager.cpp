@@ -1,17 +1,17 @@
-#include "MemoryManager.h"
+#include "memory/MemoryManager.h"
 #include <iostream>
 
 namespace memory {
 
 MemoryManager::MemoryManager(size_t total_size)
-    : total_memory(total_size), used_memory(0) {
+    : totalMemory(total_size), usedMemory(0) {
     std::cout << "Memory manager initialized with "
               << total_size / 1024 << "KB\n";
 }
 
 void MemoryManager::log(const std::string& level, const std::string& message) {
-    if (log_callback) {
-        log_callback(level, "MEMORY", message);
+    if (logCallback) {
+        logCallback(level, "MEMORY", message);
     }
 }
 
@@ -22,19 +22,19 @@ MemoryManager::~MemoryManager() {
     }
 }
 
-void *MemoryManager::allocate(size_t size, int process_id)
+void *MemoryManager::allocate(size_t size, int processId)
 {
-    if (used_memory + size > total_memory) {
+    if (usedMemory + size > totalMemory) {
         log("ERROR", "Out of memory: requested " + std::to_string(size) + " bytes");
         std::cerr << "Error: Out of memory\n";
         return nullptr;
     }
 
     void *ptr = new std::byte[size];
-    allocations[ptr] = {size, process_id};
-    used_memory += size;
+    allocations[ptr] = {size, processId};
+    usedMemory += size;
 
-    log("DEBUG", "Allocated " + std::to_string(size) + " bytes for process " + std::to_string(process_id));
+    log("DEBUG", "Allocated " + std::to_string(size) + " bytes for process " + std::to_string(processId));
     return ptr;
 }
 
@@ -47,18 +47,18 @@ void MemoryManager::deallocate(void *ptr)
         return;
     }
 
-    used_memory -= it->second.size;
+    usedMemory -= it->second.size;
     log("DEBUG", "Deallocated " + std::to_string(it->second.size) + " bytes");
     delete[] static_cast<std::byte*>(ptr);
     allocations.erase(it);
 }
 
-void MemoryManager::free_process_memory(int process_id)
+void MemoryManager::freeProcessMemory(int processId)
 {
     size_t freed = 0;
     for (auto it = allocations.begin(); it != allocations.end(); ) {
-        if (it->second.process_id == process_id) {
-            used_memory -= it->second.size;
+        if (it->second.processId == processId) {
+            usedMemory -= it->second.size;
             freed += it->second.size;
             delete[] static_cast<std::byte*>(it->first);
             it = allocations.erase(it); 
@@ -67,7 +67,7 @@ void MemoryManager::free_process_memory(int process_id)
         }
     }
     if (freed > 0) {
-        log("INFO", "Freed " + std::to_string(freed) + " bytes for process " + std::to_string(process_id));
+        log("INFO", "Freed " + std::to_string(freed) + " bytes for process " + std::to_string(processId));
     }
 }
 

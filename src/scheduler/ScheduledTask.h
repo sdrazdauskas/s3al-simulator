@@ -1,7 +1,7 @@
 #pragma once
 
 namespace scheduler {
-struct Process {
+struct ScheduledTask {
     int id; //PiD
     int arrivalTime;  //When did process arrive to queue? 
                       // for now unit of "time" is one cycle of scheduler simulating CPU execution
@@ -12,7 +12,7 @@ struct Process {
     int turnaroundTime = 0; //metric
     //int remainingTime = 0; // for Round Robin. Just use the burstTime?
 
-    Process(int pid, int arrival, int burst, int prio = 0)
+    ScheduledTask(int pid, int arrival, int burst, int prio = 0)
         : id(pid), arrivalTime(arrival), burstTime(burst),
           priority(prio) {}
 };

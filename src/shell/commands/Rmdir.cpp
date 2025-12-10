@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -29,7 +29,7 @@ public:
     const char* getUsage() const override { return "rmdir <dirName>"; }
 };
 
-std::unique_ptr<ICommand> create_rmdir_command() {
+std::unique_ptr<ICommand> createRmdirCommand() {
     return std::make_unique<RmdirCommand>();
 }
 

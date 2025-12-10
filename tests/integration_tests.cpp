@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include "Kernel.h"
-#include "Storage.h"
-#include "MemoryManager.h"
-#include "ProcessManager.h"
-#include "Scheduler.h"
+#include "kernel/Kernel.h"
+#include "storage/Storage.h"
+#include "memory/MemoryManager.h"
+#include "process/ProcessManager.h"
+#include "scheduler/Scheduler.h"
 
 using namespace kernel;
 using namespace storage;
@@ -20,33 +20,47 @@ protected:
 TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
     MemoryManager memory(4096);
     CPUScheduler scheduler;
-    ProcessManager proc_mgr(memory, scheduler);
+    ProcessManager procMgr(memory, scheduler);
     
-    int pid1 = proc_mgr.create_process("proc1", 10, 512, 5);
-    int pid2 = proc_mgr.create_process("proc2", 20, 256, 10);
-    int pid3 = proc_mgr.create_process("proc3", 15, 128, 3);
+    int pid1 = procMgr.submit("proc1", 10, 512, 5);
+    int pid2 = procMgr.submit("proc2", 20, 256, 10);
+    int pid3 = procMgr.submit("proc3", 15, 128, 3);
     
     EXPECT_GT(pid1, 0);
     EXPECT_GT(pid2, 0);
     EXPECT_GT(pid3, 0);
     
-    auto snapshot = proc_mgr.snapshot();
+    auto snapshot = procMgr.snapshot();
     EXPECT_EQ(snapshot.size(), 3);
     
-    proc_mgr.stop_process(pid1);
-    proc_mgr.stop_process(pid2);
-    proc_mgr.stop_process(pid3);
+    // Terminate processes using SIGTERM
+    procMgr.sendSignal(pid1, 15);
+    procMgr.sendSignal(pid2, 15);
+    procMgr.sendSignal(pid3, 15);
     
-    int exec_pid1 = proc_mgr.execute_process("exec1", 10, 512, 5);
-    int exec_pid2 = proc_mgr.execute_process("exec2", 20, 256, 10);
-    
-    EXPECT_GT(exec_pid1, 0);
-    EXPECT_GT(exec_pid2, 0);
-    
-    // After execute_process, snapshot should be empty
-    snapshot = proc_mgr.snapshot();
+    // Verify processes were terminated
+    snapshot = procMgr.snapshot();
     EXPECT_EQ(snapshot.size(), 0);
     
-    // As well as memory (subject to change in future versions of project)
-    EXPECT_EQ(memory.get_used_memory(), 0);
+    // Submit new processes
+    int execPid1 = procMgr.submit("exec1", 10, 512, 5);
+    int execPid2 = procMgr.submit("exec2", 20, 256, 10);
+    
+    EXPECT_GT(execPid1, 0);
+    EXPECT_GT(execPid2, 0);
+    
+    // Processes are queued but not yet completed, verify they exist
+    snapshot = procMgr.snapshot();
+    EXPECT_EQ(snapshot.size(), 2);
+    
+    // Terminate the new processes
+    procMgr.sendSignal(execPid1, 15);
+    procMgr.sendSignal(execPid2, 15);
+    
+    // After termination, snapshot should be empty
+    snapshot = procMgr.snapshot();
+    EXPECT_EQ(snapshot.size(), 0);
+    
+    // Memory should be freed
+    EXPECT_EQ(memory.getUsedMemory(), 0);
 }

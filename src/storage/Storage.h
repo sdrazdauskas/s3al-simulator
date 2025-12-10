@@ -96,7 +96,7 @@ private:
     // DATA MEMBERS
     std::unique_ptr<Folder> root;
     Folder* currentFolder;
-    LogCallback log_callback;
+    LogCallback logCallback;
 };
 
 // Utility function declarations

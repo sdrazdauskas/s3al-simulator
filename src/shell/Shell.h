@@ -6,10 +6,11 @@
 #include <sstream>
 #include <ostream>
 #include <streambuf>
-#include "CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <atomic>
+#include <lua.hpp>
 
-extern std::atomic<bool> g_interrupt_requested;
+extern std::atomic<bool> interruptRequested;
 
 namespace shell {
 
@@ -60,17 +61,20 @@ namespace shell {
 
     class Shell {
     private:
+        lua_State* luaState;
         SysApi& sys;
         const CommandRegistry& registry;
         OutputCallback outputCallback;
-        LogCallback log_callback;
+        LogCallback logCallback;
         KernelCallback kernelCallback;
 
+        void initLuaOnce();
+        std::string runLuaScript(const std::string& luaCode);
         void log(const std::string& level, const std::string& message);
         std::string parseQuotedToken(std::istringstream& iss, std::string token);
         std::vector<std::string> splitByAndOperator(const std::string& commandLine);
         std::vector<std::string> splitByPipeOperator(const std::string& commandLine);
-        std::string executeScriptFile(const std::string& filename);
+        std::string executeScriptFile(const std::string& fileName);
         std::string trim(const std::string &s);
         std::string extractAfterSymbol(const std::string &s, const std::string &symbol);
         std::string extractBeforeSymbol(const std::string &s, const std::string &symbol);
@@ -82,6 +86,7 @@ namespace shell {
     public:
         explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
 
+        OutputCallback getOutputCallback() const { return outputCallback; }
         void setLogCallback(LogCallback callback);
         void setOutputCallback(OutputCallback callback);
         void setKernelCallback(KernelCallback callback) { kernelCallback = std::move(callback); }
@@ -98,6 +103,8 @@ namespace shell {
         bool isCommandAvailable(const std::string& name) const {
             return registry.find(name) != nullptr;
         }
+
+        bool isBuiltinCommand(const std::string& cmd) const;
     };
 
 } // namespace shell

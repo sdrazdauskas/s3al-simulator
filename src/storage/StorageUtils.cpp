@@ -1,4 +1,4 @@
-#include "Storage.h"
+#include "storage/Storage.h"
 #include <algorithm>
 #include <iomanip>
 #include <ctime>
@@ -37,8 +37,8 @@ bool StorageManager::isNameInvalid(const std::string& s) {
 }
 
 void StorageManager::log(const std::string& level, const std::string& message) {
-    if (log_callback) {
-        log_callback(level, "STORAGE", message);
+    if (logCallback) {
+        logCallback(level, "STORAGE", message);
     }
 }
 
@@ -124,7 +124,7 @@ StorageManager::PathInfo StorageManager::parsePath(const std::string& path) cons
         return {current, ""};
     }
 
-    // return folder and filename/dirname
+    // return folder and fileName/dirname
     return {current, parts.back()};
 }
 

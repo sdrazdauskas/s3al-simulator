@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <sstream>
 #include <iomanip>
 #include <memory>
@@ -41,40 +41,42 @@ public:
         auto cmds = registry->getAllCommands();
         std::sort(cmds.begin(), cmds.end());
         
-        size_t max_name_len = 4;
-        size_t max_desc_len = 11;
-        
+        // Start from header widths to avoid magic numbers and ensure columns
+        // are at least as wide as the header labels.
+        size_t maxNameLen = std::string_view("Name").size();
+        size_t maxDescLen = std::string_view("Description").size();
+
         for (const auto& cmdName : cmds) {
-            if (cmdName.size() > max_name_len) max_name_len = cmdName.size();
-            ICommand* cmd = registry->find(cmdName);
-            if (cmd) {
-                std::string desc = cmd->getDescription();
-                if (desc.size() > max_desc_len) max_desc_len = desc.size();
+            maxNameLen = std::max(maxNameLen, cmdName.size());
+            if (ICommand* cmd = registry->find(cmdName)) {
+                const char* commandDesc = cmd->getDescription();
+                std::string_view desc = commandDesc ? std::string_view(commandDesc) : std::string_view();
+                maxDescLen = std::max(maxDescLen, desc.size());
             }
         }
         
-        auto draw_line = [&]() {
-            return "+" + std::string(max_name_len + 2, '-') + "+" +
-                   std::string(max_desc_len + 2, '-') + "+\n";
+        auto drawLine = [&]() {
+            return "+" + std::string(maxNameLen + 2, '-') + "+" +
+                   std::string(maxDescLen + 2, '-') + "+\n";
         };
         
         std::ostringstream oss;
-        oss << draw_line();
-        oss << "| " << std::left << std::setw(max_name_len) << "Name" << " | "
-            << std::left << std::setw(max_desc_len) << "Description" << " |\n";
-        oss << draw_line();
+        oss << drawLine();
+        oss << "| " << std::left << std::setw(maxNameLen) << "Name" << " | "
+            << std::left << std::setw(maxDescLen) << "Description" << " |\n";
+        oss << drawLine();
         
         for (const auto& cmdName : cmds) {
             ICommand* cmd = registry->find(cmdName);
-            oss << "| " << std::left << std::setw(max_name_len) << cmdName << " | ";
+            oss << "| " << std::left << std::setw(maxNameLen) << cmdName << " | ";
             if (cmd) {
-                oss << std::left << std::setw(max_desc_len) << cmd->getDescription();
+                oss << std::left << std::setw(maxDescLen) << cmd->getDescription();
             } else {
-                oss << std::left << std::setw(max_desc_len) << "";
+                oss << std::left << std::setw(maxDescLen) << "";
             }
             oss << " |\n";
         }
-        oss << draw_line();
+        oss << drawLine();
         oss << "\nType 'help <command>' for more information.\n";
         
         out << oss.str();
@@ -87,7 +89,7 @@ public:
 };
 
 
-std::unique_ptr<ICommand> create_help_command(CommandRegistry* reg) {
+std::unique_ptr<ICommand> createHelpCommand(CommandRegistry* reg) {
     auto cmd = std::make_unique<HelpCommand>();
     cmd->setRegistry(reg);
     return cmd;

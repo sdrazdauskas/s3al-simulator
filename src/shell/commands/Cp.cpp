@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -29,9 +29,10 @@ public:
     const char* getName() const override { return "cp"; }
     const char* getDescription() const override { return "Copy a file from source to destination"; }
     const char* getUsage() const override { return "cp <srcFile> <destFile>"; }
+    int getCpuCost() const override { return 5; }
 };
 
-std::unique_ptr<ICommand> create_cp_command() {
+std::unique_ptr<ICommand> createCpCommand() {
     return std::make_unique<CpCommand>();
 }
 

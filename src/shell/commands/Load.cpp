@@ -1,4 +1,4 @@
-#include "../CommandAPI.h"
+#include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
@@ -26,7 +26,7 @@ public:
     const char* getUsage() const override { return "load <name>"; }
 };
 
-std::unique_ptr<ICommand> create_load_command() {
+std::unique_ptr<ICommand> createLoadCommand() {
     return std::make_unique<LoadCommand>();
 }
 
