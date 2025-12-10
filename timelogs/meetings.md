@@ -9,4 +9,10 @@
 - **17 Oct:** 11:00–11:40 — Internal meeting (5/5 members) — 0.7h 
 - **29 Oct:** 19:00–19:40 — Internal meeting (5/5 members) — 0.7h
 - **31 Oct:** 11:00–11:30 — Internal meeting (5/5 members) — 0.5h 
-- **04 Nov:** 19:00–19:40 — Internal meeting (5/5 members) — 0.7h 
+- **04 Nov:** 19:00–19:40 — Internal meeting (5/5 members) — 0.7h
+- **18 Nov:** 19:00–19:45 — Internal meeting (5/5 members) — 0.7h
+- **20 Nov:** 08:30–14:00 — Internal meeting (5/5 members) — 5.5h
+- **20 Nov:** 20:00–20:50 — Internal meeting (4/5 members) — 0.8h
+- **21 Nov:** 11:00–11:35 — Internal meeting (5/5 members) — 0.6h
+- **28 Nov:** 11:00–12:00 — Internal meeting (4/5 members) — 1.0h
+- **09 Dec:** 19:00–19:30 — Internal meeting (4/5 members) — 0.5h
