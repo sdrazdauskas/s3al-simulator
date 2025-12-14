@@ -426,7 +426,11 @@ std::string Shell::executeCommand(const std::string& command,
         if (shellPid > 0 && isConnectedToKernel()) {
             sys.addCPUWork(shellPid, 1);  // Built-ins use 1 cycle
             // Wait for scheduler to consume the cycles
-            sys.waitForProcess(shellPid);
+            if (!sys.waitForProcess(shellPid)) {
+                // Interrupted - don't execute the command
+                interruptRequested.store(false);
+                return "Interrupted";
+            }
         }
 
         interruptRequested.store(false);
