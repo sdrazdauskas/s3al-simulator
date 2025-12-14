@@ -80,13 +80,24 @@ bool Process::terminate() {
 }
 
 bool Process::makeZombie() {
-    if (state != ProcessState::RUNNING && state != ProcessState::WAITING) {
-        log("ERROR", "Cannot become zombie from " + stateToString(state));
-        return false;
+    // Allow zombie transition from RUNNING/WAITING (normal case)
+    // Also allow from READY if process has no remaining cycles (already completed by scheduler)
+    if (state == ProcessState::RUNNING || state == ProcessState::WAITING) {
+        state = ProcessState::ZOMBIE;
+        log("DEBUG", "State: " + stateToString(state));
+        return true;
     }
-    state = ProcessState::ZOMBIE;
-    log("DEBUG", "State: " + stateToString(state));
-    return true;
+    
+    if (state == ProcessState::READY && remainingCycles == 0) {
+        // Process completed in scheduler but never ran - allow zombie transition
+        log("DEBUG", "Process completed without running, transitioning to ZOMBIE");
+        state = ProcessState::ZOMBIE;
+        return true;
+    }
+    
+    log("ERROR", "Cannot become zombie from " + stateToString(state) + 
+        " (remaining=" + std::to_string(remainingCycles) + ")");
+    return false;
 }
 
 bool Process::consumeCycle() {

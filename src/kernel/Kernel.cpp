@@ -199,6 +199,12 @@ bool Kernel::waitForProcess(int pid) {
     // Poll until process completes
     // The kernel event loop is running in another thread and calling scheduler tick
     while (!isProcessComplete(pid)) {
+        // Check if kernel is shutting down
+        if (!kernelRunning.load()) {
+            LOG_DEBUG("KERNEL", "Process " + std::to_string(pid) + " interrupted by kernel shutdown");
+            return false;
+        }
+        
         // Check for interrupt
         if (shell::interruptRequested.load()) {
             LOG_DEBUG("KERNEL", "Process " + std::to_string(pid) + " interrupted by user");
