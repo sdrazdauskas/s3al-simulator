@@ -8,6 +8,8 @@
 #include <filesystem>
 #include "json.hpp"
 
+namespace sys { struct SysApi; }
+
 namespace storage {
 
 class StorageManager {
@@ -32,6 +34,7 @@ public:
         std::string content;
         std::chrono::system_clock::time_point createdAt;
         std::chrono::system_clock::time_point modifiedAt;
+        void* memoryToken = nullptr; // Token from MemoryManager to track content size
     };
 
     struct Folder {
@@ -51,6 +54,9 @@ public:
 public:
     // CONSTRUCTOR
     StorageManager();
+    
+    // Set system API (must be called before using storage)
+    void setSysApi(sys::SysApi* sys) { sysApi = sys; }
 
     // UTILITIES
     static std::string toString(StorageResponse status);
@@ -97,6 +103,7 @@ private:
     std::unique_ptr<Folder> root;
     Folder* currentFolder;
     LogCallback logCallback;
+    sys::SysApi* sysApi = nullptr;
 };
 
 // Utility function declarations
