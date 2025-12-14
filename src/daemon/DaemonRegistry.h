@@ -4,7 +4,7 @@
 #include <functional>
 #include <string>
 
-namespace shell { class SysApi; }
+namespace sys { class SysApi; }
 
 namespace daemons {
 
@@ -22,7 +22,7 @@ public:
     // Returns nullptr if daemon type is unknown
     static std::unique_ptr<Daemon> createDaemon(
         const std::string& name,
-        shell::SysApi& sys,
+        sys::SysApi& sys,
         LogCallback logCallback
     );
     
