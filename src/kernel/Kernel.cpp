@@ -195,6 +195,13 @@ int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int prior
     return pid;
 }
 
+bool Kernel::addCPUWork(int pid, int cpuCycles) {
+    // Add cycles to existing process in scheduler
+    cpuScheduler.enqueue(pid, cpuCycles, 0);
+    LOG_DEBUG("KERNEL", "Added " + std::to_string(cpuCycles) + " CPU cycles to process PID=" + std::to_string(pid));
+    return true;
+}
+
 bool Kernel::waitForProcess(int pid) {
     // Poll until process completes
     // The kernel event loop is running in another thread and calling scheduler tick

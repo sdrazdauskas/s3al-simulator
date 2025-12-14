@@ -313,6 +313,13 @@ struct SysApiKernel : ::sys::SysApi {
         return -1;
     }
     
+    bool addCPUWork(int pid, int cpuCycles) override {
+        if (kernelOwner) {
+            return kernelOwner->addCPUWork(pid, cpuCycles);
+        }
+        return false;
+    }
+    
     bool waitForProcess(int pid) override {
         if (kernelOwner) {
             return kernelOwner->waitForProcess(pid);

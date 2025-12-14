@@ -82,6 +82,9 @@ public:
     // Submit a command for scheduler-based execution
     int submitAsyncCommand(const std::string& name, int cpuCycles, int priority = 0);
     
+    // Add CPU work to an existing process
+    bool addCPUWork(int pid, int cpuCycles);
+    
     // Wait for a command process to complete (blocks)
     bool waitForProcess(int pid);
     

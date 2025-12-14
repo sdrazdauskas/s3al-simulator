@@ -92,6 +92,10 @@ struct SysApi {
     // Returns process ID, or -1 on failure
     virtual int submitCommand(const std::string& name, int cpuCycles, int priority = 0) = 0;
     
+    // Add CPU work to an existing process (for daemons doing periodic work)
+    // Returns true if successful, false if process not found
+    virtual bool addCPUWork(int pid, int cpuCycles) = 0;
+    
     // Wait for a submitted command to complete (blocks until done)
     // Returns true if completed normally, false if interrupted
     virtual bool waitForProcess(int pid) = 0;

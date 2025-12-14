@@ -50,27 +50,15 @@ void Daemon::run() {
     while (running.load()) {
         // Only do work if not suspended
         if (!suspended.load()) {
-            // Check if still running before submitting work
+            // Check if still running before doing work
             if (!running.load()) break;
             
-            // Submit work task to scheduler
-            std::string taskName = daemonName + "_work";
-            int workPid = sysApi.submitCommand(taskName, getWorkCycles(), 1);
-            if (workPid >= 0) {
-                // waitForProcess can block - check running flag after
-                bool completed = sysApi.waitForProcess(workPid);
-                if (!completed || !running.load()) {
-                    // Interrupted or stopped - clean up process
-                    sysApi.exit(workPid, 1);
-                    sysApi.reapProcess(workPid);
-                    break;
-                }
-                
-                // Do the actual work after scheduler has given us CPU time
-                doWork();
-                sysApi.exit(workPid, 0);
-                sysApi.reapProcess(workPid);
-            }
+            // Add CPU work to this daemon's process
+            int workCycles = getWorkCycles();
+            sysApi.addCPUWork(pid, workCycles);
+            
+            // Do the actual work - it will be scheduled through our own process
+            doWork();
             
             // Sleep between work cycles, checking running flag frequently
             int waitMs = getWaitIntervalMs();

@@ -47,6 +47,7 @@ public:
     
     // Async command execution
     MOCK_METHOD(int, submitCommand, (const std::string& name, int cpuCycles, int priority), (override));
+    MOCK_METHOD(bool, addCPUWork, (int pid, int cpuCycles), (override));
     MOCK_METHOD(bool, waitForProcess, (int pid), (override));
     MOCK_METHOD(bool, exit, (int pid, int exitCode), (override));
     MOCK_METHOD(bool, reapProcess, (int pid), (override));
