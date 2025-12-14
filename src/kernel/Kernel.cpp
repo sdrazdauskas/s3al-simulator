@@ -221,10 +221,15 @@ bool Kernel::waitForProcess(int pid) {
         // Check for user interrupt
         if (shell::interruptRequested.load()) {
             LOG_DEBUG("KERNEL", "Cycle wait for PID=" + std::to_string(pid) + " interrupted by user");
-            // Clean up interrupted process
+            // Remove pending CPU work from scheduler
             cpuScheduler.remove(pid);
-            memManager.freeProcessMemory(pid);
-            procManager.sendSignal(pid, 9); // SIGKILL
+            
+            // Only kill non-persistent processes (external commands)
+            // Persistent processes (shell, daemons) should continue running
+            if (!isProcessPersistent(pid)) {
+                memManager.freeProcessMemory(pid);
+                procManager.sendSignal(pid, 9); // SIGKILL
+            }
             return false;
         }
         
@@ -233,6 +238,10 @@ bool Kernel::waitForProcess(int pid) {
     }
     
     return true;
+}
+
+bool Kernel::isProcessPersistent(int pid) const {
+    return procManager.isProcessPersistent(pid);
 }
 
 bool Kernel::exit(int pid, int exitCode) {

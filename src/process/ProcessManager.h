@@ -37,6 +37,9 @@ public:
     // Query process existence
     bool processExists(int pid) const;
     
+    // Check if process is persistent
+    bool isProcessPersistent(int pid) const;
+    
     // Process control - suspend/resume
     bool suspendProcess(int pid);
     bool resumeProcess(int pid);

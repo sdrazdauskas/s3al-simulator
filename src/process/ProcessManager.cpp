@@ -27,8 +27,12 @@ Process* ProcessManager::find(int pid) {
 }
 
 bool ProcessManager::processExists(int pid) const {
-    return std::find_if(processTable.begin(), processTable.end(),
-                        [pid](const Process& p) { return p.getPid() == pid; }) != processTable.end();
+    return const_cast<ProcessManager*>(this)->find(pid) != nullptr;
+}
+
+bool ProcessManager::isProcessPersistent(int pid) const {
+    Process* process = const_cast<ProcessManager*>(this)->find(pid);
+    return process && process->isPersistent();
 }
 
 int ProcessManager::submit(const std::string& processName,
