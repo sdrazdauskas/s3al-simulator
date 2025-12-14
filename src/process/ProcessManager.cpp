@@ -199,6 +199,10 @@ bool ProcessManager::sendSignal(int pid, int signal) {
                         processTable.erase(std::remove_if(processTable.begin(), processTable.end(),
                                                      [pid](const Process& pr){ return pr.getPid() == pid; }),
                                                  processTable.end());
+            // Notify completion callback on termination as well (exit code = signal)
+            if (completeCallback) {
+                completeCallback(pid, signal);
+            }
             return true;
         default:
             log("WARN", "Signal " + std::to_string(signal) + " not implemented");
