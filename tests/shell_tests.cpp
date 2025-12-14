@@ -52,6 +52,8 @@ public:
     MOCK_METHOD(bool, reapProcess, (int pid), (override));
     MOCK_METHOD(bool, isProcessComplete, (int pid), (override));
     MOCK_METHOD(int, getProcessRemainingCycles, (int pid), (override));
+    MOCK_METHOD(void*, allocateMemory, (size_t, int), (override));
+    MOCK_METHOD(void, deallocateMemory, (void*), (override));
 };
 
 class ShellTest : public ::testing::Test {
