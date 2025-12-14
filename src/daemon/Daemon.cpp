@@ -1,5 +1,8 @@
 #include "daemon/Daemon.h"
+#include "kernel/SysCallsAPI.h"
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 namespace daemons {
 
@@ -39,6 +42,48 @@ void Daemon::join() {
     if (thread.joinable()) {
         thread.join();
     }
+}
+
+void Daemon::run() {
+    log("INFO", "Daemon started (PID " + std::to_string(pid) + ")");
+    
+    while (running.load()) {
+        // Only do work if not suspended
+        if (!suspended.load()) {
+            // Check if still running before submitting work
+            if (!running.load()) break;
+            
+            // Submit work task to scheduler
+            std::string taskName = daemonName + "_work";
+            int workPid = sysApi.submitCommand(taskName, getWorkCycles(), 1);
+            if (workPid >= 0) {
+                // waitForProcess can block - check running flag after
+                bool completed = sysApi.waitForProcess(workPid);
+                if (!completed || !running.load()) {
+                    // Interrupted or stopped - clean up process
+                    sysApi.exit(workPid, 1);
+                    sysApi.reapProcess(workPid);
+                    break;
+                }
+                
+                // Do the actual work after scheduler has given us CPU time
+                doWork();
+                sysApi.exit(workPid, 0);
+                sysApi.reapProcess(workPid);
+            }
+            
+            // Sleep between work cycles, checking running flag frequently
+            int waitMs = getWaitIntervalMs();
+            for (int i = 0; i < waitMs / 100 && running.load(); ++i) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+        } else {
+            // If suspended, just sleep briefly to avoid busy waiting
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+    
+    log("INFO", "Daemon stopped (PID " + std::to_string(pid) + ")");
 }
 
 void Daemon::handleSignal(int signal) {
