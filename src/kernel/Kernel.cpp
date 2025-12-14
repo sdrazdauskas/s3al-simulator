@@ -203,28 +203,35 @@ bool Kernel::addCPUWork(int pid, int cpuCycles) {
 }
 
 bool Kernel::waitForProcess(int pid) {
-    // Poll until process completes
-    // The kernel event loop is running in another thread and calling scheduler tick
-    while (!isProcessComplete(pid)) {
+    // Get remaining cycles - if not in scheduler, already complete
+    int remaining = cpuScheduler.getRemainingCycles(pid);
+    if (remaining < 0) {
+        return true;
+    }
+    
+    // Wait until all cycles are consumed
+    std::unique_lock<std::mutex> lock(cycleWaitMutex);
+    while (cpuScheduler.getRemainingCycles(pid) >= 0) {
         // Check if kernel is shutting down
         if (!kernelRunning.load()) {
-            LOG_DEBUG("KERNEL", "Process " + std::to_string(pid) + " interrupted by kernel shutdown");
+            LOG_DEBUG("KERNEL", "Cycle wait for PID=" + std::to_string(pid) + " interrupted by kernel shutdown");
             return false;
         }
         
-        // Check for interrupt
+        // Check for user interrupt
         if (shell::interruptRequested.load()) {
-            LOG_DEBUG("KERNEL", "Process " + std::to_string(pid) + " interrupted by user");
+            LOG_DEBUG("KERNEL", "Cycle wait for PID=" + std::to_string(pid) + " interrupted by user");
+            // Clean up interrupted process
             cpuScheduler.remove(pid);
-            // Clean up interrupted process - free memory and remove from table
             memManager.freeProcessMemory(pid);
-            procManager.sendSignal(pid, 9); // SIGKILL to terminate immediately
+            procManager.sendSignal(pid, 9); // SIGKILL
             return false;
         }
         
-        // Small sleep to avoid busy-waiting
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        // Wait for scheduler tick notification
+        cycleWaitCV.wait(lock);
     }
+    
     return true;
 }
 
@@ -273,6 +280,12 @@ void Kernel::handleTimerTick() {
     // Run scheduler tick - this advances all queued processes
     if (cpuScheduler.hasWork()) {
         auto result = cpuScheduler.tick();
+        
+        // Notify any threads waiting for cycle consumption
+        {
+            std::lock_guard<std::mutex> lock(cycleWaitMutex);
+            cycleWaitCV.notify_all();
+        }
         
         if (result.processCompleted) {
             LOG_DEBUG("KERNEL", "Process " + std::to_string(result.completedPid) + " completed");
