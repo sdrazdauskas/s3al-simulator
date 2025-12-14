@@ -96,7 +96,7 @@ struct SysApi {
     // Returns true if successful, false if process not found
     virtual bool addCPUWork(int pid, int cpuCycles) = 0;
     
-    // Wait for a submitted command to complete (blocks until done)
+    // Wait for a process to complete (blocks until all CPU cycles consumed)
     // Returns true if completed normally, false if interrupted
     virtual bool waitForProcess(int pid) = 0;
     

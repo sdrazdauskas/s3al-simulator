@@ -53,7 +53,7 @@ protected:
     // This is called after the scheduler has allocated CPU time
     virtual void doWork() = 0;
     
-    // Override to customize CPU cycles needed per work cycle (default: 50)
+    // Override to customize CPU cycles needed per work cycle (default: 5)
     virtual int getWorkCycles() const { return 5; }
     
     // Override to customize wait time between work cycles in ms (default: 10000 = 10s)

@@ -11,7 +11,7 @@ public:
 
 protected:
     void doWork() override;
-    int getWorkCycles() const override { return 50; }
+    int getWorkCycles() const override { return 5; }
     int getWaitIntervalMs() const override { return 10000; } // 10 seconds
 
 private:

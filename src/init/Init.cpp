@@ -54,6 +54,14 @@ void Init::start() {
 void Init::initializeShell() {
     log("INFO", "Starting shell service...");
     
+    // Create shell as a persistent process
+    int shellPid = sysApi.fork("sh", 1, 0, 10, true);  // priority=10, persistent=true
+    if (shellPid <= 0) {
+        log("ERROR", "Failed to create shell process");
+        return;
+    }
+    log("INFO", "Shell process created (PID=" + std::to_string(shellPid) + ")");
+    
     shell::CommandRegistry registry;
     shell::initCommands(registry);
     
@@ -83,6 +91,7 @@ void Init::initializeShell() {
     });
 
     sh.setLogCallback(loggerCallback);
+    sh.setShellPid(shellPid);
     
     terminal::Terminal term;
     terminal = &term;

@@ -85,7 +85,7 @@ public:
     // Add CPU work to an existing process
     bool addCPUWork(int pid, int cpuCycles);
     
-    // Wait for a command process to complete (blocks)
+    // Wait for a process to complete (blocks until all CPU cycles consumed)
     bool waitForProcess(int pid);
     
     // Process exit syscall (transitions to ZOMBIE)
@@ -122,6 +122,11 @@ private:
     std::condition_variable queueCondition;
     std::atomic<bool> kernelRunning{true};
     std::thread kernelThread;
+    
+    // For notifying waiters when cycles are consumed
+    std::mutex cycleWaitMutex;
+    std::condition_variable cycleWaitCV;
+    std::map<int, int> lastRemainingCycles;  // Track last known remaining cycles per PID
     
     std::string processLine(const std::string& line);
 
