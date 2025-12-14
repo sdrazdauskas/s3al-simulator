@@ -3,7 +3,7 @@
 
 namespace daemons {
 
-Daemon::Daemon(shell::SysApi& sys, const std::string& name)
+Daemon::Daemon(sys::SysApi& sys, const std::string& name)
     : sysApi(sys), running(false), daemonName(name) {}
 
 void Daemon::log(const std::string& level, const std::string& message) {

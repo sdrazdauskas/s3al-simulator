@@ -8,7 +8,7 @@
 
 namespace kernel {
 
-struct SysApiKernel : ::shell::SysApi {
+struct SysApiKernel : ::sys::SysApi {
     storage::StorageManager& storageManager;
     Kernel* kernelOwner{nullptr};
     explicit SysApiKernel(storage::StorageManager& sm, Kernel* owner = nullptr)
@@ -16,203 +16,203 @@ struct SysApiKernel : ::shell::SysApi {
 
     Kernel* getKernel() { return kernelOwner; }
 
-    ::shell::SysResult readFile(const std::string& name, std::string& out) override {
+    ::sys::SysResult readFile(const std::string& name, std::string& out) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.readFile(name, out);
         switch(res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::NotFound: return ::shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult createFile(const std::string& name) override {
+    ::sys::SysResult createFile(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.touchFile(name);
         switch(res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::AlreadyExists: return ::shell::SysResult::AlreadyExists;
-            case Resp::NotFound: return ::shell::SysResult::NotFound;
-            case Resp::AtRoot: return ::shell::SysResult::AtRoot;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::AlreadyExists: return ::sys::SysResult::AlreadyExists;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            case Resp::AtRoot: return ::sys::SysResult::AtRoot;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult editFile(const std::string& name, const std::string& newContent) override {
+    ::sys::SysResult editFile(const std::string& name, const std::string& newContent) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.editFile(name, newContent);
         switch (res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::NotFound: return ::shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
     
-    ::shell::SysResult deleteFile(const std::string& name) override {
+    ::sys::SysResult deleteFile(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.deleteFile(name);
         switch(res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::NotFound: return ::shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    shell::SysResult appendFile(const std::string& name, const std::string& content) override {
+    sys::SysResult appendFile(const std::string& name, const std::string& content) override {
         std::string existing;
         auto readRes = readFile(name, existing);
-        if (readRes != shell::SysResult::OK)
+        if (readRes != sys::SysResult::OK)
             return readRes;
 
         existing += content;
         return writeFile(name, existing);
     }
 
-    ::shell::SysResult writeFile(const std::string& name, const std::string& content) override {
+    ::sys::SysResult writeFile(const std::string& name, const std::string& content) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.writeFile(name, content);
         switch(res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::NotFound: return ::shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult makeDir(const std::string& name) override {
+    ::sys::SysResult makeDir(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.makeDir(name);
         switch(res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::NotFound: return shell::SysResult::NotFound;
-            case Resp::AlreadyExists: return ::shell::SysResult::AlreadyExists;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::NotFound: return sys::SysResult::NotFound;
+            case Resp::AlreadyExists: return ::sys::SysResult::AlreadyExists;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult removeDir(const std::string& name) override {
+    ::sys::SysResult removeDir(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.removeDir(name);
         switch(res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::NotFound: return ::shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult changeDir(const std::string& name) override {
+    ::sys::SysResult changeDir(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.changeDir(name);
         switch(res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::AtRoot: return shell::SysResult::AtRoot;
-            case Resp::NotFound: return ::shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::AtRoot: return sys::SysResult::AtRoot;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult saveToDisk(const std::string& fileName) override {
+    ::sys::SysResult saveToDisk(const std::string& fileName) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.saveToDisk(fileName);
         switch (res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult loadFromDisk(const std::string& fileName) override {
+    ::sys::SysResult loadFromDisk(const std::string& fileName) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.loadFromDisk(fileName);
         switch (res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::NotFound: return ::shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return ::shell::SysResult::InvalidArgument;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult listDataFiles(std::vector<std::string>& out) override {
+    ::sys::SysResult listDataFiles(std::vector<std::string>& out) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.listDataFiles(out);
         switch (res) {
-            case Resp::OK: return shell::SysResult::OK;
-            case Resp::NotFound: return shell::SysResult::NotFound;
-            default: return shell::SysResult::Error;
+            case Resp::OK: return sys::SysResult::OK;
+            case Resp::NotFound: return sys::SysResult::NotFound;
+            default: return sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult resetStorage() override {
+    ::sys::SysResult resetStorage() override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.reset();
         switch (res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult copyFile(const std::string& src, const std::string& dest) override {
+    ::sys::SysResult copyFile(const std::string& src, const std::string& dest) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.copyFile(src, dest);
         switch (res) {
-            case Resp::OK: return shell::SysResult::OK;
-            case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
-            case Resp::NotFound: return shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
-            default: return shell::SysResult::Error;
+            case Resp::OK: return sys::SysResult::OK;
+            case Resp::AlreadyExists: return sys::SysResult::AlreadyExists;
+            case Resp::NotFound: return sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return sys::SysResult::InvalidArgument;
+            default: return sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult copyDir(const std::string& src, const std::string& dest) override {
+    ::sys::SysResult copyDir(const std::string& src, const std::string& dest) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.copyDir(src, dest);
         switch (res) {
-            case Resp::OK: return shell::SysResult::OK;
-            case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
-            case Resp::NotFound: return shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
-            default: return shell::SysResult::Error;
+            case Resp::OK: return sys::SysResult::OK;
+            case Resp::AlreadyExists: return sys::SysResult::AlreadyExists;
+            case Resp::NotFound: return sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return sys::SysResult::InvalidArgument;
+            default: return sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult moveFile(const std::string& src, const std::string& dest) override {
+    ::sys::SysResult moveFile(const std::string& src, const std::string& dest) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.moveFile(src, dest);
         switch (res) {
-            case Resp::OK: return shell::SysResult::OK;
-            case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
-            case Resp::NotFound: return shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
-            default: return shell::SysResult::Error;
+            case Resp::OK: return sys::SysResult::OK;
+            case Resp::AlreadyExists: return sys::SysResult::AlreadyExists;
+            case Resp::NotFound: return sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return sys::SysResult::InvalidArgument;
+            default: return sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult moveDir(const std::string& src, const std::string& dest) override {
+    ::sys::SysResult moveDir(const std::string& src, const std::string& dest) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.moveDir(src, dest);
         switch (res) {
-            case Resp::OK: return shell::SysResult::OK;
-            case Resp::AlreadyExists: return shell::SysResult::AlreadyExists;
-            case Resp::NotFound: return shell::SysResult::NotFound;
-            case Resp::InvalidArgument: return shell::SysResult::InvalidArgument;
-            default: return shell::SysResult::Error;
+            case Resp::OK: return sys::SysResult::OK;
+            case Resp::AlreadyExists: return sys::SysResult::AlreadyExists;
+            case Resp::NotFound: return sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return sys::SysResult::InvalidArgument;
+            default: return sys::SysResult::Error;
         }
     }
 
-    ::shell::SysResult listDir(const std::string& path, std::vector<std::string>& out) override {
+    ::sys::SysResult listDir(const std::string& path, std::vector<std::string>& out) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.listDir(path, out);
         switch (res) {
-            case Resp::OK: return shell::SysResult::OK;
-            case Resp::NotFound: return shell::SysResult::NotFound;
-            default: return shell::SysResult::Error;
+            case Resp::OK: return sys::SysResult::OK;
+            case Resp::NotFound: return sys::SysResult::NotFound;
+            default: return sys::SysResult::Error;
         }
     }
 
@@ -220,22 +220,35 @@ struct SysApiKernel : ::shell::SysApi {
         return storageManager.getWorkingDir();
     }
 
-    ::shell::SysResult fileExists(const std::string& name) override {
+    ::sys::SysResult fileExists(const std::string& name) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.fileExists(name);
         switch(res) {
-            case Resp::OK: return ::shell::SysResult::OK;
-            case Resp::NotFound: return ::shell::SysResult::NotFound;
-            default: return ::shell::SysResult::Error;
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            default: return ::sys::SysResult::Error;
         }
     }
 
-    ::shell::SysApi::SysInfo getSysInfo() override {
-        ::shell::SysApi::SysInfo info;
+    ::sys::SysApi::SysInfo getSysInfo() override {
+        ::sys::SysApi::SysInfo info;
         if (kernelOwner) {
             info = kernelOwner->getSysInfo();
         }
         return info;
+    }
+    
+    void* allocateMemory(size_t size, int processId) override {
+        if (kernelOwner) {
+            return kernelOwner->allocateMemory(size, processId);
+        }
+        return nullptr;
+    }
+    
+    void deallocateMemory(void* ptr) override {
+        if (kernelOwner) {
+            kernelOwner->deallocateMemory(ptr);
+        }
     }
 
     void requestShutdown() override {
@@ -246,12 +259,12 @@ struct SysApiKernel : ::shell::SysApi {
         if (kernelOwner) kernelOwner->handleInterruptSignal(signal);
     }
     
-    ::shell::SysResult sendSignalToProcess(int pid, int signal) override {
+    ::sys::SysResult sendSignalToProcess(int pid, int signal) override {
         if (kernelOwner) {
             bool success = kernelOwner->sendSignalToProcess(pid, signal);
-            return success ? ::shell::SysResult::OK : ::shell::SysResult::Error;
+            return success ? ::sys::SysResult::OK : ::sys::SysResult::Error;
         }
-        return ::shell::SysResult::Error;
+        return ::sys::SysResult::Error;
     }
     
     int fork(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false) override {
@@ -261,7 +274,7 @@ struct SysApiKernel : ::shell::SysApi {
         return -1;
     }
     
-    std::vector<::shell::SysApi::ProcessInfo> getProcessList() override {
+    std::vector<::sys::SysApi::ProcessInfo> getProcessList() override {
         if (kernelOwner) {
             return kernelOwner->getProcessList();
         }

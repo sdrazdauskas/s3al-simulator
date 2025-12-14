@@ -43,7 +43,7 @@ struct Editor {
 
     void setStatus(const std::string& s) { statusMsg = s; }
 
-    void loadFromSys(::shell::SysApi& sys) {
+    void loadFromSys(::sys::SysApi& sys) {
         if (fileName.empty()) {
             lines.assign(1, "");
             setStatus("New file");
@@ -75,7 +75,7 @@ struct Editor {
         setStatus(std::string("Opened ") + fileName);
     }
 
-    ::shell::SysResult saveToSys(::shell::SysApi& sys, const std::string& outname) {
+    ::sys::SysResult saveToSys(::sys::SysApi& sys, const std::string& outname) {
         std::ostringstream oss;
         for (size_t i = 0; i < lines.size(); ++i) {
             oss << lines[i];
@@ -175,7 +175,7 @@ struct Editor {
         colOff = std::max(0, colOff);
     }
 
-    void runColonCommand(::shell::SysApi& sys) {
+    void runColonCommand(::sys::SysApi& sys) {
         std::string s = cmdline;
         cmdline.clear();
 
@@ -306,7 +306,7 @@ public:
                 const std::string&,
                 std::ostream& out,
                 std::ostream& err,
-                ::shell::SysApi& sys) override
+                ::sys::SysApi& sys) override
     {
         if (args.empty()) {
             err << "Usage: " << getUsage() << "\n";

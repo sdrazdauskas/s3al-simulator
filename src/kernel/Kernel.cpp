@@ -52,13 +52,20 @@ Kernel::Kernel(const config::Config& config)
               << std::endl;
 }
 
-shell::SysApi::SysInfo Kernel::getSysInfo() const {
-    shell::SysApi::SysInfo info;
+sys::SysApi::SysInfo Kernel::getSysInfo() const {
+    sys::SysApi::SysInfo info;
     info.totalMemory = memManager.getTotalMemory();
     info.usedMemory = memManager.getUsedMemory();
     return info;
 }
 
+void* Kernel::allocateMemory(size_t size, int processId) {
+    return memManager.allocate(size, processId);
+}
+
+void Kernel::deallocateMemory(void* ptr) {
+    memManager.deallocate(ptr);
+}
 
 std::string Kernel::executeCommand(const std::string& line) {
     if (!line.empty() && line.back() == '\n') {
@@ -164,12 +171,12 @@ int Kernel::forkProcess(const std::string& name, int cpuTimeNeeded, int memoryNe
     return procManager.submit(name, cpuTimeNeeded, memoryNeeded, priority, persistent);
 }
 
-std::vector<shell::SysApi::ProcessInfo> Kernel::getProcessList() const {
+std::vector<sys::SysApi::ProcessInfo> Kernel::getProcessList() const {
     auto processes = procManager.snapshot();
-    std::vector<shell::SysApi::ProcessInfo> result;
+    std::vector<sys::SysApi::ProcessInfo> result;
     
     for (const auto& proc : processes) {
-        shell::SysApi::ProcessInfo info;
+        sys::SysApi::ProcessInfo info;
         info.pid = proc.getPid();
         info.name = proc.getName();
         info.state = process::stateToString(proc.getState());
@@ -349,6 +356,9 @@ void Kernel::boot(){
     
     // Create syscall interface for user-space processes
     SysApiKernel sys(storageManager, this);
+    
+    // Wire storage to use syscalls for memory management
+    storageManager.setSysApi(&sys);
     
     // Create and start init process (PID 1)
     init::Init init(sys);

@@ -19,7 +19,7 @@ void Init::DaemonDeleter::operator()(daemons::Daemon* p) const {
     delete p;
 }
 
-Init::Init(shell::SysApi& sys)
+Init::Init(sys::SysApi& sys)
     : sysApi(sys) {}
 
 void Init::log(const std::string& level, const std::string& message) {

@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
  
-namespace shell {
+namespace sys {
 
 // TODO: error code system implementation?
 enum class SysResult {
@@ -55,6 +55,10 @@ struct SysApi {
     virtual SysResult listDataFiles(std::vector<std::string>& out) = 0;
 
     virtual SysInfo getSysInfo() = 0;
+    
+    // Memory allocation syscalls for storage
+    virtual void* allocateMemory(size_t size, int processId = 0) = 0;
+    virtual void deallocateMemory(void* ptr) = 0;
 
     virtual void requestShutdown() = 0;
     
@@ -107,4 +111,4 @@ struct SysApi {
     virtual ~SysApi() = default;
 };
 
-} // namespace shell
+} // namespace sys

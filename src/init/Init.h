@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <mutex>
 
-namespace shell { class SysApi; }
+namespace sys { class SysApi; }
 namespace terminal { class Terminal; }
 
 // Forward declare daemons namespace for the .cpp file includes
@@ -29,7 +29,7 @@ public:
                                            const std::string& message)>;
     using ShutdownCallback = std::function<void()>;
 
-    Init(shell::SysApi& sys);
+    Init(sys::SysApi& sys);
     
     void setLogCallback(LogCallback callback) { logCallback = callback; }
     void setShutdownCallback(ShutdownCallback callback) { shutdownCb = callback; }
@@ -63,7 +63,7 @@ private:
         daemons::Daemon* daemon_ptr() const { return daemon.get(); }
     };
     
-    shell::SysApi& sysApi;
+    sys::SysApi& sysApi;
     LogCallback logCallback;
     ShutdownCallback shutdownCb;
     terminal::Terminal* terminal = nullptr;

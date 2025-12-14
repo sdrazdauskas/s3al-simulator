@@ -7,7 +7,7 @@
 
 namespace daemons {
 
-MonitoringDaemon::MonitoringDaemon(shell::SysApi& sys)
+MonitoringDaemon::MonitoringDaemon(sys::SysApi& sys)
     : Daemon(sys, "SYSMON") {}
 
 void MonitoringDaemon::run() {

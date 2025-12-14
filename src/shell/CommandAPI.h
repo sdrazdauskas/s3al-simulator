@@ -10,6 +10,11 @@
 
 namespace shell {
 
+// Import SysApi from sys namespace for shell commands
+using sys::SysApi;
+using sys::SysResult;
+using sys::toString;
+
 // Global interrupt flag for Ctrl+C handling
 // Commands should check this periodically and exit gracefully if set
 extern std::atomic<bool> interruptRequested;

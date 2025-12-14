@@ -5,7 +5,7 @@
 #include <atomic>
 #include <thread>
 
-namespace shell { class SysApi; }
+namespace sys { class SysApi; }
 
 namespace daemons {
 
@@ -18,7 +18,7 @@ public:
                                            const std::string& message)>;
     using SignalCallback = std::function<void(int signal)>;
 
-    Daemon(shell::SysApi& sys, const std::string& name);
+    Daemon(sys::SysApi& sys, const std::string& name);
     virtual ~Daemon() = default;
     
     void setLogCallback(LogCallback callback) { logCallback = callback; }
@@ -42,7 +42,7 @@ public:
     void handleSignal(int signal);
 
 protected:
-    shell::SysApi& sysApi;
+    sys::SysApi& sysApi;
     std::atomic<bool> running;
     std::atomic<bool> suspended{false};
     int pid{-1};
