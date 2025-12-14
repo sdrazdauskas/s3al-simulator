@@ -88,6 +88,9 @@ public:
     // Wait for a process to complete (blocks until all CPU cycles consumed)
     bool waitForProcess(int pid);
     
+    // Check if process is persistent
+    bool isProcessPersistent(int pid) const;
+    
     // Process exit syscall (transitions to ZOMBIE)
     bool exit(int pid, int exitCode = 0);
     
