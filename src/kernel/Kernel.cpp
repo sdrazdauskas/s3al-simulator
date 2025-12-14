@@ -187,6 +187,10 @@ std::vector<sys::SysApi::ProcessInfo> Kernel::getProcessList() const {
     return result;
 }
 
+bool Kernel::processExists(int pid) const {
+    return procManager.processExists(pid);
+}
+
 int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int priority) {
     // Submit directly to scheduler (no memory allocation needed for command execution)
     int pid = procManager.submit(name, cpuCycles, priority);
@@ -399,9 +403,14 @@ void Kernel::boot(){
     init::Init init(sys);
     init.setLogCallback(loggerCallback);
     
-    // Forward ProcessManager signals to this Init instance
+    // Forward all process signals to init (daemons + shell handling)
     procManager.setSignalCallback([&init](int pid, int signal) {
-        init.handleDaemonSignal(pid, signal);
+        init.handleProcessSignal(pid, signal);
+    });
+
+    // Notify init on process completion/termination
+    procManager.setProcessCompleteCallback([&init](int pid, int exitCode) {
+        init.handleProcessSignal(pid, exitCode);
     });
 
     // Store reference to init so kernel can signal it on shutdown
@@ -412,10 +421,6 @@ void Kernel::boot(){
     
     init.start();
     
-    // Init has exited - remove from process table
-    if (procManager.processExists(1)) {
-        procManager.sendSignal(1, 15);  // SIGTERM
-    }
     
     // After init exits, stop kernel event loop
     kernelRunning.store(false);

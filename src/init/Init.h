@@ -39,6 +39,9 @@ public:
     
     // Called by kernel when a signal is sent to a daemon process
     void handleDaemonSignal(int pid, int signal);
+
+    // Called by kernel when any process (shell/daemon) signals or terminates
+    void handleProcessSignal(int pid, int signal);
     
     // Start init process - this becomes PID 1
     void start();
@@ -68,6 +71,7 @@ private:
     ShutdownCallback shutdownCb;
     terminal::Terminal* terminal = nullptr;
     std::vector<DaemonProcess> daemons;
+    int shellPid = -1;  // PID of the shell process
     
     void log(const std::string& level, const std::string& message);
     void startDaemons();

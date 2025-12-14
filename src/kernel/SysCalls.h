@@ -281,6 +281,13 @@ struct SysApiKernel : ::sys::SysApi {
         return {};
     }
     
+    bool processExists(int pid) override {
+        if (kernelOwner) {
+            return kernelOwner->processExists(pid);
+        }
+        return false;
+    }
+    
     std::string readLine() override {
         // Disable console logging during interactive input
         bool wasConsoleLogging = logging::Logger::getInstance().getConsoleOutput();
