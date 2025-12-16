@@ -60,7 +60,7 @@ public:
     std::vector<Process> snapshot() const;
 
 private:
-    int next_pid_{1};
+    int nextPid{2};  // Start from 2, reserve PID 1 for init
     std::vector<Process> processTable;
     
     memory::MemoryManager& memManager;

@@ -375,9 +375,6 @@ void Kernel::boot(){
         logging::Logger::getInstance().log(level, module, message);
     };
     
-    // Set up signal callback so ProcessManager can notify daemon threads
-    // Forward signals to the Init instance below (we set this after creating Init)
-    
     // Start kernel event loop in a separate thread
     kernelRunning.store(true);
     kernelThread = std::thread([this]() {

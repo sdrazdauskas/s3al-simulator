@@ -47,7 +47,7 @@ int ProcessManager::submit(const std::string& processName,
         return -1;
     }
 
-    const int pid = next_pid_++;
+    const int pid = nextPid++;
     
     // Create process metadata
     Process process(processName, pid, cpuCycles, memoryNeeded, priority, 0);
@@ -123,6 +123,8 @@ bool ProcessManager::reapProcess(int pid) {
     
     log("INFO", "Reaping zombie process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
     
+    memManager.freeProcessMemory(pid);
+    
     // Remove from process table
     processTable.erase(std::remove_if(processTable.begin(), processTable.end(),
                                       [pid](const Process& pr){ return pr.getPid() == pid; }),
@@ -194,8 +196,10 @@ bool ProcessManager::sendSignal(int pid, int signal) {
         case 15: // SIGTERM
             log("INFO", "Terminating process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
             cpuScheduler.remove(pid);
-            memManager.freeProcessMemory(pid);
-            process->makeZombie();
+            if (!process->makeZombie()) {
+                log("ERROR", "Failed to make process zombie: PID=" + std::to_string(pid));
+                return false;
+            }
             // Notify completion callback on termination as well (exit code = signal)
             if (completeCallback) {
                 completeCallback(pid, signal);
