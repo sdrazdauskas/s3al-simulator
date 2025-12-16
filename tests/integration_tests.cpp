@@ -34,18 +34,18 @@ TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
     EXPECT_EQ(snapshot.size(), 3);
     
     // Terminate processes using SIGTERM
-    procMgr.sendSignal(pid1, 15);
-    procMgr.sendSignal(pid2, 15);
-    procMgr.sendSignal(pid3, 15);
+    EXPECT_TRUE(procMgr.sendSignal(pid1, 15));
+    EXPECT_TRUE(procMgr.sendSignal(pid2, 15));
+    EXPECT_TRUE(procMgr.sendSignal(pid3, 15));
     
     // Verify processes are now zombies (still in snapshot)
     snapshot = procMgr.snapshot();
     EXPECT_EQ(snapshot.size(), 3);
     
     // Reap the zombie processes
-    procMgr.reapProcess(pid1);
-    procMgr.reapProcess(pid2);
-    procMgr.reapProcess(pid3);
+    EXPECT_TRUE(procMgr.reapProcess(pid1));
+    EXPECT_TRUE(procMgr.reapProcess(pid2));
+    EXPECT_TRUE(procMgr.reapProcess(pid3));
     
     // After reaping, snapshot should be empty
     snapshot = procMgr.snapshot();
@@ -71,8 +71,8 @@ TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
     EXPECT_EQ(snapshot.size(), 2);
     
     // Reap the zombies
-    procMgr.reapProcess(execPid1);
-    procMgr.reapProcess(execPid2);
+    EXPECT_TRUE(procMgr.reapProcess(execPid1));
+    EXPECT_TRUE(procMgr.reapProcess(execPid2));
     
     // After reaping, snapshot should be empty
     snapshot = procMgr.snapshot();
