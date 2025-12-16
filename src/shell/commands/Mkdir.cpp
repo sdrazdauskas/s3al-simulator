@@ -11,10 +11,8 @@ public:
                 std::ostream& err,
                 SysApi& sys) override
     {
-        if (args.empty()) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 1, err, 1)) return 1;
+        
         auto res = sys.makeDir(args[0]);
         if (res != SysResult::OK) {
             err << "mkdir: " << args[0] << ": " << shell::toString(res) << "\n";

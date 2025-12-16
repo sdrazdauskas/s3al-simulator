@@ -11,10 +11,8 @@ public:
                 std::ostream& err,
                 SysApi& sys) override
     {
-        if (args.size() < 1) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 1, err)) return 1;
+        
         auto fileName = args[0];
         auto res = sys.loadFromDisk(fileName);
         out << "Load result: " << toString(res) << "\n";

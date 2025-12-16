@@ -11,10 +11,8 @@ public:
                 std::ostream& err,
                 SysApi& sys) override
     {
-        if (args.size() < 2) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 2, err)) return 1;
+        
         std::string content;
         for (size_t i = 1; i < args.size(); ++i) content += args[i] + (i + 1 < args.size() ? " " : "");
 

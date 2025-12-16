@@ -308,10 +308,7 @@ public:
                 std::ostream& err,
                 ::sys::SysApi& sys) override
     {
-        if (args.empty()) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 1, err)) return 1;
 
         Editor ed;
         ed.fileName = args[0];
