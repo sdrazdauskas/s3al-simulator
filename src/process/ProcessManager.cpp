@@ -94,9 +94,6 @@ void ProcessManager::onProcessComplete(int pid) {
         process->start();
     }
     
-    // Free memory after CPU scheduling completes
-    memManager.freeProcessMemory(pid);
-    
     // Keep process in RUNNING state - shell will transition to ZOMBIE after executing command
     
     if (completeCallback) {
@@ -135,6 +132,7 @@ bool ProcessManager::exit(int pid, int exitCode) {
     }
     
     log("DEBUG", "Process '" + process->getName() + "' exited with code " + std::to_string(exitCode) + " (PID=" + std::to_string(pid) + ")");
+    memManager.freeProcessMemory(pid);
     return process->makeZombie();
 }
 
