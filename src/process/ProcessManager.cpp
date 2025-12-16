@@ -195,10 +195,7 @@ bool ProcessManager::sendSignal(int pid, int signal) {
             log("INFO", "Terminating process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
             cpuScheduler.remove(pid);
             memManager.freeProcessMemory(pid);
-            process->terminate();
-                        processTable.erase(std::remove_if(processTable.begin(), processTable.end(),
-                                                     [pid](const Process& pr){ return pr.getPid() == pid; }),
-                                                 processTable.end());
+            process->makeZombie();
             // Notify completion callback on termination as well (exit code = signal)
             if (completeCallback) {
                 completeCallback(pid, signal);
