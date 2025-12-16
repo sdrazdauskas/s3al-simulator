@@ -68,17 +68,6 @@ bool Process::wait() {
     return true;
 }
 
-bool Process::terminate() {
-    // Can terminate from any state except already terminated
-    if (state == ProcessState::TERMINATED) {
-        log("WARN", "Process already terminated");
-        return false;
-    }
-    state = ProcessState::TERMINATED;
-    log("INFO", "Terminated");
-    return true;
-}
-
 bool Process::makeZombie() {
     // Allow zombie transition from RUNNING/WAITING (normal case)
     // Also allow from READY if process has no remaining cycles (already completed by scheduler)
