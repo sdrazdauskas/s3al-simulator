@@ -27,8 +27,12 @@ Process* ProcessManager::find(int pid) {
 }
 
 bool ProcessManager::processExists(int pid) const {
-    return std::find_if(processTable.begin(), processTable.end(),
-                        [pid](const Process& p) { return p.getPid() == pid; }) != processTable.end();
+    return const_cast<ProcessManager*>(this)->find(pid) != nullptr;
+}
+
+bool ProcessManager::isProcessPersistent(int pid) const {
+    Process* process = const_cast<ProcessManager*>(this)->find(pid);
+    return process && process->isPersistent();
 }
 
 int ProcessManager::submit(const std::string& processName,
@@ -43,7 +47,7 @@ int ProcessManager::submit(const std::string& processName,
         return -1;
     }
 
-    const int pid = next_pid_++;
+    const int pid = nextPid++;
     
     // Create process metadata
     Process process(processName, pid, cpuCycles, memoryNeeded, priority, 0);
@@ -116,6 +120,8 @@ bool ProcessManager::reapProcess(int pid) {
     
     log("INFO", "Reaping zombie process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
     
+    memManager.freeProcessMemory(pid);
+    
     // Remove from process table
     processTable.erase(std::remove_if(processTable.begin(), processTable.end(),
                                       [pid](const Process& pr){ return pr.getPid() == pid; }),
@@ -167,6 +173,12 @@ bool ProcessManager::sendSignal(int pid, int signal) {
     
     log("INFO", "Sending signal " + std::to_string(signal) + " to process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
     
+    // Protect init process from termination signals - kernel blocks SIGKILL/SIGTERM to init
+    if (process->getName() == "init" && (signal == 9 || signal == 15)) {
+        log("WARN", "Cannot send signal " + std::to_string(signal) + " to init process - kernel protection");
+        return false;
+    }
+    
     // Notify listeners
     if (signalCallback) {
         signalCallback(pid, signal);
@@ -182,11 +194,14 @@ bool ProcessManager::sendSignal(int pid, int signal) {
         case 15: // SIGTERM
             log("INFO", "Terminating process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
             cpuScheduler.remove(pid);
-            memManager.freeProcessMemory(pid);
-            process->terminate();
-                        processTable.erase(std::remove_if(processTable.begin(), processTable.end(),
-                                                     [pid](const Process& pr){ return pr.getPid() == pid; }),
-                                                 processTable.end());
+            if (!process->makeZombie()) {
+                log("ERROR", "Failed to make process zombie: PID=" + std::to_string(pid));
+                return false;
+            }
+            // Notify completion callback on termination as well (exit code = signal)
+            if (completeCallback) {
+                completeCallback(pid, signal);
+            }
             return true;
         default:
             log("WARN", "Signal " + std::to_string(signal) + " not implemented");

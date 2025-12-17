@@ -41,17 +41,21 @@ public:
     MOCK_METHOD(SysResult, sendSignalToProcess, (int pid, int signal), (override));
     MOCK_METHOD(int, fork, (const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority, bool persistent), (override));
     MOCK_METHOD(std::vector<ProcessInfo>, getProcessList, (), (override));
+    MOCK_METHOD(bool, processExists, (int pid), (override));
     MOCK_METHOD(std::string, readLine, (), (override));
     MOCK_METHOD(void, beginInteractiveMode, (), (override));
     MOCK_METHOD(void, endInteractiveMode, (), (override));
     
     // Async command execution
     MOCK_METHOD(int, submitCommand, (const std::string& name, int cpuCycles, int priority), (override));
+    MOCK_METHOD(bool, addCPUWork, (int pid, int cpuCycles), (override));
     MOCK_METHOD(bool, waitForProcess, (int pid), (override));
     MOCK_METHOD(bool, exit, (int pid, int exitCode), (override));
     MOCK_METHOD(bool, reapProcess, (int pid), (override));
     MOCK_METHOD(bool, isProcessComplete, (int pid), (override));
     MOCK_METHOD(int, getProcessRemainingCycles, (int pid), (override));
+    MOCK_METHOD(void*, allocateMemory, (size_t, int), (override));
+    MOCK_METHOD(void, deallocateMemory, (void*), (override));
 };
 
 class ShellTest : public ::testing::Test {
@@ -73,6 +77,7 @@ protected:
         ON_CALL(mock_sys, reapProcess(_)).WillByDefault(Return(true));        // Reaps successfully
         ON_CALL(mock_sys, isProcessComplete(_)).WillByDefault(Return(true));
         ON_CALL(mock_sys, getProcessRemainingCycles(_)).WillByDefault(Return(-1));
+        ON_CALL(mock_sys, processExists(_)).WillByDefault(Return(true));
     }
 };
 

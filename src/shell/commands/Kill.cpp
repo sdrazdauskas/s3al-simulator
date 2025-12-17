@@ -22,10 +22,7 @@ public:
                 std::ostream& err,
                 SysApi& sys) override
     {
-        if (args.size() < 1) {
-            out << getUsage() << std::endl;
-            return 1;
-        }
+        if (!requireArgs(args, 1, err, 2)) return 1;
         
         int signal = 15; // SIGTERM by default
         const std::string* pidArg = &args[0];
@@ -58,12 +55,19 @@ public:
         // Parse PID
         int pid;
         try {
-            pid = std::stoi(*pidArg);
+            size_t idx = 0;
+            pid = std::stoi(*pidArg, &idx);
+            if (idx != pidArg->size()) {
+                err << "Error: Invalid PID (contains non-numeric characters): " << *pidArg << std::endl;
+                return 1;
+            }
+        } catch (const std::out_of_range&) {
+            err << "Error: PID value out of range: " << *pidArg << std::endl;
+            return 1;
         } catch (...) {
             err << "Error: Invalid PID: " << *pidArg << std::endl;
             return 1;
         }
-        
         if (pid <= 0) {
             err << "Error: Invalid PID: " << pid << std::endl;
             return 1;

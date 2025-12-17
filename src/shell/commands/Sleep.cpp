@@ -25,15 +25,23 @@ public:
         (void)input;
         (void)sys;
         
-        if (args.empty()) {
-            out << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 1, err, 1)) return 1;
         
         try {
-            int seconds = std::stoi(args[0]);
-            if (seconds < 0 || seconds > 60) {
-                err << "Error: seconds must be between 0 and 60\n";
+            size_t idx = 0;
+            int seconds = 0;
+            try {
+                seconds = std::stoi(args[0], &idx);
+            } catch (const std::out_of_range&) {
+                err << "Error: value out of range for seconds\n";
+                return 1;
+            }
+            if (idx != args[0].size()) {
+                err << "Error: invalid characters in seconds argument\n";
+                return 1;
+            }
+            if (seconds < 0) {
+                err << "Error: seconds must be non-negative\n";
                 return 1;
             }
             

@@ -68,22 +68,14 @@ bool Process::wait() {
     return true;
 }
 
-bool Process::terminate() {
-    // Can terminate from any state except already terminated
-    if (state == ProcessState::TERMINATED) {
-        log("WARN", "Process already terminated");
-        return false;
-    }
-    state = ProcessState::TERMINATED;
-    log("INFO", "Terminated");
-    return true;
-}
-
 bool Process::makeZombie() {
-    if (state != ProcessState::RUNNING && state != ProcessState::WAITING) {
-        log("ERROR", "Cannot become zombie from " + stateToString(state));
+    // Can't become zombie if already a zombie
+    if (state == ProcessState::ZOMBIE) {
+        log("WARN", "Process already a zombie");
         return false;
     }
+    
+    // Allow zombie transition from any state (killed by signal or normal exit)
     state = ProcessState::ZOMBIE;
     log("DEBUG", "State: " + stateToString(state));
     return true;

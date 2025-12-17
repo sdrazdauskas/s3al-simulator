@@ -422,6 +422,17 @@ std::string Shell::executeCommand(const std::string& command,
         ICommand* cmd = registry.find(command);
         if (!cmd) return "Error: Builtin missing: " + command;
 
+        // Add minimal CPU work to shell's own process and wait for scheduler
+        if (shellPid > 0 && isConnectedToKernel()) {
+            sys.addCPUWork(shellPid, 1);  // Built-ins use 1 cycle
+            // Wait for scheduler to consume the cycles
+            if (!sys.waitForProcess(shellPid)) {
+                // Interrupted - don't execute the command
+                interruptRequested.store(false);
+                return "Interrupted";
+            }
+        }
+
         interruptRequested.store(false);
         std::ostringstream out, err;
         

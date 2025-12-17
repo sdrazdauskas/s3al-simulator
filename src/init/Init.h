@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <mutex>
 
-namespace shell { class SysApi; }
+namespace sys { class SysApi; }
 namespace terminal { class Terminal; }
 
 // Forward declare daemons namespace for the .cpp file includes
@@ -29,7 +29,7 @@ public:
                                            const std::string& message)>;
     using ShutdownCallback = std::function<void()>;
 
-    Init(shell::SysApi& sys);
+    Init(sys::SysApi& sys);
     
     void setLogCallback(LogCallback callback) { logCallback = callback; }
     void setShutdownCallback(ShutdownCallback callback) { shutdownCb = callback; }
@@ -39,6 +39,9 @@ public:
     
     // Called by kernel when a signal is sent to a daemon process
     void handleDaemonSignal(int pid, int signal);
+
+    // Called by kernel when any process (shell/daemon) signals or terminates
+    void handleProcessSignal(int pid, int signal);
     
     // Start init process - this becomes PID 1
     void start();
@@ -63,11 +66,12 @@ private:
         daemons::Daemon* daemon_ptr() const { return daemon.get(); }
     };
     
-    shell::SysApi& sysApi;
+    sys::SysApi& sysApi;
     LogCallback logCallback;
     ShutdownCallback shutdownCb;
     terminal::Terminal* terminal = nullptr;
     std::vector<DaemonProcess> daemons;
+    int shellPid = -1;  // PID of the shell process
     
     void log(const std::string& level, const std::string& message);
     void startDaemons();

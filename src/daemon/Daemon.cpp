@@ -1,9 +1,12 @@
 #include "daemon/Daemon.h"
+#include "kernel/SysCallsAPI.h"
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 namespace daemons {
 
-Daemon::Daemon(shell::SysApi& sys, const std::string& name)
+Daemon::Daemon(sys::SysApi& sys, const std::string& name)
     : sysApi(sys), running(false), daemonName(name) {}
 
 void Daemon::log(const std::string& level, const std::string& message) {
@@ -39,6 +42,32 @@ void Daemon::join() {
     if (thread.joinable()) {
         thread.join();
     }
+}
+
+void Daemon::run() {
+    log("INFO", "Daemon started (PID " + std::to_string(pid) + ")");
+    
+    while (running.load()) {
+        if (!suspended.load()) {
+            if (!running.load()) break;
+            
+            int workCycles = getWorkCycles();
+            sysApi.addCPUWork(pid, workCycles);
+            
+            doWork();
+            
+            // Check running flag frequently to make sure we can exit promptly
+            int waitMs = getWaitIntervalMs();
+            for (int i = 0; i < waitMs / 100 && running.load(); ++i) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+        } else {
+            // If suspended, just sleep briefly to avoid busy waiting
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+    
+    log("INFO", "Daemon stopped (PID " + std::to_string(pid) + ")");
 }
 
 void Daemon::handleSignal(int signal) {

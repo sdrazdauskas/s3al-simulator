@@ -8,13 +8,13 @@ namespace daemons {
 
 // Registry of all available daemons
 // To add a new daemon: just add an entry here
-static const std::unordered_map<std::string, std::function<std::unique_ptr<Daemon>(shell::SysApi&)>> daemon_factories = {
-    {"sysmon", [](shell::SysApi& sys) { return std::make_unique<MonitoringDaemon>(sys); }}
+static const std::unordered_map<std::string, std::function<std::unique_ptr<Daemon>(sys::SysApi&)>> daemon_factories = {
+    {"sysmon", [](sys::SysApi& sys) { return std::make_unique<MonitoringDaemon>(sys); }}
 };
 
 std::unique_ptr<Daemon> DaemonRegistry::createDaemon(
     const std::string& name,
-    shell::SysApi& sys,
+    sys::SysApi& sys,
     LogCallback logCallback
 ) {
     auto it = daemon_factories.find(name);
