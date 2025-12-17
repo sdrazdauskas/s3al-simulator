@@ -11,10 +11,8 @@ public:
                 std::ostream& err,
                 SysApi& sys) override
     {
-        if (args.empty()) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 1, err, 1)) return 1;
+        
         auto res = sys.changeDir(args[0]);
         if (res != SysResult::OK) {
             err << "cd: " << args[0] << ": " << shell::toString(res) << "\n";
