@@ -171,6 +171,7 @@ texed filename
 | :q      | Normal        | Quit editor         |
 | :wq     | Normal        | Save and quit       |
 | :q!     | Normal        | Quit without saving |
+| :help   | Normal        | See help message    |
 ### Navigation inside Normal mode
 
 | Key | Required mode | Action           |
