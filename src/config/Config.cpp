@@ -12,6 +12,24 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
         if (arg == "--verbose" || arg == "-v") {
             config.verbose = true;
         } 
+        else if ((arg == "--log-level" || arg == "-l") && i + 1 < argc) {
+            std::string level = argv[++i];
+            std::transform(level.begin(), level.end(), level.begin(), ::tolower);
+            
+            if (level == "debug") {
+                config.logLevel = logging::LogLevel::DEBUG;
+            } else if (level == "info") {
+                config.logLevel = logging::LogLevel::INFO;
+            } else if (level == "warning" || level == "warn") {
+                config.logLevel = logging::LogLevel::WARNING;
+            } else if (level == "error") {
+                config.logLevel = logging::LogLevel::ERROR;
+            } else {
+                std::cerr << "Unknown log level: " << level << std::endl;
+                std::cerr << "Valid options: debug, info, warning (warn), error" << std::endl;
+                return false;
+            }
+        }
         else if ((arg == "--memory" || arg == "-m") && i + 1 < argc) {
             // Parse memory size (supports K/KB, M/MB, G/GB suffixes)
             std::string memStr = argv[++i];
@@ -134,6 +152,8 @@ void Config::showHelp(const char* programName) {
     std::cout << "\n";
     std::cout << "Options:\n";
     std::cout << "  -v, --verbose          Enable verbose logging to console\n";
+    std::cout << "  -l, --log-level LEVEL  Set minimum log level: debug, info, warning, error\n";
+    std::cout << "                         Default: debug\n";
     std::cout << "  -m, --memory SIZE      Set memory size (e.g., 512K, 512KB, 2M, 2MB, 1G, 1GB)\n";
     std::cout << "                         Default: 1M (1048576 bytes)\n";
     std::cout << "  -h, --help             Show this help message\n";
@@ -152,6 +172,7 @@ void Config::showHelp(const char* programName) {
     std::cout << "  " << programName << " --verbose\n";
     std::cout << "  " << programName << " --memory 2M\n";
     std::cout << "  " << programName << " -m 512KB -v\n";
+    std::cout << "  " << programName << " --log-level info\n";
     std::cout << "  " << programName << " --scheduler rr --quantum 3\n";
     std::cout << "  " << programName << " -s priority -c 2 -t 50\n";
 }
