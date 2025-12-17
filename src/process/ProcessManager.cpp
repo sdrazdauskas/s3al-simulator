@@ -55,7 +55,7 @@ int ProcessManager::submit(const std::string& processName,
     process.setPersistent(persistent);
     
     // Set up process logging
-    process.setLogCallback([this](const std::string& level, const std::string& message){
+    process.setLogCallback([this](const std::string& level, const std::string& message) {
         if (logCallback) {
             logCallback(level, "PROCESS", message);
         }
@@ -120,9 +120,6 @@ bool ProcessManager::reapProcess(int pid) {
     
     log("INFO", "Reaping zombie process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
     
-    memManager.freeProcessMemory(pid);
-    
-    // Remove from process table
     processTable.erase(std::remove_if(processTable.begin(), processTable.end(),
                                       [pid](const Process& pr){ return pr.getPid() == pid; }),
                       processTable.end());
@@ -194,6 +191,7 @@ bool ProcessManager::sendSignal(int pid, int signal) {
         case 15: // SIGTERM
             log("INFO", "Terminating process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
             cpuScheduler.remove(pid);
+            memManager.freeProcessMemory(pid);
             if (!process->makeZombie()) {
                 log("ERROR", "Failed to make process zombie: PID=" + std::to_string(pid));
                 return false;
