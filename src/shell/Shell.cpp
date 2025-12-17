@@ -26,6 +26,13 @@ void Shell::initLuaOnce() {
     lua_pushlightuserdata(luaState, this);
     lua_setfield(luaState, LUA_REGISTRYINDEX, "__shell_ptr");
 
+    // Set up interrupt hook - check every 1000 instructions
+    lua_sethook(luaState, [](lua_State* L, lua_Debug* ar) {
+        if (interruptRequested.load()) {
+            luaL_error(L, "Script interrupted by user (Ctrl+C)");
+        }
+    }, LUA_MASKCOUNT, 1000);
+
     // Register function to run shell commands from Lua
     lua_pushcfunction(luaState, [](lua_State* L) -> int {
         const char* cmdLine = lua_tostring(L, 1);
@@ -44,11 +51,9 @@ void Shell::initLuaOnce() {
             return 1;
         }
 
-        // Store the original output cb
         auto originalCallback = shell->getOutputCallback();
 
         std::string capturedOutput;
-
         // Set a temp cb that captures output
         shell->setOutputCallback([&capturedOutput, originalCallback](const std::string& output) {
 
@@ -83,13 +88,15 @@ std::string Shell::runLuaScript(const std::string &luaCode) {
         return "Error: Lua not initialized";
     }
 
+    interruptRequested.store(false);
+
     // Execute Lua code
     int result = luaL_dostring(luaState, luaCode.c_str());
 
     if (result != LUA_OK) {
         const char *error = lua_tostring(luaState, -1);
         lua_pop(luaState, 1);
-        return std::string("Lua Error: ") + (error ? error : "unknown");
+        return std::string("\nLua Error: ") + (error ? error : "unknown");
     }
 
     // Get any return value from Lua
@@ -281,6 +288,8 @@ void Shell::processCommandLine(const std::string& commandLine) {
         return;
     }
 
+    interruptRequested.store(false);
+
     log("DEBUG", "Processing command: " + commandLine);
 
     std::istringstream checkStream(commandLine);
@@ -295,8 +304,6 @@ void Shell::processCommandLine(const std::string& commandLine) {
         ICommand* cmd = registry.find(command);
         if (cmd) {
             // write/edit commands should go directly to std::cout / std::cerr
-            interruptRequested.store(false);
-
             int rc = cmd->execute(args, "", std::cout, std::cerr, sys);
 
             std::cout.flush();
@@ -428,12 +435,10 @@ std::string Shell::executeCommand(const std::string& command,
             // Wait for scheduler to consume the cycles
             if (!sys.waitForProcess(shellPid)) {
                 // Interrupted - don't execute the command
-                interruptRequested.store(false);
                 return "Interrupted";
             }
         }
 
-        interruptRequested.store(false);
         std::ostringstream out, err;
         
         if (inPipeChain) {
@@ -470,9 +475,6 @@ std::string Shell::executeCommand(const std::string& command,
 
     int memNeeded = std::max(64, static_cast<int>(args.size()) * 1024);
     int cpuNeeded = std::max(2, static_cast<int>(args.size()) * 2);
-    
-    // Clear any previous interrupt before starting new process
-    interruptRequested.store(false);
     
     int pid = sys.fork(command, cpuNeeded, memNeeded);
     if (pid <= 0) return "Error: Fork failed.";
