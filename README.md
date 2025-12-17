@@ -162,6 +162,7 @@ texed filename
 |-----|--------|----------------------------------|
 | i   | Insert | Pressing i enables insert mode   |
 | Esc | Normal | Pressing Esc enables normal mode |
+| :   | Command| Pressing : enters command-line mode |
 ### Saving / exiting:
 
 | Command | Required Mode | Action              |
@@ -174,11 +175,11 @@ texed filename
 
 | Key | Required mode | Action           |
 |-----|---------------|------------------|
-| h   | Normal        | Move left        |
-| j   | Normal        | Move down        |
-| k   | Normal        | Move up          |
-| l   | Normal        | Move right       |
-| x   | Normal        | Delete character |
+| h / ←              | Normal        | Move left        |
+| j / ↓              | Normal        | Move down        |
+| k / ↑              | Normal        | Move up          |
+| l / →              | Normal        | Move right       |
+| x / Del            | Normal        | Delete character |
 
 
 
