@@ -43,6 +43,7 @@ Both native and Docker builds support the same command-line options:
 | Option | Short | Description | Default | Example |
 |--------|-------|-------------|---------|---------|
 | `--verbose` | `-v` | Enable verbose logging to console | Off | `--verbose` |
+| `--log-level <level>` | `-l` | Set minimum log level: `debug`, `info`, `warning`, `error` | debug | `--log-level info` |
 | `--memory <size>` | `-m` | Set memory size (K/KB, M/MB, G/GB suffix) | 1M (1048576 bytes) | `--memory 2M` |
 | `--help` | `-h` | Show help message | - | `--help` |
 
@@ -61,11 +62,14 @@ Both native and Docker builds support the same command-line options:
 # Docker - 4MB memory, verbose logging
 docker run --rm -it s3al/simulator /app/s3al_sim --memory 4M --verbose
 
-# Native - RoundRobin scheduler with quantum 3
-./build/s3al_sim --scheduler rr --quantum 3
+# Native - RoundRobin scheduler with quantum 3, info-level logging
+./build/s3al_sim --scheduler rr --quantum 3 --log-level info
 
 # Docker - Priority scheduler with fast CPU (2 cycles/tick, 50ms ticks)
 docker run --rm -it s3al/simulator /app/s3al_sim -s priority -c 2 -t 50 -v
+
+# Native - Error-level logging only (minimal output)
+./build/s3al_sim -l error -v
 ```
 
 ## Docker Persistent Storage
