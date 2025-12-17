@@ -2,10 +2,29 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <map>
 
 namespace config {
 
 bool Config::parseArgs(int argc, char* argv[], Config& config) {
+    // Map log level strings to enum values
+    static const std::map<std::string, logging::LogLevel> logLevelMap = {
+        {"debug", logging::LogLevel::DEBUG},
+        {"info", logging::LogLevel::INFO},
+        {"warning", logging::LogLevel::WARNING},
+        {"warn", logging::LogLevel::WARNING},
+        {"error", logging::LogLevel::ERROR}
+    };
+    
+    // Map scheduler algorithm strings to enum values
+    static const std::map<std::string, SchedulerAlgorithm> schedulerMap = {
+        {"fcfs", SchedulerAlgorithm::FCFS},
+        {"rr", SchedulerAlgorithm::RoundRobin},
+        {"roundrobin", SchedulerAlgorithm::RoundRobin},
+        {"priority", SchedulerAlgorithm::Priority},
+        {"prio", SchedulerAlgorithm::Priority}
+    };
+    
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         
@@ -16,14 +35,9 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
             std::string level = argv[++i];
             std::transform(level.begin(), level.end(), level.begin(), ::tolower);
             
-            if (level == "debug") {
-                config.logLevel = logging::LogLevel::DEBUG;
-            } else if (level == "info") {
-                config.logLevel = logging::LogLevel::INFO;
-            } else if (level == "warning" || level == "warn") {
-                config.logLevel = logging::LogLevel::WARNING;
-            } else if (level == "error") {
-                config.logLevel = logging::LogLevel::ERROR;
+            auto it = logLevelMap.find(level);
+            if (it != logLevelMap.end()) {
+                config.logLevel = it->second;
             } else {
                 std::cerr << "Unknown log level: " << level << std::endl;
                 std::cerr << "Valid options: debug, info, warning (warn), error" << std::endl;
@@ -87,12 +101,9 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
             std::string algo = argv[++i];
             std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
             
-            if (algo == "fcfs") {
-                config.schedulerAlgorithm = SchedulerAlgorithm::FCFS;
-            } else if (algo == "rr" || algo == "roundrobin") {
-                config.schedulerAlgorithm = SchedulerAlgorithm::RoundRobin;
-            } else if (algo == "priority" || algo == "prio") {
-                config.schedulerAlgorithm = SchedulerAlgorithm::Priority;
+            auto it = schedulerMap.find(algo);
+            if (it != schedulerMap.end()) {
+                config.schedulerAlgorithm = it->second;
             } else {
                 std::cerr << "Unknown scheduler algorithm: " << algo << std::endl;
                 std::cerr << "Valid options: fcfs, rr (roundrobin), priority" << std::endl;
