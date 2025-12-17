@@ -175,9 +175,9 @@ bool ProcessManager::sendSignal(int pid, int signal) {
     
     log("INFO", "Sending signal " + std::to_string(signal) + " to process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
     
-    // Protect init (PID 1) from termination signals - kernel blocks SIGKILL/SIGTERM to init
-    if (pid == 1 && (signal == 9 || signal == 15)) {
-        log("WARN", "Cannot send signal " + std::to_string(signal) + " to init (PID 1) - kernel protection");
+    // Protect init process from termination signals - kernel blocks SIGKILL/SIGTERM to init
+    if (process->getName() == "init" && (signal == 9 || signal == 15)) {
+        log("WARN", "Cannot send signal " + std::to_string(signal) + " to init process - kernel protection");
         return false;
     }
     

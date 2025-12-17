@@ -37,8 +37,8 @@ TEST_F(ProcessManagerMockTest, ProcessCreationFailsWhenMemoryUnavailable) {
     ProcessManager pm(mock_memory, *scheduler);
     
     // Configure mock to simulate allocation failure when submitting the process
-    // PIDs start from 2 (PID 1 is reserved for init)
-    EXPECT_CALL(mock_memory, allocate(512, 2))
+    int expectedPid = pm.getNextPid();
+    EXPECT_CALL(mock_memory, allocate(512, expectedPid))
         .WillOnce(Return(nullptr));
     
     // Submit process - allocation happens at submit time with new API
