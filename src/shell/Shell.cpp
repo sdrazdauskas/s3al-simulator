@@ -395,7 +395,8 @@ void Shell::processCommandLine(const std::string& commandLine) {
 
         combinedOutput += pipeInput;
 
-        if (pipeInput.rfind("Error", 0) == 0)
+        // Stop chain on error or interruption
+        if (pipeInput.rfind("Error", 0) == 0 || pipeInput == "Interrupted")
             break;
     }
 
@@ -434,7 +435,7 @@ std::string Shell::executeCommand(const std::string& command,
             sys.addCPUWork(shellPid, 1);  // Built-ins use 1 cycle
             // Wait for scheduler to consume the cycles
             if (!sys.waitForProcess(shellPid)) {
-                // Interrupted - don't execute the command
+                // Interrupted - return error to stop the chain
                 return "Interrupted";
             }
         }
@@ -485,7 +486,9 @@ std::string Shell::executeCommand(const std::string& command,
     std::cerr.flush();  // Flush logs before waiting
     if (!sys.waitForProcess(pid)) {
         log("INFO", "Process interrupted: " + command + " (PID=" + std::to_string(pid) + ")");
-        return "";
+        // Still need to reap the zombie process
+        sys.reapProcess(pid);
+        return "Interrupted";
     }
 
     // Now execute the actual command after scheduler completes
