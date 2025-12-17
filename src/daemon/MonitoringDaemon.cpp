@@ -1,31 +1,15 @@
 #include "daemon/MonitoringDaemon.h"
 #include "kernel/SysCallsAPI.h"
-#include <thread>
-#include <chrono>
 #include <sstream>
 #include <iomanip>
 
 namespace daemons {
 
-MonitoringDaemon::MonitoringDaemon(shell::SysApi& sys)
+MonitoringDaemon::MonitoringDaemon(sys::SysApi& sys)
     : Daemon(sys, "SYSMON") {}
 
-void MonitoringDaemon::run() {
-    log("INFO", "System monitoring daemon started (PID " + std::to_string(pid) + ")");
-    
-    while (running.load()) {
-        // Only collect stats if not suspended
-        if (!suspended.load()) {
-            collect_stats();
-        }
-        
-        // Sleep for 10 seconds between collections
-        for (int i = 0; i < 100 && running.load(); ++i) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-    }
-    
-    log("INFO", "System monitoring daemon stopped (PID " + std::to_string(pid) + ")");
+void MonitoringDaemon::doWork() {
+    collect_stats();
 }
 
 void MonitoringDaemon::collect_stats() {

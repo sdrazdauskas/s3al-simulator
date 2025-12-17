@@ -8,13 +8,9 @@ public:
     int execute(const std::vector<std::string>& args,
                 const std::string& /*input*/,
                 std::ostream& out,
-                std::ostream& err,
+                std::ostream& /*err*/,
                 SysApi& /*sys*/) override
     {
-        if (args.empty()) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
         for (size_t i = 0; i < args.size(); ++i) {
             out << args[i] << (i + 1 < args.size() ? " " : "");
         }

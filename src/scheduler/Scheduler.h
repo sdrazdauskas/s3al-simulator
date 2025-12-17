@@ -41,7 +41,6 @@ public:
     void setLogCallback(LogCallback callback);
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
-    // ============= Configuration =============
     void setAlgorithm(Algorithm a);
     Algorithm getAlgorithm() const { return algo; }
     
@@ -54,7 +53,6 @@ public:
     void setTickIntervalMs(int ms);        // Real-time duration between ticks
     int getTickIntervalMs() const { return tickIntervalMs; }
 
-    // ============= Process Management =============
     // Add a process to the ready queue
     void enqueue(int pid, int burstTime, int priority = 0);
     
@@ -67,7 +65,6 @@ public:
     // Resume a suspended process
     void resume(int pid);
 
-    // ============= Scheduler Core =============
     // Advance scheduler by one tick (consumes cycles_per_interval cycles)
     TickResult tick();
     

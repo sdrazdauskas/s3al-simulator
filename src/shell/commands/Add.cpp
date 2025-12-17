@@ -1,5 +1,6 @@
 #include "shell/CommandAPI.h"
 #include <memory>
+#include <cmath>
 
 namespace shell {
 
@@ -11,13 +12,22 @@ public:
                 std::ostream& err,
                 SysApi& /*sys*/) override
     {
-        if (args.empty()) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 1, err)) return 1;
+        
         double sum = 0.0;
         for (const auto& a : args) {
-            try { sum += std::stod(a); } catch(...) { err << "Error: '" << a << "' is not a number\n"; return 1; }
+            try {
+                double val = std::stod(a);
+                double prev = sum;
+                sum += val;
+                if (std::isinf(sum)) {
+                    err << "Error: overflow occurred while adding '" << a << "' (partial sum: " << prev << ")\n";
+                    return 1;
+                }
+            } catch(...) {
+                err << "Error: '" << a << "' is not a number\n";
+                return 1;
+            }
         }
         out << sum << "\n";
         return 0;

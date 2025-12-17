@@ -1,4 +1,5 @@
 #include "storage/Storage.h"
+#include "kernel/SysCallsAPI.h"
 #include <iostream>
 
 namespace storage {
@@ -91,6 +92,10 @@ Response StorageManager::deleteFile(const std::string& path) {
     // find and delete file
     for (size_t i = 0; i < info.folder->files.size(); ++i) {
         if (info.folder->files[i]->name == info.name) {
+            // Free memory token before deleting file
+            if (info.folder->files[i]->memoryToken && sysApi) {
+                sysApi->deallocateMemory(info.folder->files[i]->memoryToken);
+            }
             info.folder->files.erase(info.folder->files.begin() + i);
             info.folder->modifiedAt = std::chrono::system_clock::now();
             log("INFO", "Deleted file: " + path);
@@ -116,6 +121,24 @@ Response StorageManager::writeFile(const std::string& path, const std::string& c
     // find file
     for (auto& file : info.folder->files) {
         if (file->name == info.name) {
+            size_t oldSize = file->content.size();
+            size_t newSize = content.size() + 1; // +1 for newline
+            
+            // Free old memory token
+            if (file->memoryToken) {
+                if (sysApi) sysApi->deallocateMemory(file->memoryToken);
+                file->memoryToken = nullptr;
+            }
+            
+            // Allocate new memory token for content size (PID 0 for storage)
+            if (newSize > 0 && sysApi) {
+                file->memoryToken = sysApi->allocateMemory(newSize, 0);
+                if (!file->memoryToken) {
+                    log("ERROR", "Out of memory writing to file: " + path);
+                    return Response::Error;
+                }
+            }
+            
             file->content = content + "\n";
             file->modifiedAt = std::chrono::system_clock::now();
             info.folder->modifiedAt = std::chrono::system_clock::now();

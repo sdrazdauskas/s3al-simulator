@@ -19,7 +19,7 @@ void Init::DaemonDeleter::operator()(daemons::Daemon* p) const {
     delete p;
 }
 
-Init::Init(shell::SysApi& sys)
+Init::Init(sys::SysApi& sys)
     : sysApi(sys) {}
 
 void Init::log(const std::string& level, const std::string& message) {
@@ -54,6 +54,14 @@ void Init::start() {
 void Init::initializeShell() {
     log("INFO", "Starting shell service...");
     
+    // Create shell as a persistent process
+    shellPid = sysApi.fork("sh", 1, 0, 10, true);  // priority=10, persistent=true
+    if (shellPid <= 0) {
+        log("ERROR", "Failed to create shell process");
+        return;
+    }
+    log("INFO", "Shell process created (PID=" + std::to_string(shellPid) + ")");
+    
     shell::CommandRegistry registry;
     shell::initCommands(registry);
     
@@ -83,6 +91,7 @@ void Init::initializeShell() {
     });
 
     sh.setLogCallback(loggerCallback);
+    sh.setShellPid(shellPid);
     
     terminal::Terminal term;
     terminal = &term;
@@ -100,6 +109,12 @@ void Init::initializeShell() {
     });
     
     term.setSendCallback([&](const std::string& line){
+        // Check if shell process still exists (could have been killed)
+        if (!sysApi.processExists(shellPid)) {
+            log("WARN", "Shell process (PID=" + std::to_string(shellPid) + ") was killed - shutting down terminal");
+            term.requestShutdown();
+            return;
+        }
         sh.processCommandLine(line);
     });
     
@@ -136,6 +151,20 @@ void Init::handleDaemonSignal(int pid, int signal) {
             break;
         }
     }
+}
+
+void Init::handleProcessSignal(int pid, int signal) {
+    // If shell receives a termination signal, shut down terminal immediately
+    if (pid == shellPid && (signal == 9 || signal == 15)) {
+        log("WARN", "Shell process (PID=" + std::to_string(shellPid) + ") terminated by signal " + std::to_string(signal) + " - shutting down terminal");
+        if (terminal) {
+            terminal->requestShutdown();
+        }
+        return;
+    }
+    
+    // Otherwise forward to daemons (existing behavior)
+    handleDaemonSignal(pid, signal);
 }
 
 void Init::startDaemons() {

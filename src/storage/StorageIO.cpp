@@ -72,7 +72,13 @@ Response StorageManager::saveToDisk(const std::string& fileName) const {
         if (path.find(".json") == std::string::npos) path += ".json";
 
         std::ofstream out(path);
+        if (!out.is_open()) {
+            return Response::Error;
+        }
         out << std::setw(4) << serializeFolder(*root);
+        if (!out) {
+            return Response::Error;
+        }
         return Response::OK;
     } catch (...) {
         return Response::Error;
@@ -85,19 +91,22 @@ Response StorageManager::loadFromDisk(const std::string& fileName) {
         if (path.find(".json") == std::string::npos) path += ".json";
 
         if (!std::filesystem::exists(path)) {
-            log("ERROR", "File not found: " + path);
             return Response::NotFound;
         }
 
         std::ifstream in(path);
+        if (!in.is_open()) {
+            return Response::Error;
+        }
         json j;
         in >> j;
+        if (!in) {
+            return Response::Error;
+        }
         root = deserializeFolder(j, nullptr);
         currentFolder = root.get();
-        log("INFO", "Storage loaded from: " + path);
         return Response::OK;
-    } catch (const std::exception& e) {
-        log("ERROR", e.what());
+    } catch (...) {
         return Response::Error;
     }
 }

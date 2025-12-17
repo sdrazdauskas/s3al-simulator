@@ -11,10 +11,8 @@ public:
                 std::ostream& err,
                 SysApi& sys) override
     {
-        if (args.empty()) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 1, err)) return 1;
+        
         int rc = 0;
         for (const auto& name : args) {
             auto res = sys.deleteFile(name);
