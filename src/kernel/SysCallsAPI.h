@@ -79,6 +79,9 @@ struct SysApi {
     };
     virtual std::vector<ProcessInfo> getProcessList() = 0;
     
+    // Check if a process exists
+    virtual bool processExists(int pid) = 0;
+    
     // Interactive input - commands should use this instead of std::cin
     // Handles console logging suspension during input
     virtual std::string readLine() = 0;
@@ -92,7 +95,11 @@ struct SysApi {
     // Returns process ID, or -1 on failure
     virtual int submitCommand(const std::string& name, int cpuCycles, int priority = 0) = 0;
     
-    // Wait for a submitted command to complete (blocks until done)
+    // Add CPU work to an existing process (for daemons doing periodic work)
+    // Returns true if successful, false if process not found
+    virtual bool addCPUWork(int pid, int cpuCycles) = 0;
+    
+    // Wait for a process to complete (blocks until all CPU cycles consumed)
     // Returns true if completed normally, false if interrupted
     virtual bool waitForProcess(int pid) = 0;
     

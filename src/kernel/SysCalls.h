@@ -281,6 +281,13 @@ struct SysApiKernel : ::sys::SysApi {
         return {};
     }
     
+    bool processExists(int pid) override {
+        if (kernelOwner) {
+            return kernelOwner->processExists(pid);
+        }
+        return false;
+    }
+    
     std::string readLine() override {
         // Disable console logging during interactive input
         bool wasConsoleLogging = logging::Logger::getInstance().getConsoleOutput();
@@ -311,6 +318,13 @@ struct SysApiKernel : ::sys::SysApi {
             return kernelOwner->submitAsyncCommand(name, cpuCycles, priority);
         }
         return -1;
+    }
+    
+    bool addCPUWork(int pid, int cpuCycles) override {
+        if (kernelOwner) {
+            return kernelOwner->addCPUWork(pid, cpuCycles);
+        }
+        return false;
     }
     
     bool waitForProcess(int pid) override {

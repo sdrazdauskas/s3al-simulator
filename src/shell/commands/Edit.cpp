@@ -12,10 +12,7 @@ public:
                 std::ostream& err,
                 SysApi& sys) override
     {
-        if (args.size() < 1) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 1, err)) return 1;
 
         const std::string& fileName = args[0];
 
