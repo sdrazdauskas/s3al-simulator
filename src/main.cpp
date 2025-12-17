@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     std::stringstream ss;
     ss << "logs/s3al_" << std::put_time(std::localtime(&time_t), "%Y%m%d_%H%M%S") << ".log";
 
-    logging::Logger::getInstance().init(ss.str(), logging::LogLevel::DEBUG);
+    logging::Logger::getInstance().init(ss.str(), config.logLevel);
     logging::Logger::getInstance().setConsoleOutput(config.verbose);
 
     // Start OS

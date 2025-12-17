@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstddef>
+#include "logger/Logger.h"
 
 namespace config {
 
@@ -15,6 +16,7 @@ enum class SchedulerAlgorithm {
 struct Config {
     bool verbose = false;
     size_t memorySize = 1024 * 1024;       // Default: 1MB
+    logging::LogLevel logLevel = logging::LogLevel::DEBUG;  // Default: DEBUG
     
     // Scheduler configuration
     SchedulerAlgorithm schedulerAlgorithm = SchedulerAlgorithm::FCFS;
