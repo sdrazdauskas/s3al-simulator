@@ -38,6 +38,21 @@ public:
     
     // CPU cost in cycles (how many scheduler ticks to complete)
     virtual int getCpuCost() const { return 1; }
+    
+    // Helper function to check for required arguments and print usage
+    // minCount: minimum required arguments
+    // maxCount: maximum allowed arguments (-1 = no limit)
+    bool requireArgs(const std::vector<std::string>& args, size_t minCount, std::ostream& err, int maxCount = -1) const {
+        if (args.size() < minCount) {
+            err << "Usage: " << getUsage() << "\n";
+            return false;
+        }
+        if (maxCount >= 0 && args.size() > static_cast<size_t>(maxCount)) {
+            err << "Usage: " << getUsage() << "\n";
+            return false;
+        }
+        return true;
+    }
 };
 
 struct CommandRegistry {

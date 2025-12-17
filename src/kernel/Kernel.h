@@ -73,6 +73,9 @@ public:
     // Get list of all processes
     std::vector<sys::SysApi::ProcessInfo> getProcessList() const;
     
+    // Check if process exists
+    bool processExists(int pid) const;
+    
     // Kernel event loop - runs background tasks
     void runEventLoop();
     
