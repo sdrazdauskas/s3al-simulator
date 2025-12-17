@@ -53,7 +53,11 @@ public:
      */
     void boot();
 
-    shell::SysApi::SysInfo getSysInfo() const;
+    sys::SysApi::SysInfo getSysInfo() const;
+    
+    // Memory management syscalls
+    void* allocateMemory(size_t size, int processId = 0);
+    void deallocateMemory(void* ptr);
 
     std::string handleQuit(const std::vector<std::string>& args);
     
@@ -67,7 +71,10 @@ public:
     int forkProcess(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false);
     
     // Get list of all processes
-    std::vector<shell::SysApi::ProcessInfo> getProcessList() const;
+    std::vector<sys::SysApi::ProcessInfo> getProcessList() const;
+    
+    // Check if process exists
+    bool processExists(int pid) const;
     
     // Kernel event loop - runs background tasks
     void runEventLoop();
@@ -78,8 +85,14 @@ public:
     // Submit a command for scheduler-based execution
     int submitAsyncCommand(const std::string& name, int cpuCycles, int priority = 0);
     
-    // Wait for a command process to complete (blocks)
+    // Add CPU work to an existing process
+    bool addCPUWork(int pid, int cpuCycles);
+    
+    // Wait for a process to complete (blocks until all CPU cycles consumed)
     bool waitForProcess(int pid);
+    
+    // Check if process is persistent
+    bool isProcessPersistent(int pid) const;
     
     // Process exit syscall (transitions to ZOMBIE)
     bool exit(int pid, int exitCode = 0);
@@ -116,13 +129,18 @@ private:
     std::atomic<bool> kernelRunning{true};
     std::thread kernelThread;
     
+    // For notifying waiters when cycles are consumed
+    std::mutex cycleWaitMutex;
+    std::condition_variable cycleWaitCV;
+    std::map<int, int> lastRemainingCycles;  // Track last known remaining cycles per PID
+    
     std::string processLine(const std::string& line);
 
     // Callback to signal init process to shutdown
     std::function<void()> initShutdownCb;
     
-    storage::StorageManager storageManager;
     memory::MemoryManager memManager;
+    storage::StorageManager storageManager;
     scheduler::CPUScheduler cpuScheduler;
     process::ProcessManager procManager;
 };

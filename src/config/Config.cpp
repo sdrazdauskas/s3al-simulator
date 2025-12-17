@@ -2,16 +2,48 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <map>
 
 namespace config {
 
 bool Config::parseArgs(int argc, char* argv[], Config& config) {
+    // Map log level strings to enum values
+    static const std::map<std::string, logging::LogLevel> logLevelMap = {
+        {"debug", logging::LogLevel::DEBUG},
+        {"info", logging::LogLevel::INFO},
+        {"warning", logging::LogLevel::WARNING},
+        {"warn", logging::LogLevel::WARNING},
+        {"error", logging::LogLevel::ERROR}
+    };
+    
+    // Map scheduler algorithm strings to enum values
+    static const std::map<std::string, SchedulerAlgorithm> schedulerMap = {
+        {"fcfs", SchedulerAlgorithm::FCFS},
+        {"rr", SchedulerAlgorithm::RoundRobin},
+        {"roundrobin", SchedulerAlgorithm::RoundRobin},
+        {"priority", SchedulerAlgorithm::Priority},
+        {"prio", SchedulerAlgorithm::Priority}
+    };
+    
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         
         if (arg == "--verbose" || arg == "-v") {
             config.verbose = true;
         } 
+        else if ((arg == "--log-level" || arg == "-l") && i + 1 < argc) {
+            std::string level = argv[++i];
+            std::transform(level.begin(), level.end(), level.begin(), ::tolower);
+            
+            auto it = logLevelMap.find(level);
+            if (it != logLevelMap.end()) {
+                config.logLevel = it->second;
+            } else {
+                std::cerr << "Unknown log level: " << level << std::endl;
+                std::cerr << "Valid options: debug, info, warning (warn), error" << std::endl;
+                return false;
+            }
+        }
         else if ((arg == "--memory" || arg == "-m") && i + 1 < argc) {
             // Parse memory size (supports K/KB, M/MB, G/GB suffixes)
             std::string memStr = argv[++i];
@@ -69,12 +101,9 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
             std::string algo = argv[++i];
             std::transform(algo.begin(), algo.end(), algo.begin(), ::tolower);
             
-            if (algo == "fcfs") {
-                config.schedulerAlgorithm = SchedulerAlgorithm::FCFS;
-            } else if (algo == "rr" || algo == "roundrobin") {
-                config.schedulerAlgorithm = SchedulerAlgorithm::RoundRobin;
-            } else if (algo == "priority" || algo == "prio") {
-                config.schedulerAlgorithm = SchedulerAlgorithm::Priority;
+            auto it = schedulerMap.find(algo);
+            if (it != schedulerMap.end()) {
+                config.schedulerAlgorithm = it->second;
             } else {
                 std::cerr << "Unknown scheduler algorithm: " << algo << std::endl;
                 std::cerr << "Valid options: fcfs, rr (roundrobin), priority" << std::endl;
@@ -134,6 +163,8 @@ void Config::showHelp(const char* programName) {
     std::cout << "\n";
     std::cout << "Options:\n";
     std::cout << "  -v, --verbose          Enable verbose logging to console\n";
+    std::cout << "  -l, --log-level LEVEL  Set minimum log level: debug, info, warning, error\n";
+    std::cout << "                         Default: debug\n";
     std::cout << "  -m, --memory SIZE      Set memory size (e.g., 512K, 512KB, 2M, 2MB, 1G, 1GB)\n";
     std::cout << "                         Default: 1M (1048576 bytes)\n";
     std::cout << "  -h, --help             Show this help message\n";
@@ -152,6 +183,7 @@ void Config::showHelp(const char* programName) {
     std::cout << "  " << programName << " --verbose\n";
     std::cout << "  " << programName << " --memory 2M\n";
     std::cout << "  " << programName << " -m 512KB -v\n";
+    std::cout << "  " << programName << " --log-level info\n";
     std::cout << "  " << programName << " --scheduler rr --quantum 3\n";
     std::cout << "  " << programName << " -s priority -c 2 -t 50\n";
 }

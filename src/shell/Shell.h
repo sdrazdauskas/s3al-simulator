@@ -67,6 +67,7 @@ namespace shell {
         OutputCallback outputCallback;
         LogCallback logCallback;
         KernelCallback kernelCallback;
+        int shellPid = -1;  // Shell's own process ID
 
         void initLuaOnce();
         std::string runLuaScript(const std::string& luaCode);
@@ -90,12 +91,13 @@ namespace shell {
         void setLogCallback(LogCallback callback);
         void setOutputCallback(OutputCallback callback);
         void setKernelCallback(KernelCallback callback) { kernelCallback = std::move(callback); }
+        void setShellPid(int pid) { shellPid = pid; }
 
         void processCommandLine(const std::string& commandLine);
         std::string executeCommand(const std::string& command,
-                                   const std::vector<std::string>& args,
-                                   const std::string& input = "",
-                                   bool inPipeChain = false);
+                                const std::vector<std::string>& args,
+                                const std::string& input = "",
+                                bool inPipeChain = false);
         void parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args);
 
         bool isConnectedToKernel() const;
@@ -106,5 +108,4 @@ namespace shell {
 
         bool isBuiltinCommand(const std::string& cmd) const;
     };
-
-} // namespace shell
+}  // namespace shell

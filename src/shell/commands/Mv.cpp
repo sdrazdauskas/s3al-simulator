@@ -11,10 +11,7 @@ public:
                 std::ostream& err,
                 SysApi& sys) override
     {
-        if (args.size() != 2) {
-            err << "Usage: " << getUsage() << "\n";
-            return 1;
-        }
+        if (!requireArgs(args, 2, err, 2)) return 1;
 
         auto res = sys.moveFile(args[0], args[1]);
         if (res != SysResult::OK) {

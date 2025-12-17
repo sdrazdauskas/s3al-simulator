@@ -52,13 +52,20 @@ Kernel::Kernel(const config::Config& config)
               << std::endl;
 }
 
-shell::SysApi::SysInfo Kernel::getSysInfo() const {
-    shell::SysApi::SysInfo info;
+sys::SysApi::SysInfo Kernel::getSysInfo() const {
+    sys::SysApi::SysInfo info;
     info.totalMemory = memManager.getTotalMemory();
     info.usedMemory = memManager.getUsedMemory();
     return info;
 }
 
+void* Kernel::allocateMemory(size_t size, int processId) {
+    return memManager.allocate(size, processId);
+}
+
+void Kernel::deallocateMemory(void* ptr) {
+    memManager.deallocate(ptr);
+}
 
 std::string Kernel::executeCommand(const std::string& line) {
     if (!line.empty() && line.back() == '\n') {
@@ -164,12 +171,12 @@ int Kernel::forkProcess(const std::string& name, int cpuTimeNeeded, int memoryNe
     return procManager.submit(name, cpuTimeNeeded, memoryNeeded, priority, persistent);
 }
 
-std::vector<shell::SysApi::ProcessInfo> Kernel::getProcessList() const {
+std::vector<sys::SysApi::ProcessInfo> Kernel::getProcessList() const {
     auto processes = procManager.snapshot();
-    std::vector<shell::SysApi::ProcessInfo> result;
+    std::vector<sys::SysApi::ProcessInfo> result;
     
     for (const auto& proc : processes) {
-        shell::SysApi::ProcessInfo info;
+        sys::SysApi::ProcessInfo info;
         info.pid = proc.getPid();
         info.name = proc.getName();
         info.state = process::stateToString(proc.getState());
@@ -180,6 +187,10 @@ std::vector<shell::SysApi::ProcessInfo> Kernel::getProcessList() const {
     return result;
 }
 
+bool Kernel::processExists(int pid) const {
+    return procManager.processExists(pid);
+}
+
 int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int priority) {
     // Submit directly to scheduler (no memory allocation needed for command execution)
     int pid = procManager.submit(name, cpuCycles, priority);
@@ -188,24 +199,53 @@ int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int prior
     return pid;
 }
 
+bool Kernel::addCPUWork(int pid, int cpuCycles) {
+    // Add cycles to existing process in scheduler
+    cpuScheduler.enqueue(pid, cpuCycles, 0);
+    LOG_DEBUG("KERNEL", "Added " + std::to_string(cpuCycles) + " CPU cycles to process PID=" + std::to_string(pid));
+    return true;
+}
+
 bool Kernel::waitForProcess(int pid) {
-    // Poll until process completes
-    // The kernel event loop is running in another thread and calling scheduler tick
-    while (!isProcessComplete(pid)) {
-        // Check for interrupt
-        if (shell::interruptRequested.load()) {
-            LOG_DEBUG("KERNEL", "Process " + std::to_string(pid) + " interrupted by user");
-            cpuScheduler.remove(pid);
-            // Clean up interrupted process - free memory and remove from table
-            memManager.freeProcessMemory(pid);
-            procManager.sendSignal(pid, 9); // SIGKILL to terminate immediately
+    // Get remaining cycles - if not in scheduler, already complete
+    int remaining = cpuScheduler.getRemainingCycles(pid);
+    if (remaining < 0) {
+        return true;
+    }
+    
+    // Wait until all cycles are consumed
+    std::unique_lock<std::mutex> lock(cycleWaitMutex);
+    while (cpuScheduler.getRemainingCycles(pid) >= 0) {
+        // Check if kernel is shutting down
+        if (!kernelRunning.load()) {
+            LOG_DEBUG("KERNEL", "Cycle wait for PID=" + std::to_string(pid) + " interrupted by kernel shutdown");
             return false;
         }
         
-        // Small sleep to avoid busy-waiting
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        // Check for user interrupt
+        if (shell::interruptRequested.load()) {
+            LOG_DEBUG("KERNEL", "Cycle wait for PID=" + std::to_string(pid) + " interrupted by user");
+            // Remove pending CPU work from scheduler
+            cpuScheduler.remove(pid);
+            
+            // Only kill non-persistent processes (external commands)
+            // Persistent processes (shell, daemons) should continue running
+            if (!isProcessPersistent(pid)) {
+                memManager.freeProcessMemory(pid);
+                procManager.sendSignal(pid, 9); // SIGKILL
+            }
+            return false;
+        }
+        
+        // Wait for scheduler tick notification
+        cycleWaitCV.wait(lock);
     }
+    
     return true;
+}
+
+bool Kernel::isProcessPersistent(int pid) const {
+    return procManager.isProcessPersistent(pid);
 }
 
 bool Kernel::exit(int pid, int exitCode) {
@@ -254,6 +294,12 @@ void Kernel::handleTimerTick() {
     if (cpuScheduler.hasWork()) {
         auto result = cpuScheduler.tick();
         
+        // Notify any threads waiting for cycle consumption
+        {
+            std::lock_guard<std::mutex> lock(cycleWaitMutex);
+            cycleWaitCV.notify_all();
+        }
+        
         if (result.processCompleted) {
             LOG_DEBUG("KERNEL", "Process " + std::to_string(result.completedPid) + " completed");
         }
@@ -265,21 +311,21 @@ void Kernel::handleTimerTick() {
     }
     
     // System monitoring
-    static int tick_count = 0;
-    static int last_logged_tick = 0;
-    tick_count++;
+    static int tickCount = 0;
+    static int lastLoggedTick = 0;
+    tickCount++;
     
     // Log system status periodically (every 50 ticks = ~5 seconds)
-    if (tick_count - last_logged_tick >= 50) {
-        size_t used_mem = memManager.getUsedMemory();
-        size_t total_mem = memManager.getTotalMemory();
-        double mem_usage = (double)used_mem / total_mem * 100.0;
+    if (tickCount - lastLoggedTick >= 50) {
+        size_t usedMem = memManager.getUsedMemory();
+        size_t totalMem = memManager.getTotalMemory();
+        double mem_usage = (double)usedMem / totalMem * 100.0;
         
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(2) << mem_usage;
-        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count)
+        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tickCount)
                 + ", mem:" + oss.str() + "%]");
-        last_logged_tick = tick_count;
+        lastLoggedTick = tickCount;
     }
 }
 
@@ -329,9 +375,6 @@ void Kernel::boot(){
         logging::Logger::getInstance().log(level, module, message);
     };
     
-    // Set up signal callback so ProcessManager can notify daemon threads
-    // Forward signals to the Init instance below (we set this after creating Init)
-    
     // Start kernel event loop in a separate thread
     kernelRunning.store(true);
     kernelThread = std::thread([this]() {
@@ -341,8 +384,8 @@ void Kernel::boot(){
     LOG_INFO("KERNEL", "Starting init process (PID 1)...");
     
     // Create init as actual process with PID 1 (persistent process)
-    int init_pid = procManager.submit("init", 1, 1024, 10, true);
-    if (init_pid != 1) {
+    int initPid = procManager.submit("init", 1, 1024, 10, true);
+    if (initPid != 1) {
         LOG_ERROR("KERNEL", "Failed to create init process");
         return;
     }
@@ -350,27 +393,31 @@ void Kernel::boot(){
     // Create syscall interface for user-space processes
     SysApiKernel sys(storageManager, this);
     
+    // Wire storage to use syscalls for memory management
+    storageManager.setSysApi(&sys);
+    
     // Create and start init process (PID 1)
     init::Init init(sys);
     init.setLogCallback(loggerCallback);
     
-    // Forward ProcessManager signals to this Init instance
+    // Forward all process signals to init (daemons + shell handling)
     procManager.setSignalCallback([&init](int pid, int signal) {
-        init.handleDaemonSignal(pid, signal);
+        init.handleProcessSignal(pid, signal);
+    });
+
+    // Notify init on process completion/termination
+    procManager.setProcessCompleteCallback([&init](int pid, int exitCode) {
+        init.handleProcessSignal(pid, exitCode);
     });
 
     // Store reference to init so kernel can signal it on shutdown
-    auto init_ptr = &init;
-    initShutdownCb = [init_ptr]() {
-        init_ptr->signalShutdown();
+    auto initPtr = &init;
+    initShutdownCb = [initPtr]() {
+        initPtr->signalShutdown();
     };
     
     init.start();
     
-    // Init has exited - remove from process table
-    if (procManager.processExists(1)) {
-        procManager.sendSignal(1, 15);  // SIGTERM
-    }
     
     // After init exits, stop kernel event loop
     kernelRunning.store(false);

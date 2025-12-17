@@ -18,7 +18,7 @@ public:
         double usedKb  = static_cast<double>(info.usedMemory) / 1024.0;
         double freeKb  = totalKb > usedKb ? (totalKb - usedKb) : 0.0;
 
-        std::ostringstream oss;
+        std::ostringstream oss; 
         oss << "=== Memory Info ===\n"
             << std::fixed << std::setprecision(2)
             << "Total: " << totalKb << " KB\n"
