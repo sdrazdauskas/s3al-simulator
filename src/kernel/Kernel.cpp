@@ -187,6 +187,10 @@ std::vector<sys::SysApi::ProcessInfo> Kernel::getProcessList() const {
     return result;
 }
 
+bool Kernel::processExists(int pid) const {
+    return procManager.processExists(pid);
+}
+
 int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int priority) {
     // Submit directly to scheduler (no memory allocation needed for command execution)
     int pid = procManager.submit(name, cpuCycles, priority);
@@ -307,21 +311,21 @@ void Kernel::handleTimerTick() {
     }
     
     // System monitoring
-    static int tick_count = 0;
-    static int last_logged_tick = 0;
-    tick_count++;
+    static int tickCount = 0;
+    static int lastLoggedTick = 0;
+    tickCount++;
     
     // Log system status periodically (every 50 ticks = ~5 seconds)
-    if (tick_count - last_logged_tick >= 50) {
-        size_t used_mem = memManager.getUsedMemory();
-        size_t total_mem = memManager.getTotalMemory();
-        double mem_usage = (double)used_mem / total_mem * 100.0;
+    if (tickCount - lastLoggedTick >= 50) {
+        size_t usedMem = memManager.getUsedMemory();
+        size_t totalMem = memManager.getTotalMemory();
+        double mem_usage = (double)usedMem / totalMem * 100.0;
         
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(2) << mem_usage;
-        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tick_count)
+        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tickCount)
                 + ", mem:" + oss.str() + "%]");
-        last_logged_tick = tick_count;
+        lastLoggedTick = tickCount;
     }
 }
 
@@ -371,9 +375,6 @@ void Kernel::boot(){
         logging::Logger::getInstance().log(level, module, message);
     };
     
-    // Set up signal callback so ProcessManager can notify daemon threads
-    // Forward signals to the Init instance below (we set this after creating Init)
-    
     // Start kernel event loop in a separate thread
     kernelRunning.store(true);
     kernelThread = std::thread([this]() {
@@ -383,8 +384,8 @@ void Kernel::boot(){
     LOG_INFO("KERNEL", "Starting init process (PID 1)...");
     
     // Create init as actual process with PID 1 (persistent process)
-    int init_pid = procManager.submit("init", 1, 1024, 10, true);
-    if (init_pid != 1) {
+    int initPid = procManager.submit("init", 1, 1024, 10, true);
+    if (initPid != 1) {
         LOG_ERROR("KERNEL", "Failed to create init process");
         return;
     }
@@ -399,23 +400,24 @@ void Kernel::boot(){
     init::Init init(sys);
     init.setLogCallback(loggerCallback);
     
-    // Forward ProcessManager signals to this Init instance
+    // Forward all process signals to init (daemons + shell handling)
     procManager.setSignalCallback([&init](int pid, int signal) {
-        init.handleDaemonSignal(pid, signal);
+        init.handleProcessSignal(pid, signal);
+    });
+
+    // Notify init on process completion/termination
+    procManager.setProcessCompleteCallback([&init](int pid, int exitCode) {
+        init.handleProcessSignal(pid, exitCode);
     });
 
     // Store reference to init so kernel can signal it on shutdown
-    auto init_ptr = &init;
-    initShutdownCb = [init_ptr]() {
-        init_ptr->signalShutdown();
+    auto initPtr = &init;
+    initShutdownCb = [initPtr]() {
+        initPtr->signalShutdown();
     };
     
     init.start();
     
-    // Init has exited - remove from process table
-    if (procManager.processExists(1)) {
-        procManager.sendSignal(1, 15);  // SIGTERM
-    }
     
     // After init exits, stop kernel event loop
     kernelRunning.store(false);

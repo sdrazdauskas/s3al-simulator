@@ -48,19 +48,15 @@ void Daemon::run() {
     log("INFO", "Daemon started (PID " + std::to_string(pid) + ")");
     
     while (running.load()) {
-        // Only do work if not suspended
         if (!suspended.load()) {
-            // Check if still running before doing work
             if (!running.load()) break;
             
-            // Add CPU work to this daemon's process
             int workCycles = getWorkCycles();
             sysApi.addCPUWork(pid, workCycles);
             
-            // Do the actual work - it will be scheduled through our own process
             doWork();
             
-            // Sleep between work cycles, checking running flag frequently
+            // Check running flag frequently to make sure we can exit promptly
             int waitMs = getWaitIntervalMs();
             for (int i = 0; i < waitMs / 100 && running.load(); ++i) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));

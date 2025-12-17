@@ -58,9 +58,12 @@ public:
 
     // Read-only access for kernel/UI/tests
     std::vector<Process> snapshot() const;
+    
+    // Get the next PID that will be assigned
+    int getNextPid() const { return nextPid; }
 
 private:
-    int next_pid_{1};
+    int nextPid{1};  // 0 is reserved for kernel
     std::vector<Process> processTable;
     
     memory::MemoryManager& memManager;
