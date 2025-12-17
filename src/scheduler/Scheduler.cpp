@@ -93,7 +93,7 @@ void CPUScheduler::remove(int pid) {
         suspended.end());
     
     // Can't easily remove from queue, but it will be skipped when not found
-    log("INFO", "Removed process " + std::to_string(pid));
+    log("INFO", "Removed process " + std::to_string(pid) + " from scheduler queue");
 }
 
 void CPUScheduler::suspend(int pid) {

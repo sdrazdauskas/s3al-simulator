@@ -23,7 +23,7 @@ inline std::string stateToString(ProcessState s) {
         case ProcessState::WAITING: return "WAITING";
         case ProcessState::STOPPED: return "STOPPED";
         case ProcessState::ZOMBIE: return "ZOMBIE";
-        case ProcessState::TERMINATED: return "TERMINATED";
+
         default: return "UNKNOWN";
     }
 }
@@ -71,7 +71,6 @@ public:
     bool suspend();
     bool resume();
     bool wait();
-    bool terminate();
     bool makeZombie();
 
 private:

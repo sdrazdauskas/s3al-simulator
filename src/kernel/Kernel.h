@@ -73,6 +73,9 @@ public:
     // Get list of all processes
     std::vector<sys::SysApi::ProcessInfo> getProcessList() const;
     
+    // Check if process exists
+    bool processExists(int pid) const;
+    
     // Kernel event loop - runs background tasks
     void runEventLoop();
     
@@ -82,8 +85,14 @@ public:
     // Submit a command for scheduler-based execution
     int submitAsyncCommand(const std::string& name, int cpuCycles, int priority = 0);
     
-    // Wait for a command process to complete (blocks)
+    // Add CPU work to an existing process
+    bool addCPUWork(int pid, int cpuCycles);
+    
+    // Wait for a process to complete (blocks until all CPU cycles consumed)
     bool waitForProcess(int pid);
+    
+    // Check if process is persistent
+    bool isProcessPersistent(int pid) const;
     
     // Process exit syscall (transitions to ZOMBIE)
     bool exit(int pid, int exitCode = 0);
@@ -119,6 +128,11 @@ private:
     std::condition_variable queueCondition;
     std::atomic<bool> kernelRunning{true};
     std::thread kernelThread;
+    
+    // For notifying waiters when cycles are consumed
+    std::mutex cycleWaitMutex;
+    std::condition_variable cycleWaitCV;
+    std::map<int, int> lastRemainingCycles;  // Track last known remaining cycles per PID
     
     std::string processLine(const std::string& line);
 
