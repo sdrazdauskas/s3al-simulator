@@ -175,11 +175,17 @@ texed filename
 
 | Key | Required mode | Action           |
 |-----|---------------|------------------|
-| h / ←              | Normal        | Move left        |
-| j / ↓              | Normal        | Move down        |
-| k / ↑              | Normal        | Move up          |
-| l / →              | Normal        | Move right       |
-| x / Del            | Normal        | Delete character |
+| ←                  | Insert        | Move left        |
+| ↓                  | Insert        | Move down        |
+| ↑                  | Insert        | Move up          |
+| →                  | Insert        | Move right       |
+| Del                | Insert        | Delete character |
+| h                  | Normal        | Move left        |
+| j                  | Normal        | Move down        |
+| k                  | Normal        | Move up          |
+| l                  | Normal        | Move right       |
+| x                  | Normal        | Delete character |
+
 
 
 
