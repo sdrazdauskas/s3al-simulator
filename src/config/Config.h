@@ -15,8 +15,8 @@ enum class SchedulerAlgorithm {
 
 struct Config {
     bool verbose = false;
-    size_t memorySize = 1024 * 1024;       // Default: 1MB
-    logging::LogLevel logLevel = logging::LogLevel::DEBUG;  // Default: DEBUG
+    size_t memorySize = 1024 * 1024;
+    logging::LogLevel logLevel = logging::LogLevel::DEBUG;
     
     // Scheduler configuration
     SchedulerAlgorithm schedulerAlgorithm = SchedulerAlgorithm::FCFS;
