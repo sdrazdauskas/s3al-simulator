@@ -1,10 +1,12 @@
 #pragma once
 
 #include <vector>
-#include <queue>
+#include <deque>
 #include <functional>
 #include <string>
+#include <memory>
 #include "scheduler/ScheduledTask.h"
+#include "scheduler/algorithms/SchedulingAlgorithm.h"
 #include "common/LoggingMixin.h"
 
 namespace scheduler {
@@ -87,8 +89,11 @@ private:
     
     // Process queues
     std::vector<Process> processes; // All processes (for lookup)
-    std::queue<int> readyQueue;     // PIDs of ready processes
+    std::deque<int> readyQueue;     // PIDs of ready processes
     std::vector<int> suspended;     // PIDs of suspended processes
+    
+    // Scheduling algorithm (strategy pattern)
+    std::unique_ptr<SchedulingAlgorithm> algorithm;
     
     // Callbacks
     ProcessCompleteCallback completeCallback;
@@ -99,14 +104,11 @@ protected:
 private:
     Process* findProcess(int pid);
     const Process* findProcess(int pid) const;
-    int selectNextProcess();
+    std::vector<ScheduledTask*> getReadyProcesses();
+    void removeFromReadyQueue(int pid);
     void preemptCurrent();
     void scheduleProcess(int pid);
     void completeProcess(int pid);
-    
-    // Algorithm-specific preemption checks
-    bool shouldPreemptRoundRobin();
-    bool shouldPreemptPriority();
 };
 
 inline std::string algorithmToString(Algorithm a) {
