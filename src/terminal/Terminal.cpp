@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <iostream>
 #include <csignal>
-#include <termios.h>
 #include <unistd.h>
 #include "terminal/helper/History.h"
 #include "logger/Logger.h"
@@ -93,33 +92,6 @@ bool Terminal::handleBackspace(std::string& buffer, size_t& cursor) {
     return true;
 }
 
-bool Terminal::handleHistoryNavigation(char key, History& history, std::string& buffer, size_t& cursor) {
-    std::string hist;
-    
-    switch (key) {
-        case 'A': // UP
-            if (!history.prev(hist)) return false;
-            buffer = hist;
-            cursor = buffer.size();
-            break;
-        case 'B': // DOWN
-            if (history.next(hist)) {
-                buffer = hist;
-                cursor = buffer.size();
-            } else {
-                buffer.clear();
-                cursor = 0;
-            }
-            break;
-        default:
-            return false;
-    }
-    
-    updateInputState(buffer, cursor);
-    displayBuffer(buffer, cursor);
-    return true;
-}
-
 bool Terminal::handleCursorMovement(char key, size_t& cursor, size_t bufferSize) {
     switch (key) {
         case 'C': // RIGHT
@@ -188,15 +160,8 @@ void Terminal::runBlockingStdioLoop() {
         }
     });
 
-    // HISTORY + LEFT/RIGHT CURSOR
     History history;
-    struct termios orig, raw;
-    tcgetattr(STDIN_FILENO, &orig);
-    raw = orig;
-    raw.c_lflag &= ~(ECHO | ICANON);
-    raw.c_cc[VMIN] = 1;
-    raw.c_cc[VTIME] = 0;
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    history.enableRawMode();
 
     while (!shouldShutdown.load()) {
         if (sigintReceived.load()) {
@@ -233,10 +198,10 @@ void Terminal::runBlockingStdioLoop() {
                 
                 // Restore cooked mode before executing command
                 // so commands can use std::getline() normally
-                tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
+                history.temporarilyRestoreMode();
                 if (sendCb) sendCb(buffer);
                 // Return to raw mode for next input
-                tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+                history.temporarilyEnableRawMode();
                 break;
             }
 
@@ -251,8 +216,12 @@ void Terminal::runBlockingStdioLoop() {
                 if (read(STDIN_FILENO, &seq[1], 1) <= 0) continue;
 
                 if (seq[0] == '[') {
-                    handleHistoryNavigation(seq[1], history, buffer, cursor) ||
-                    handleCursorMovement(seq[1], cursor, buffer.size());
+                    if (history.navigate(seq[1], buffer, cursor)) {
+                        updateInputState(buffer, cursor);
+                        displayBuffer(buffer, cursor);
+                    } else {
+                        handleCursorMovement(seq[1], cursor, buffer.size());
+                    }
                 }
                 continue;
             }
@@ -268,7 +237,6 @@ void Terminal::runBlockingStdioLoop() {
     activeTerminal = nullptr;
     logging::Logger::getInstance().setConsoleOutputCallback(nullptr);
     
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
     std::signal(SIGINT, prev);
     logInfo("Terminal stopped");
 }
