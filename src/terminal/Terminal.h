@@ -73,7 +73,6 @@ private:
     
     // Input handlers
     bool handleBackspace(std::string& buffer, size_t& cursor);
-    bool handleHistoryNavigation(char key, History& history, std::string& buffer, size_t& cursor);
     bool handleCursorMovement(char key, size_t& cursor, size_t bufferSize);
     void handleCharInput(char c, std::string& buffer, size_t& cursor);
 
