@@ -67,9 +67,9 @@ void Terminal::stop() {
 
 void Terminal::join() {
     if (terminalThread.joinable()) {
-        logInfo("Waiting for terminal thread to finish");
+        logDebug("Waiting for terminal thread to finish");
         terminalThread.join();
-        logInfo("Terminal thread finished");
+        logDebug("Terminal thread finished");
     }
 }
 

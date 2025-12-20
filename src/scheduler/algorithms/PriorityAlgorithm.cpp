@@ -36,8 +36,7 @@ void PriorityAlgorithm::onContextSwitch(int& currentSlice) {
 }
 
 std::string PriorityAlgorithm::getDebugInfo(int currentSlice, int quantum) const {
-    // No slice info for priority scheduling
-    return "";
+    return "";  // Priority scheduling doesn't use slices
 }
 
 } // namespace scheduler

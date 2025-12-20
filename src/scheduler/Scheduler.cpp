@@ -103,6 +103,29 @@ void CPUScheduler::enqueue(int pid, int burstTime, int priority) {
         ", priority=" + std::to_string(priority) + ")");
 }
 
+bool CPUScheduler::addCycles(int pid, int cycles) {
+    Process* p = findProcess(pid);
+    if (p) {
+        // Process exists in scheduler - just add cycles
+        p->burstTime += cycles;
+        
+        // Re-enqueue if not currently running or in ready queue
+        if (currentPid != pid) {
+            auto it = std::find(readyQueue.begin(), readyQueue.end(), pid);
+            if (it == readyQueue.end()) {
+                readyQueue.push_back(pid);
+            }
+        }
+        
+        logInfo("Added " + std::to_string(cycles) + " cycles to process " + std::to_string(pid) + 
+            " (total=" + std::to_string(p->burstTime) + ", priority=" + std::to_string(p->priority) + ")");
+        return true;
+    }
+    
+    // Process not in scheduler - caller should enqueue it with proper priority
+    return false;
+}
+
 void CPUScheduler::remove(int pid) {
     // If it's the current process, stop it
     if (currentPid == pid) {
@@ -187,7 +210,7 @@ void CPUScheduler::completeProcess(int pid) {
         completeCallback(pid);
     }
     
-    // Remove from processes
+    // Remove from scheduler (process manager handles persistence)
     processes.erase(
         std::remove_if(processes.begin(), processes.end(),
                        [pid](const Process& p) { return p.id == pid; }),
