@@ -120,7 +120,7 @@ std::string Kernel::processLine(const std::string& line) {
 
 std::string Kernel::handleQuit(const std::vector<std::string>& args){
     (void)args;
-    LOG_INFO("KERNEL", "Shutdown requested");
+    logInfo("Shutdown requested");
     
     kernelRunning.store(false);
     
@@ -146,7 +146,7 @@ void Kernel::submitCommand(const std::string& line) {
 }
 
 void Kernel::handleInterruptSignal(int signal) {
-    LOG_INFO("KERNEL", "Received interrupt signal: " + std::to_string(signal));
+    logInfo("Received interrupt signal: " + std::to_string(signal));
     
     // Set interrupt flag immediately for responsiveness
     // Commands check this flag and should exit promptly
@@ -194,7 +194,7 @@ bool Kernel::processExists(int pid) const {
 int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int priority) {
     // Submit directly to scheduler (no memory allocation needed for command execution)
     int pid = procManager.submit(name, cpuCycles, priority);
-    LOG_DEBUG("KERNEL", "Submitted async command '" + name + "' (PID=" + std::to_string(pid) + 
+    logDebug("Submitted async command '" + name + "' (PID=" + std::to_string(pid) + 
               ", cycles=" + std::to_string(cpuCycles) + ")");
     return pid;
 }
@@ -202,7 +202,7 @@ int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int prior
 bool Kernel::addCPUWork(int pid, int cpuCycles) {
     // Add cycles to existing process in scheduler
     cpuScheduler.enqueue(pid, cpuCycles, 0);
-    LOG_DEBUG("KERNEL", "Added " + std::to_string(cpuCycles) + " CPU cycles to process PID=" + std::to_string(pid));
+    logDebug("Added " + std::to_string(cpuCycles) + " CPU cycles to process PID=" + std::to_string(pid));
     return true;
 }
 
@@ -218,13 +218,13 @@ bool Kernel::waitForProcess(int pid) {
     while (cpuScheduler.getRemainingCycles(pid) >= 0) {
         // Check if kernel is shutting down
         if (!kernelRunning.load()) {
-            LOG_DEBUG("KERNEL", "Cycle wait for PID=" + std::to_string(pid) + " interrupted by kernel shutdown");
+            logDebug("Cycle wait for PID=" + std::to_string(pid) + " interrupted by kernel shutdown");
             return false;
         }
         
         // Check for user interrupt
         if (shell::interruptRequested.load()) {
-            LOG_DEBUG("KERNEL", "Cycle wait for PID=" + std::to_string(pid) + " interrupted by user");
+            logDebug("Cycle wait for PID=" + std::to_string(pid) + " interrupted by user");
             // Remove pending CPU work from scheduler
             cpuScheduler.remove(pid);
             
@@ -268,7 +268,7 @@ int Kernel::getProcessRemainingCycles(int pid) const {
 void Kernel::processEvent(const KernelEvent& event) {
     switch (event.type) {
         case KernelEvent::Type::COMMAND:
-            LOG_DEBUG("KERNEL", "Processing command: " + event.data);
+            logDebug("Processing command: " + event.data);
             // Command processing happens in shell, we just logged it
             break;
             
@@ -277,14 +277,14 @@ void Kernel::processEvent(const KernelEvent& event) {
             break;
             
         case KernelEvent::Type::INTERRUPT_SIGNAL:
-            LOG_DEBUG("KERNEL", "Processing interrupt signal: " + std::to_string(event.signalNumber));
+            logDebug("Processing interrupt signal: " + std::to_string(event.signalNumber));
 
             // Flag was already set immediately in handleInterruptSignal()
             // This event is for kernel bookkeeping and future process management
             break;
             
         case KernelEvent::Type::SHUTDOWN:
-            LOG_INFO("KERNEL", "Shutdown event received");
+            logInfo("Shutdown event received");
             break;
     }
 }
@@ -301,11 +301,11 @@ void Kernel::handleTimerTick() {
         }
         
         if (result.processCompleted) {
-            LOG_DEBUG("KERNEL", "Process " + std::to_string(result.completedPid) + " completed");
+            logging::logDebug("KERNEL", "Process " + std::to_string(result.completedPid) + " completed");
         }
         
         if (result.contextSwitch && result.currentPid >= 0) {
-            LOG_DEBUG("KERNEL", "Context switch to process " + std::to_string(result.currentPid) + 
+            logDebug("Context switch to process " + std::to_string(result.currentPid) + 
                       " (remaining=" + std::to_string(result.remainingCycles) + ")");
         }
     }
@@ -323,14 +323,14 @@ void Kernel::handleTimerTick() {
         
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(2) << mem_usage;
-        LOG_DEBUG("KERNEL", "System status [tick:" + std::to_string(tickCount)
+        logDebug("System status [tick:" + std::to_string(tickCount)
                 + ", mem:" + oss.str() + "%]");
         lastLoggedTick = tickCount;
     }
 }
 
 void Kernel::runEventLoop() {
-    LOG_INFO("KERNEL", "Kernel event loop started");
+    logInfo("Kernel event loop started");
     
     auto last_tick = std::chrono::steady_clock::now();
     // Use the scheduler's configured tick interval
@@ -365,11 +365,11 @@ void Kernel::runEventLoop() {
         }
     }
     
-    LOG_INFO("KERNEL", "Kernel event loop stopped");
+    logInfo("Kernel event loop stopped");
 }
 
 void Kernel::boot(){
-    LOG_INFO("KERNEL", "Booting s3al OS...");
+    logging::logInfo("KERNEL", "Booting s3al OS...");
     
     auto loggerCallback = [](const std::string& level, const std::string& module, const std::string& message){
         logging::Logger::getInstance().log(level, module, message);
@@ -381,12 +381,12 @@ void Kernel::boot(){
         this->runEventLoop();
     });
     
-    LOG_INFO("KERNEL", "Starting init process (PID 1)...");
+    logInfo("Starting init process (PID 1)...");
     
     // Create init as actual process with PID 1 (persistent process)
     int initPid = procManager.submit("init", 1, 1024, 10, true);
     if (initPid != 1) {
-        LOG_ERROR("KERNEL", "Failed to create init process");
+        logError("Failed to create init process");
         return;
     }
     
@@ -427,7 +427,7 @@ void Kernel::boot(){
         kernelThread.join();
     }
     
-    LOG_INFO("KERNEL", "Shutdown complete");
+    logInfo("Shutdown complete");
 }
 
 } // namespace kernel

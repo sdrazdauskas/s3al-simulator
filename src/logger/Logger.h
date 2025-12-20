@@ -52,10 +52,21 @@ private:
     std::string getCurrentTime();
 };
 
-// Convenience macros
-#define LOG_DEBUG(module, msg) logging::Logger::getInstance().log(logging::LogLevel::DEBUG, module, msg)
-#define LOG_INFO(module, msg) logging::Logger::getInstance().log(logging::LogLevel::INFO, module, msg)
-#define LOG_WARN(module, msg) logging::Logger::getInstance().log(logging::LogLevel::WARNING, module, msg)
-#define LOG_ERROR(module, msg) logging::Logger::getInstance().log(logging::LogLevel::ERROR, module, msg)
+// Convenience inline functions
+inline void logDebug(const std::string& module, const std::string& msg) {
+    Logger::getInstance().log(LogLevel::DEBUG, module, msg);
+}
+
+inline void logInfo(const std::string& module, const std::string& msg) {
+    Logger::getInstance().log(LogLevel::INFO, module, msg);
+}
+
+inline void logWarn(const std::string& module, const std::string& msg) {
+    Logger::getInstance().log(LogLevel::WARNING, module, msg);
+}
+
+inline void logError(const std::string& module, const std::string& msg) {
+    Logger::getInstance().log(LogLevel::ERROR, module, msg);
+}
 
 } // namespace logging

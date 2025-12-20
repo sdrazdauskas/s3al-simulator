@@ -42,16 +42,6 @@ void Terminal::setSignalCallback(signalCallback cb) {
 
 void Terminal::setPromptCallback(promptCallback cb) { promptCb = std::move(cb); }
 
-void Terminal::setLogCallback(LogCallback callback) {
-    logCallback = callback;
-}
-
-void Terminal::log(const std::string& level, const std::string& message) {
-    if (logCallback) {
-        logCallback(level, "TERMINAL", message);
-    }
-}
-
 void Terminal::print(const std::string& output) {
     std::cout << output << std::flush;
 }
@@ -162,7 +152,7 @@ void Terminal::requestShutdown() {
 }
 
 void Terminal::start() {
-    log("INFO", "Starting terminal thread");
+    logInfo("Starting terminal thread");
     shouldShutdown.store(false);
     terminalThread = std::thread([this]() {
         this->runBlockingStdioLoop();
@@ -170,15 +160,15 @@ void Terminal::start() {
 }
 
 void Terminal::stop() {
-    log("INFO", "Stopping terminal thread");
+    logInfo("Stopping terminal thread");
     shouldShutdown.store(true);
 }
 
 void Terminal::join() {
     if (terminalThread.joinable()) {
-        log("INFO", "Waiting for terminal thread to finish");
+        logInfo("Waiting for terminal thread to finish");
         terminalThread.join();
-        log("INFO", "Terminal thread finished");
+        logInfo("Terminal thread finished");
     }
 }
 
@@ -186,7 +176,7 @@ void Terminal::runBlockingStdioLoop() {
     std::string line;
     auto prev = std::signal(SIGINT, terminalSigintHandler);
 
-    log("INFO", "Terminal started, listening for input");
+    logInfo("Terminal started, listening for input");
 
     // Register redraw callback with Logger
     activeTerminal = this;
@@ -280,7 +270,7 @@ void Terminal::runBlockingStdioLoop() {
     
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig);
     std::signal(SIGINT, prev);
-    log("INFO", "Terminal stopped");
+    logInfo("Terminal stopped");
 }
 
 } // namespace terminal

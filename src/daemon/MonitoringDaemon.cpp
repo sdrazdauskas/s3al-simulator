@@ -22,7 +22,7 @@ void MonitoringDaemon::collect_stats() {
     oss << "System stats: Memory " << info.usedMemory << "/" << info.totalMemory 
         << " bytes (" << mem_usage_percent << "% used)";
     
-    log("INFO", oss.str());
+    logInfo(oss.str());
 }
 
 } // namespace daemons

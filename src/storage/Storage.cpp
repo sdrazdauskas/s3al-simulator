@@ -11,10 +11,6 @@ StorageManager::StorageManager() {
     currentFolder = root.get();
 }
 
-void StorageManager::setLogCallback(LogCallback callback) {
-    logCallback = callback;
-}
-
 StorageManager::StorageResponse StorageManager::reset() {
     try {
         recursiveDelete(*root);
@@ -22,7 +18,7 @@ StorageManager::StorageResponse StorageManager::reset() {
         root->name = "/";
         root->parent = nullptr;
         currentFolder = root.get();
-        log("INFO", "Storage reset to empty state");
+        logInfo("Storage reset to empty state");
         return StorageResponse::OK;
     } catch (...) {
         return StorageResponse::Error;
