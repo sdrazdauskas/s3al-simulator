@@ -4,8 +4,8 @@
 #include <thread>
 #include <atomic>
 #include <string>
-#include <mutex>
 #include "common/LoggingMixin.h"
+#include "terminal/helper/Input.h"
 
 namespace terminal {
 
@@ -45,36 +45,18 @@ public:
 
     void runBlockingStdioLoop();
 
-    // Called by shell to display output (writes directly to stdout)
+    // Called by shell to display output
     void print(const std::string& output);
     
     // Signal the terminal to stop
     void requestShutdown();
 
 private:
-    struct InputState {
-        std::mutex mutex;
-        std::string buffer;
-        size_t cursor{0};
-        std::atomic<bool> isReading{false};
-    };
-
     sendCallback sendCb;
     signalCallback sigCb;
-    promptCallback promptCb;
     std::atomic<bool> shouldShutdown{false};
     std::thread terminalThread;
-    InputState input;
-    
-    void redrawPrompt();
-    void clearCurrentLine();
-    void updateInputState(const std::string& buffer, size_t cursor);
-    void displayBuffer(const std::string& buffer, size_t cursor);
-    
-    // Input handlers
-    bool handleBackspace(std::string& buffer, size_t& cursor);
-    bool handleCursorMovement(char key, size_t& cursor, size_t bufferSize);
-    void handleCharInput(char c, std::string& buffer, size_t& cursor);
+    Input input;
 
 protected:
     std::string getModuleName() const override { return "TERMINAL"; }

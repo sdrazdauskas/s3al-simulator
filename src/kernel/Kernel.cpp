@@ -300,14 +300,6 @@ void Kernel::handleTimerTick() {
             cycleWaitCV.notify_all();
         }
         
-        if (result.processCompleted) {
-            logging::logDebug("KERNEL", "Process " + std::to_string(result.completedPid) + " completed");
-        }
-        
-        if (result.contextSwitch && result.currentPid >= 0) {
-            logDebug("Context switch to process " + std::to_string(result.currentPid) + 
-                      " (remaining=" + std::to_string(result.remainingCycles) + ")");
-        }
     }
     
     // System monitoring
