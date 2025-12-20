@@ -1,5 +1,6 @@
 #include "shell/Shell.h"
 #include "shell/StringUtils.h"
+#include "shell/CommandParser.h"
 #include <sstream>
 #include <iostream>
 #include <atomic>
@@ -243,67 +244,43 @@ void Shell::processCommandLine(const std::string& commandLine) {
         return;
     }
 
-    std::vector<std::string> andCommands = StringUtils::splitBy(commandLine, "&&");
+    // Parse the command line into structured chains
+    auto chains = CommandParser::parse(commandLine);
     std::string combinedOutput;
 
-    for (const auto& andCmd : andCommands) {
-        std::vector<std::string> pipeCommands = StringUtils::splitBy(andCmd, "|");
+    for (const auto& chain : chains) {
         std::string pipeInput;
 
-        for (size_t i = 0; i < pipeCommands.size(); ++i) {
-            std::string segment = pipeCommands[i];
-            std::string segmentCopy = segment;
+        for (const auto& segment : chain.segments) {
+            if (segment.command.empty())
+                continue;
+
+            // Handle input redirection
             std::string inputData;
-
-            if (segmentCopy.find('<') != std::string::npos) {
-                inputData = handleInputRedirection(segmentCopy);
-                segmentCopy = StringUtils::extractBefore(segmentCopy, "<");
+            if (segment.inputRedirect) {
+                inputData = handleInputRedirection("<" + segment.inputRedirect->fileName);
             }
 
-            if (segmentCopy.find(">>") != std::string::npos) {
-                std::string cleanCommand = StringUtils::extractBefore(segmentCopy, ">>");
-                std::string fileName = StringUtils::extractAfter(segmentCopy, ">>");
+            // Execute the command
+            bool inPipeChain = segment.isPipedToNext || segment.outputRedirect.has_value();
+            std::string result = executeCommand(
+                segment.command, 
+                segment.args, 
+                inputData.empty() ? pipeInput : inputData, 
+                inPipeChain
+            );
 
-                std::string command;
-                std::vector<std::string> args;
-                parseCommand(cleanCommand, command, args);
-
-                if (command.empty())
-                    continue;
-
-                bool inPipeChain = true;
-                std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData, inPipeChain);
-
-                handleAppendRedirection(segmentCopy, result);
-                pipeInput.clear();
-                continue;
-            }
-
-            bool hasOutputRedirect = (segmentCopy.find('>') != std::string::npos && segmentCopy.find(">>") == std::string::npos);
-
-            std::string fileName;
-            if (hasOutputRedirect) {
-                fileName = StringUtils::extractAfter(segmentCopy, ">");
-                segmentCopy = StringUtils::extractBefore(segmentCopy, ">");
-            }
-
-            std::string command;
-            std::vector<std::string> args;
-            parseCommand(segmentCopy, command, args);
-
-            if (command.empty())
-                continue;
-
-            bool inPipeChain = hasOutputRedirect ? true : (i < pipeCommands.size() - 1);
-            std::string result = executeCommand(command, args, inputData.empty() ? pipeInput : inputData, inPipeChain);
-
-            if (hasOutputRedirect && !fileName.empty()) {
-                handleOutputRedirection(">" + fileName, result);
+            // Handle output redirection
+            if (segment.outputRedirect) {
+                if (segment.outputRedirect->type == Redirection::Type::APPEND) {
+                    handleAppendRedirection(">>" + segment.outputRedirect->fileName, result);
+                } else {
+                    handleOutputRedirection(">" + segment.outputRedirect->fileName, result);
+                }
                 pipeInput.clear();
             } else {
                 pipeInput = result;
             }
-
         }
 
         if (!combinedOutput.empty())
