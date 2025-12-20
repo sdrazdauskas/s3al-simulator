@@ -158,6 +158,7 @@ void Terminal::runBlockingStdioLoop() {
     }
 
     // Cleanup
+    history.disableRawMode();
     input.stopReading();
     activeTerminal = nullptr;
     logging::Logger::getInstance().setConsoleOutputCallback(nullptr);
