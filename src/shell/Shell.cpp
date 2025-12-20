@@ -1,4 +1,5 @@
 #include "shell/Shell.h"
+#include "shell/StringUtils.h"
 #include <sstream>
 #include <iostream>
 #include <atomic>
@@ -113,83 +114,8 @@ void Shell::setOutputCallback(OutputCallback callback) {
     outputCallback = callback;
 }
 
-std::string Shell::parseQuotedToken(std::istringstream& iss, std::string token) {
-    std::string quoted = token.substr(1);
-    std::string next;
-    while (!quoted.empty() && quoted.back() != '"' && iss >> next) {
-        quoted += " " + next;
-    }
-    if (!quoted.empty() && quoted.back() == '"')
-        quoted.pop_back();
-    return quoted;
-}
-
-std::vector<std::string> Shell::splitByAndOperator(const std::string& commandLine) {
-    std::vector<std::string> commands;
-    std::string temp = commandLine;
-    size_t pos = 0;
-
-    while ((pos = temp.find("&&")) != std::string::npos) {
-        std::string part = temp.substr(0, pos);
-        size_t start = part.find_first_not_of(" \t");
-        size_t end = part.find_last_not_of(" \t");
-        if (start != std::string::npos)
-            commands.push_back(part.substr(start, end - start + 1));
-        temp.erase(0, pos + 2);
-    }
-
-    size_t start = temp.find_first_not_of(" \t");
-    size_t end = temp.find_last_not_of(" \t");
-    if (start != std::string::npos)
-        commands.push_back(temp.substr(start, end - start + 1));
-
-    return commands;
-}
-
-std::vector<std::string> Shell::splitByPipeOperator(const std::string& commandLine) {
-    std::vector<std::string> parts;
-    std::string temp = commandLine;
-    size_t pos = 0;
-
-    while ((pos = temp.find("|")) != std::string::npos) {
-        std::string part = temp.substr(0, pos);
-        size_t start = part.find_first_not_of(" \t");
-        size_t end = part.find_last_not_of(" \t");
-        if (start != std::string::npos)
-            parts.push_back(part.substr(start, end - start + 1));
-        temp.erase(0, pos + 1);
-    }
-
-    size_t start = temp.find_first_not_of(" \t");
-    size_t end = temp.find_last_not_of(" \t");
-    if (start != std::string::npos)
-        parts.push_back(temp.substr(start, end - start + 1));
-
-    return parts;
-}
-
-std::string Shell::trim(const std::string &s) {
-    auto start = s.find_first_not_of(" \t");
-    auto end = s.find_last_not_of(" \t");
-    return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
-}
-
-std::string Shell::extractAfterSymbol(const std::string &s, const std::string &symbol) {
-    size_t pos = s.find(symbol);
-    if (pos == std::string::npos)
-        return "";
-    return trim(s.substr(pos + symbol.size()));
-}
-
-std::string Shell::extractBeforeSymbol(const std::string &s, const std::string &symbol) {
-    size_t pos = s.find(symbol);
-    if (pos == std::string::npos)
-        return trim(s);
-    return trim(s.substr(0, pos));
-}
-
 std::string Shell::handleInputRedirection(const std::string &segment) {
-    std::string fileName = extractAfterSymbol(segment, "<");
+    std::string fileName = StringUtils::extractAfter(segment, "<");
     if (fileName.empty()) {
         logError("Input redirection missing fileName");
         return "";
@@ -213,8 +139,8 @@ std::string Shell::handleInputRedirection(const std::string &segment) {
 }
 
 std::string Shell::handleOutputRedirection(std::string segment, const std::string &output) {
-    std::string fileName = extractAfterSymbol(segment, ">");
-    segment = extractBeforeSymbol(segment, ">");
+    std::string fileName = StringUtils::extractAfter(segment, ">");
+    segment = StringUtils::extractBefore(segment, ">");
     if (fileName.empty()) {
         logError("Output redirection missing fileName");
         return "";
@@ -246,8 +172,8 @@ std::string Shell::handleOutputRedirection(std::string segment, const std::strin
 }
 
 std::string Shell::handleAppendRedirection(std::string segment, const std::string &output) {
-    std::string fileName = extractAfterSymbol(segment, ">>");
-    segment = extractBeforeSymbol(segment, ">>");
+    std::string fileName = StringUtils::extractAfter(segment, ">>");
+    segment = StringUtils::extractBefore(segment, ">>");
 
     if (fileName.empty()) {
         logError("Append redirection missing fileName");
@@ -317,11 +243,11 @@ void Shell::processCommandLine(const std::string& commandLine) {
         return;
     }
 
-    std::vector<std::string> andCommands = splitByAndOperator(commandLine);
+    std::vector<std::string> andCommands = StringUtils::splitBy(commandLine, "&&");
     std::string combinedOutput;
 
     for (const auto& andCmd : andCommands) {
-        std::vector<std::string> pipeCommands = splitByPipeOperator(andCmd);
+        std::vector<std::string> pipeCommands = StringUtils::splitBy(andCmd, "|");
         std::string pipeInput;
 
         for (size_t i = 0; i < pipeCommands.size(); ++i) {
@@ -331,12 +257,12 @@ void Shell::processCommandLine(const std::string& commandLine) {
 
             if (segmentCopy.find('<') != std::string::npos) {
                 inputData = handleInputRedirection(segmentCopy);
-                segmentCopy = extractBeforeSymbol(segmentCopy, "<");
+                segmentCopy = StringUtils::extractBefore(segmentCopy, "<");
             }
 
             if (segmentCopy.find(">>") != std::string::npos) {
-                std::string cleanCommand = extractBeforeSymbol(segmentCopy, ">>");
-                std::string fileName = extractAfterSymbol(segmentCopy, ">>");
+                std::string cleanCommand = StringUtils::extractBefore(segmentCopy, ">>");
+                std::string fileName = StringUtils::extractAfter(segmentCopy, ">>");
 
                 std::string command;
                 std::vector<std::string> args;
@@ -357,8 +283,8 @@ void Shell::processCommandLine(const std::string& commandLine) {
 
             std::string fileName;
             if (hasOutputRedirect) {
-                fileName = extractAfterSymbol(segmentCopy, ">");
-                segmentCopy = extractBeforeSymbol(segmentCopy, ">");
+                fileName = StringUtils::extractAfter(segmentCopy, ">");
+                segmentCopy = StringUtils::extractBefore(segmentCopy, ">");
             }
 
             std::string command;
@@ -532,17 +458,7 @@ std::string Shell::executeScriptFile(const std::string &fileName) {
 }
 
 void Shell::parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args) {
-    std::istringstream iss(commandLine);
-    iss >> command;
-
-    args.clear();
-    std::string token;
-    while (iss >> token) {
-        if (!token.empty() && token.front() == '"')
-            args.push_back(parseQuotedToken(iss, token));
-        else
-            args.push_back(token);
-    }
+    StringUtils::parseCommand(commandLine, command, args);
 }
 
 bool Shell::isConnectedToKernel() const { return kernelCallback != nullptr; }

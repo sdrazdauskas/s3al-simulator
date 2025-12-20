@@ -68,13 +68,7 @@ namespace shell {
 
         void initLuaOnce();
         std::string runLuaScript(const std::string& luaCode);
-        std::string parseQuotedToken(std::istringstream& iss, std::string token);
-        std::vector<std::string> splitByAndOperator(const std::string& commandLine);
-        std::vector<std::string> splitByPipeOperator(const std::string& commandLine);
         std::string executeScriptFile(const std::string& fileName);
-        std::string trim(const std::string &s);
-        std::string extractAfterSymbol(const std::string &s, const std::string &symbol);
-        std::string extractBeforeSymbol(const std::string &s, const std::string &symbol);
 
         std::string handleInputRedirection(const std::string &segment);
         std::string handleOutputRedirection(std::string segment, const std::string &output);
