@@ -115,7 +115,12 @@ target_link_libraries(memory PUBLIC logging)
 
 # Scheduler library
 add_library(scheduler STATIC)
-target_sources(scheduler PRIVATE src/scheduler/Scheduler.cpp)
+target_sources(scheduler PRIVATE 
+    src/scheduler/Scheduler.cpp
+    src/scheduler/algorithms/RoundRobinAlgorithm.cpp
+    src/scheduler/algorithms/PriorityAlgorithm.cpp
+    src/scheduler/algorithms/FCFSAlgorithm.cpp
+)
 target_include_directories(scheduler 
     PUBLIC src
     PRIVATE src/scheduler

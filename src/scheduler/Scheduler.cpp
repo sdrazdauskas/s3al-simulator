@@ -1,4 +1,7 @@
 #include "scheduler/Scheduler.h"
+#include "scheduler/algorithms/RoundRobinAlgorithm.h"
+#include "scheduler/algorithms/PriorityAlgorithm.h"
+#include "scheduler/algorithms/FCFSAlgorithm.h"
 #include <stdexcept>
 #include <algorithm>
 
@@ -6,12 +9,34 @@ namespace scheduler {
 
 void CPUScheduler::setAlgorithm(Algorithm a) { 
     algo = a;
+    
+    // Create the appropriate algorithm implementation
+    switch (a) {
+        case Algorithm::RoundRobin:
+            algorithm = std::make_unique<RoundRobinAlgorithm>(quantum);
+            break;
+        case Algorithm::Priority:
+            algorithm = std::make_unique<PriorityAlgorithm>();
+            break;
+        case Algorithm::FCFS:
+            algorithm = std::make_unique<FCFSAlgorithm>();
+            break;
+    }
+    
     logInfo("Algorithm set to: " + algorithmToString(a));
 }
 
 void CPUScheduler::setQuantum(int cycles) { 
     quantum = (cycles > 0) ? cycles : 1;
     logInfo("Quantum set to: " + std::to_string(quantum) + " cycles");
+    
+    // If Round Robin is already active, update its quantum
+    if (algo == Algorithm::RoundRobin && algorithm) {
+        auto* rrAlgo = dynamic_cast<RoundRobinAlgorithm*>(algorithm.get());
+        if (rrAlgo) {
+            rrAlgo->setQuantum(quantum);
+        }
+    }
 }
 
 void CPUScheduler::setCyclesPerInterval(int cycles) {
@@ -36,6 +61,28 @@ const Process* CPUScheduler::findProcess(int pid) const {
     return (it != processes.end()) ? &(*it) : nullptr;
 }
 
+std::vector<ScheduledTask*> CPUScheduler::getReadyProcesses() {
+    std::vector<ScheduledTask*> ready;
+    
+    // Iterate through deque
+    for (int pid : readyQueue) {
+        Process* p = findProcess(pid);
+        if (p) {
+            ready.push_back(p);
+        }
+    }
+    
+    return ready;
+}
+
+void CPUScheduler::removeFromReadyQueue(int pid) {
+    // Remove the specific pid from the deque
+    auto it = std::find(readyQueue.begin(), readyQueue.end(), pid);
+    if (it != readyQueue.end()) {
+        readyQueue.erase(it);
+    }
+}
+
 int CPUScheduler::getRemainingCycles(int pid) const {
     const Process* p = findProcess(pid);
     return p ? p->burstTime : -1;
@@ -49,7 +96,7 @@ void CPUScheduler::enqueue(int pid, int burstTime, int priority) {
     }
     
     processes.emplace_back(pid, 0, burstTime, priority);
-    readyQueue.push(pid);
+    readyQueue.push_back(pid);
     
     logInfo("Enqueued process " + std::to_string(pid) + 
         " (burst=" + std::to_string(burstTime) + 
@@ -98,66 +145,9 @@ void CPUScheduler::resume(int pid) {
     auto it = std::find(suspended.begin(), suspended.end(), pid);
     if (it != suspended.end()) {
         suspended.erase(it);
-        readyQueue.push(pid);
+        readyQueue.push_back(pid);
         logInfo("Resumed process " + std::to_string(pid));
     }
-}
-
-int CPUScheduler::selectNextProcess() {
-    while (!readyQueue.empty()) {
-        int pid = readyQueue.front();
-        readyQueue.pop();
-        
-        // Skip if suspended
-        if (std::find(suspended.begin(), suspended.end(), pid) != suspended.end()) {
-            continue;
-        }
-        
-        // Skip if process no longer exists
-        if (!findProcess(pid)) {
-            continue;
-        }
-        
-        // For Priority algorithm, we need to find highest priority
-        if (algo == Algorithm::Priority) {
-            // Put this one back and scan all
-            std::vector<int> candidates;
-            candidates.push_back(pid);
-            
-            while (!readyQueue.empty()) {
-                int other = readyQueue.front();
-                readyQueue.pop();
-                if (findProcess(other) && 
-                    std::find(suspended.begin(), suspended.end(), other) == suspended.end()) {
-                    candidates.push_back(other);
-                }
-            }
-            
-            // Find highest priority
-            int bestPid = -1;
-            int bestPriority = -1;
-            for (int cand : candidates) {
-                Process* p = findProcess(cand);
-                if (p && p->priority > bestPriority) {
-                    bestPriority = p->priority;
-                    bestPid = cand;
-                }
-            }
-            
-            // Put non-selected back
-            for (int cand : candidates) {
-                if (cand != bestPid) {
-                    readyQueue.push(cand);
-                }
-            }
-            
-            return bestPid;
-        }
-        
-        return pid;
-    }
-    
-    return -1;
 }
 
 void CPUScheduler::preemptCurrent() {
@@ -165,18 +155,22 @@ void CPUScheduler::preemptCurrent() {
     
     Process* p = findProcess(currentPid);
     if (p && p->burstTime > 0) {
-        readyQueue.push(currentPid);
+        readyQueue.push_back(currentPid);
         logDebug("Preempted process " + std::to_string(currentPid) + 
             " (remaining=" + std::to_string(p->burstTime) + ")");
     }
     
     currentPid = -1;
-    currentSlice = 0;
+    if (algorithm) {
+        algorithm->onContextSwitch(currentSlice);
+    }
 }
 
 void CPUScheduler::scheduleProcess(int pid) {
     currentPid = pid;
-    currentSlice = 0;
+    if (algorithm) {
+        algorithm->onContextSwitch(currentSlice);
+    }
     
     Process* process = findProcess(pid);
     if (process) {
@@ -200,39 +194,16 @@ void CPUScheduler::completeProcess(int pid) {
         processes.end());
     
     currentPid = -1;
-    currentSlice = 0;
-}
-
-bool CPUScheduler::shouldPreemptRoundRobin() {
-    // Time slice expired and there are other processes waiting
-    if (currentSlice >= quantum && !readyQueue.empty()) {
-        return true;
+    if (algorithm) {
+        algorithm->onContextSwitch(currentSlice);
     }
-    return false;
-}
-
-bool CPUScheduler::shouldPreemptPriority() {
-    // Check if any ready process has higher priority than current
-    if (readyQueue.empty()) return false;
-    
-    Process* current = findProcess(currentPid);
-    if (!current) return false;
-    
-    std::queue<int> temp = readyQueue;
-    while (!temp.empty()) {
-        int pid = temp.front();
-        temp.pop();
-        Process* other = findProcess(pid);
-        if (other && other->priority > current->priority &&
-            std::find(suspended.begin(), suspended.end(), pid) == suspended.end()) {
-            return true;
-        }
-    }
-    
-    return false;
 }
 
 TickResult CPUScheduler::tick() {
+    if (!algorithm) {
+        return TickResult(); // No algorithm set
+    }
+    
     TickResult result;
     
     // Process cyclesPerInterval cycles
@@ -241,10 +212,17 @@ TickResult CPUScheduler::tick() {
         
         // If no current process, try to schedule one
         if (currentPid < 0) {
-            int nextPid = selectNextProcess();
+            auto readyProcs = getReadyProcesses();
+            int nextPid = algorithm->selectNext(readyProcs);
             if (nextPid >= 0) {
                 scheduleProcess(nextPid);
                 result.contextSwitch = true;
+                // Remove selected process from ready queue (pop front for FIFO)
+                if (!readyQueue.empty() && readyQueue.front() == nextPid) {
+                    readyQueue.pop_front();
+                } else {
+                    removeFromReadyQueue(nextPid);
+                }
             }
         }
         
@@ -263,13 +241,16 @@ TickResult CPUScheduler::tick() {
         }
         
         // Consume one cycle
-        currentSlice++;
         p->burstTime--;
         result.remainingCycles = p->burstTime;
         
+        // Let algorithm track cycle execution
+        algorithm->onCycleExecuted(currentPid, currentSlice);
+        
+        // Get debug info from algorithm
+        std::string debugInfo = algorithm->getDebugInfo(currentSlice, quantum);
         logDebug("Process " + std::to_string(currentPid) + 
-            " executed 1 cycle (remaining=" + std::to_string(p->burstTime) + 
-            ", slice=" + std::to_string(currentSlice) + "/" + std::to_string(quantum) + ")");
+            " executed 1 cycle (remaining=" + std::to_string(p->burstTime) + debugInfo + ")");
         
         if (p->burstTime <= 0) {
             // Process finished
@@ -278,32 +259,23 @@ TickResult CPUScheduler::tick() {
             completeProcess(currentPid);
             
         } else {
-            // Check algorithm-specific preemption conditions
-            bool shouldPreempt = false;
-            
-            if (algo == Algorithm::RoundRobin) {
-                if (currentSlice >= quantum) {
-                    if (!readyQueue.empty()) {
-                        // Other processes waiting, preempt
-                        shouldPreempt = true;
-                    } else {
-                        // No other processes, reset slice and continue
-                        currentSlice = 0;
-                        logDebug("Process " + std::to_string(currentPid) + 
-                            " quantum expired, continuing (no other processes)");
-                    }
-                }
-            } else if (algo == Algorithm::Priority) {
-                shouldPreempt = shouldPreemptPriority();
-            }
+            // Check if current process should be preempted
+            auto readyProcs = getReadyProcesses();
+            bool shouldPreempt = algorithm->shouldPreempt(p, readyProcs, currentSlice);
             
             if (shouldPreempt) {
                 preemptCurrent();
-                int nextPid = selectNextProcess();
+                int nextPid = algorithm->selectNext(readyProcs);
                 if (nextPid >= 0) {
                     scheduleProcess(nextPid);
                     result.contextSwitch = true;
                     result.currentPid = currentPid;
+                    // Remove selected process from ready queue (pop front for FIFO)
+                    if (!readyQueue.empty() && readyQueue.front() == nextPid) {
+                        readyQueue.pop_front();
+                    } else {
+                        removeFromReadyQueue(nextPid);
+                    }
                     Process* next = findProcess(currentPid);
                     if (next) result.remainingCycles = next->burstTime;
                 }
