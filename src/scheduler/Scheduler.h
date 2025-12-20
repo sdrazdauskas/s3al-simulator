@@ -35,6 +35,8 @@ using ProcessCompleteCallback = std::function<void(int pid)>;
 
 class CPUScheduler : public common::LoggingMixin {
 public:
+    CPUScheduler();
+    
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
     void setAlgorithm(Algorithm a);
@@ -77,6 +79,9 @@ public:
     
     // Get process remaining cycles (-1 if not found)
     int getRemainingCycles(int pid) const;
+    void scheduleNextProcess(TickResult& result);
+    void handlePreemption(TickResult& result);
+    void handleProcessExecution(TickResult& result);
 
 private:
     // State

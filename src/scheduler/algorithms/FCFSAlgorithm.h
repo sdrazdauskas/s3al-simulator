@@ -9,7 +9,7 @@ public:
     
     int selectNext(const std::vector<ScheduledTask*>& readyQueue) override;
     
-    bool shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue, int currentSlice) override;
+    bool shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue) override;
     
     std::string getName() const override { return "FCFS"; }
 };

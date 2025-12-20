@@ -7,6 +7,10 @@
 
 namespace scheduler {
 
+CPUScheduler::CPUScheduler() {
+    setAlgorithm(Algorithm::FCFS);
+}
+
 void CPUScheduler::setAlgorithm(Algorithm a) { 
     algo = a;
     
@@ -130,7 +134,6 @@ void CPUScheduler::remove(int pid) {
     // If it's the current process, stop it
     if (currentPid == pid) {
         currentPid = -1;
-        currentSlice = 0;
     }
     
     // Remove from processes list
@@ -153,7 +156,6 @@ void CPUScheduler::suspend(int pid) {
         // Suspend running process
         suspended.push_back(pid);
         currentPid = -1;
-        currentSlice = 0;
         logInfo("Suspended running process " + std::to_string(pid));
     } else {
         // Mark as suspended (will be skipped when dequeued)
@@ -184,16 +186,14 @@ void CPUScheduler::preemptCurrent() {
     }
     
     currentPid = -1;
-    currentSlice = 0;  // Reset time slice
 }
 
 void CPUScheduler::scheduleProcess(int pid) {
     currentPid = pid;
-    currentSlice = 0;  // Reset time slice on context switch
-    
+    if (algorithm) algorithm->onSchedule(pid);
     Process* process = findProcess(pid);
     if (process) {
-        logDebug("Selected process " + std::to_string(pid) + 
+        logDebug("Selected process " + std::to_string(pid) +
             " for execution (burst=" + std::to_string(process->burstTime) + ")");
     }
 }
@@ -213,101 +213,104 @@ void CPUScheduler::completeProcess(int pid) {
         processes.end());
     
     currentPid = -1;
-    currentSlice = 0;  // Reset time slice
+}
+
+void CPUScheduler::scheduleNextProcess(TickResult& result) {
+    auto readyProcs = getReadyProcesses();
+    int nextPid = algorithm->selectNext(readyProcs);
+    if (nextPid >= 0) {
+        scheduleProcess(nextPid);
+        result.contextSwitch = true;
+        if (!readyQueue.empty() && readyQueue.front() == nextPid) {
+            readyQueue.pop_front();
+        } else {
+            removeFromReadyQueue(nextPid);
+        }
+    }
+}
+
+void CPUScheduler::handlePreemption(TickResult& result) {
+    Process* p = findProcess(currentPid);
+    if (!p) return;
+    auto readyProcs = getReadyProcesses();
+    bool shouldPreempt = algorithm->shouldPreempt(p, readyProcs);
+    if (shouldPreempt) {
+        preemptCurrent();
+        int nextPid = algorithm->selectNext(readyProcs);
+        if (nextPid >= 0) {
+            scheduleProcess(nextPid);
+            result.contextSwitch = true;
+            result.currentPid = currentPid;
+            if (!readyQueue.empty() && readyQueue.front() == nextPid) {
+                readyQueue.pop_front();
+            } else {
+                removeFromReadyQueue(nextPid);
+            }
+        }
+    }
+}
+
+void CPUScheduler::handleProcessExecution(TickResult& result) {
+    result.idle = false;
+    result.currentPid = currentPid;
+    Process* p = findProcess(currentPid);
+    if (!p) {
+        currentPid = -1;
+        return;
+    }
+    // Consume one cycle
+    p->burstTime--;
+    result.remainingCycles = p->burstTime;
+
+    if (algorithm) algorithm->onTick(currentPid);
+    // After incrementing, check for preemption (currentSlice arg is now ignored)
+    auto readyProcs = getReadyProcesses();
+    bool shouldPreempt = algorithm->shouldPreempt(p, readyProcs);
+    if (shouldPreempt) {
+        preemptCurrent();
+        int nextPid = algorithm->selectNext(readyProcs);
+        if (nextPid >= 0) {
+            scheduleProcess(nextPid);
+            result.contextSwitch = true;
+            result.currentPid = currentPid;
+            if (!readyQueue.empty() && readyQueue.front() == nextPid) {
+                readyQueue.pop_front();
+            } else {
+                removeFromReadyQueue(nextPid);
+            }
+        }
+    }
+
+    // Get debug info
+    std::string debugInfo = algorithm ? algorithm->getDebugInfo(currentPid) : "";
+    logDebug("Process " + std::to_string(currentPid) +
+        " executed 1 cycle (remaining=" + std::to_string(p->burstTime) + debugInfo + ")");
+
+    if (p->burstTime <= 0) {
+        result.processCompleted = true;
+        result.completedPid = currentPid;
+        completeProcess(currentPid);
+    }
 }
 
 TickResult CPUScheduler::tick() {
     if (!algorithm) {
-        return TickResult(); // No algorithm set
+        return TickResult();
     }
-    
     TickResult result;
-    
-    // Process cyclesPerInterval cycles
     for (int cycle = 0; cycle < cyclesPerInterval; ++cycle) {
         systemTime++;
-        
-        // If no current process, try to schedule one
         if (currentPid < 0) {
-            auto readyProcs = getReadyProcesses();
-            int nextPid = algorithm->selectNext(readyProcs);
-            if (nextPid >= 0) {
-                scheduleProcess(nextPid);
-                result.contextSwitch = true;
-                // Remove selected process from ready queue (pop front for FIFO)
-                if (!readyQueue.empty() && readyQueue.front() == nextPid) {
-                    readyQueue.pop_front();
-                } else {
-                    removeFromReadyQueue(nextPid);
-                }
-            }
+            scheduleNextProcess(result);
         }
-        
-        // If still no process, we're idle
+        if (currentPid >= 0 && algorithm) {
+            handlePreemption(result);
+        }
         if (currentPid < 0) {
             continue;
         }
-        
-        result.idle = false;
-        result.currentPid = currentPid;
-        
-        Process* p = findProcess(currentPid);
-        if (!p) {
-            currentPid = -1;
-            continue;
-        }
-        
-        // Consume one cycle
-        p->burstTime--;
-        result.remainingCycles = p->burstTime;
-        
-        // Track time slice for Round Robin
-        if (algo == Algorithm::RoundRobin) {
-            if (currentSlice < quantum) {
-                currentSlice++;
-            } else {
-                currentSlice = 1;  // Reset to 1 when quantum reached (start new period)
-            }
-        }
-        
-        // Get debug info
-        std::string debugInfo = (algo == Algorithm::RoundRobin) 
-            ? ", slice=" + std::to_string(currentSlice) + "/" + std::to_string(quantum)
-            : "";
-        logDebug("Process " + std::to_string(currentPid) + 
-            " executed 1 cycle (remaining=" + std::to_string(p->burstTime) + debugInfo + ")");
-        
-        if (p->burstTime <= 0) {
-            // Process finished
-            result.processCompleted = true;
-            result.completedPid = currentPid;
-            completeProcess(currentPid);
-            
-        } else {
-            // Check if current process should be preempted
-            auto readyProcs = getReadyProcesses();
-            bool shouldPreempt = algorithm->shouldPreempt(p, readyProcs, currentSlice);
-            
-            if (shouldPreempt) {
-                preemptCurrent();
-                int nextPid = algorithm->selectNext(readyProcs);
-                if (nextPid >= 0) {
-                    scheduleProcess(nextPid);
-                    result.contextSwitch = true;
-                    result.currentPid = currentPid;
-                    // Remove selected process from ready queue (pop front for FIFO)
-                    if (!readyQueue.empty() && readyQueue.front() == nextPid) {
-                        readyQueue.pop_front();
-                    } else {
-                        removeFromReadyQueue(nextPid);
-                    }
-                    Process* next = findProcess(currentPid);
-                    if (next) result.remainingCycles = next->burstTime;
-                }
-            }
-        }
+        handleProcessExecution(result);
     }
-    
     return result;
 }
 
