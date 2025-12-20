@@ -47,31 +47,31 @@ void Terminal::print(const std::string& output) {
 }
 
 void Terminal::redrawPrompt() {
-    if (!isReadingInput.load()) return;
+    if (!input.isReading.load()) return;
     
-    std::lock_guard<std::mutex> lock(inputMutex);
+    std::lock_guard<std::mutex> lock(input.mutex);
     // Redraw prompt and current input on a fresh line
     std::cout << "\r\33[2K";  // Clear current line
     if (promptCb) std::cout << promptCb();
-    std::cout << currentBuffer;
+    std::cout << input.buffer;
     // Move cursor to correct position
-    if (promptCb && currentCursor < currentBuffer.size()) {
-        std::cout << "\r\33[" << (currentCursor + promptCb().size()) << "C";
+    if (promptCb && input.cursor < input.buffer.size()) {
+        std::cout << "\r\33[" << (input.cursor + promptCb().size()) << "C";
     }
     std::cout << std::flush;
 }
 
 void Terminal::clearCurrentLine() {
-    if (!isReadingInput.load()) return;
+    if (!input.isReading.load()) return;
     
     // Clear the current line before log output
     std::cout << "\r\33[2K" << std::flush;
 }
 
 void Terminal::updateInputState(const std::string& buffer, size_t cursor) {
-    std::lock_guard<std::mutex> lock(inputMutex);
-    currentBuffer = buffer;
-    currentCursor = cursor;
+    std::lock_guard<std::mutex> lock(input.mutex);
+    input.buffer = buffer;
+    input.cursor = cursor;
 }
 
 void Terminal::displayBuffer(const std::string& buffer, size_t cursor) {
@@ -136,7 +136,7 @@ bool Terminal::handleCursorMovement(char key, size_t& cursor, size_t bufferSize)
             return false;
     }
     
-    updateInputState(currentBuffer, cursor);
+    updateInputState(input.buffer, cursor);
     return true;
 }
 
@@ -213,11 +213,11 @@ void Terminal::runBlockingStdioLoop() {
         
         // Mark that we're now reading input and clear previous state
         {
-            std::lock_guard<std::mutex> lock(inputMutex);
-            currentBuffer.clear();
-            currentCursor = 0;
+            std::lock_guard<std::mutex> lock(input.mutex);
+            input.buffer.clear();
+            input.cursor = 0;
         }
-        isReadingInput.store(true);
+        input.isReading.store(true);
 
         while (true) {
             char c;
@@ -227,7 +227,7 @@ void Terminal::runBlockingStdioLoop() {
             }
 
             if (c == '\n' || c == '\r') {
-                isReadingInput.store(false);
+                input.isReading.store(false);
                 std::cout << "\n";
                 history.add(buffer);
                 
@@ -264,7 +264,7 @@ void Terminal::runBlockingStdioLoop() {
     }
 
     // Cleanup
-    isReadingInput.store(false);
+    input.isReading.store(false);
     activeTerminal = nullptr;
     logging::Logger::getInstance().setConsoleOutputCallback(nullptr);
     

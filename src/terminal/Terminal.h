@@ -52,17 +52,19 @@ public:
     void requestShutdown();
 
 private:
+    struct InputState {
+        std::mutex mutex;
+        std::string buffer;
+        size_t cursor{0};
+        std::atomic<bool> isReading{false};
+    };
+
     sendCallback sendCb;
     signalCallback sigCb;
     promptCallback promptCb;
     std::atomic<bool> shouldShutdown{false};
     std::thread terminalThread;
-    
-    // State for redrawing prompt after external output (e.g., logs)
-    std::mutex inputMutex;
-    std::string currentBuffer;
-    size_t currentCursor{0};
-    std::atomic<bool> isReadingInput{false};
+    InputState input;
     
     void redrawPrompt();
     void clearCurrentLine();
