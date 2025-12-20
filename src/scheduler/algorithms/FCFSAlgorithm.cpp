@@ -8,7 +8,7 @@ int FCFSAlgorithm::selectNext(const std::vector<ScheduledTask*>& readyQueue) {
     return readyQueue.front()->id;
 }
 
-bool FCFSAlgorithm::shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue, int currentSlice) {
+bool FCFSAlgorithm::shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue) {
     // FCFS is non-preemptive
     return false;
 }

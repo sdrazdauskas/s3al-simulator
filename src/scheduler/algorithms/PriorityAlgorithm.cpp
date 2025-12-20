@@ -15,7 +15,7 @@ int PriorityAlgorithm::selectNext(const std::vector<ScheduledTask*>& readyQueue)
     return (*it)->id;
 }
 
-bool PriorityAlgorithm::shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue, int currentSlice) {
+bool PriorityAlgorithm::shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue) {
     if (!current || readyQueue.empty()) return false;
     
     // Check if any waiting process has higher priority (lower number)

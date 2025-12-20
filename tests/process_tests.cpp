@@ -134,14 +134,14 @@ TEST_F(SchedulerTest, RoundRobinPreemptsAfterQuantum) {
 TEST_F(SchedulerTest, PriorityPreemptsLowerPriority) {
     scheduler->setAlgorithm(Algorithm::Priority);
     
-    scheduler->enqueue(1, 10, 1);  // Low priority
+    scheduler->enqueue(1, 10, 10);  // Low priority
     
     // Start low priority process
     scheduler->tick();
     EXPECT_EQ(scheduler->getCurrentPid(), 1);
     
     // Submit high priority process
-    scheduler->enqueue(2, 2, 10);  // High priority
+    scheduler->enqueue(2, 2, 1);  // High priority
     
     // Next tick should preempt and run high priority
     auto result = scheduler->tick();
