@@ -44,7 +44,7 @@ void Init::initializeShell() {
     logInfo("Starting shell service...");
     
     // Create shell as a persistent process
-    shellPid = sysApi.fork("sh", 1, 0, 10, true);  // priority=10, persistent=true
+    shellPid = sysApi.fork("sh", 1, 0, 1, true);
     if (shellPid <= 0) {
         logError("Failed to create shell process");
         return;

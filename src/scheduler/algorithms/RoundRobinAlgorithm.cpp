@@ -13,20 +13,4 @@ bool RoundRobinAlgorithm::shouldPreempt(const ScheduledTask* current, const std:
     return currentSlice >= quantum && !readyQueue.empty();
 }
 
-void RoundRobinAlgorithm::onCycleExecuted(int pid, int& currentSlice) {
-    if (currentSlice < quantum) {
-        currentSlice++;
-    } else {
-        currentSlice = 1;
-    }
-}
-
-void RoundRobinAlgorithm::onContextSwitch(int& currentSlice) {
-    currentSlice = 0;
-}
-
-std::string RoundRobinAlgorithm::getDebugInfo(int currentSlice, int quantum) const {
-    return ", slice=" + std::to_string(currentSlice) + "/" + std::to_string(quantum);
-}
-
 } // namespace scheduler
