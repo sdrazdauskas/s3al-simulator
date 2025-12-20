@@ -11,13 +11,8 @@
 namespace init {
 
 // Initialize static members
-std::unordered_map<int, daemons::Daemon*> Init::daemonRegistry;
+std::unordered_map<int, std::shared_ptr<daemons::Daemon>> Init::daemonRegistry;
 std::mutex Init::registryMutex;
-
-// Implement the custom deleter
-void Init::DaemonDeleter::operator()(daemons::Daemon* p) const {
-    delete p;
-}
 
 Init::Init(sys::SysApi& sys)
     : sysApi(sys) {}
@@ -193,26 +188,28 @@ void Init::startDaemons() {
             continue;
         }
         
-        // Convert to unique_ptr with custom deleter
-        std::unique_ptr<daemons::Daemon, DaemonDeleter> daemonWithDeleter(daemon.release());
+        // Convert to shared_ptr for easier management
+        std::shared_ptr<daemons::Daemon> daemonShared(std::move(daemon));
         
-        daemonWithDeleter->setPid(pid);
+        daemonShared->setPid(pid);
         
         // Set up signal handler - when process gets signaled, notify daemon
-        auto daemon_ptr = daemonWithDeleter.get();
-        daemonWithDeleter->setSignalCallback([daemon_ptr](int sig) {
-            daemon_ptr->handleSignal(sig);
+        auto daemon_weak = std::weak_ptr<daemons::Daemon>(daemonShared);
+        daemonShared->setSignalCallback([daemon_weak](int sig) {
+            if (auto daemon_ptr = daemon_weak.lock()) {
+                daemon_ptr->handleSignal(sig);
+            }
         });
         
-        daemonWithDeleter->start();
+        daemonShared->start();
         
         // Register in global registry for signal forwarding
         {
             std::lock_guard<std::mutex> lock(registryMutex);
-            daemonRegistry[pid] = daemonWithDeleter.get();
+            daemonRegistry[pid] = daemonShared;
         }
         
-        daemons.push_back(DaemonProcess{std::move(daemonWithDeleter), pid});
+        daemons.push_back(DaemonProcess{daemonShared, pid});
     }
     
     log("INFO", "Started " + std::to_string(daemons.size()) + " system daemons");

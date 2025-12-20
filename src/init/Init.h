@@ -51,19 +51,12 @@ public:
 
 private:
     // Static registry for mapping PIDs to daemon instances
-    static std::unordered_map<int, daemons::Daemon*> daemonRegistry;
+    static std::unordered_map<int, std::shared_ptr<daemons::Daemon>> daemonRegistry;
     static std::mutex registryMutex;
-    // Custom deleter to allow forward declaration of Daemon
-    struct DaemonDeleter {
-        void operator()(daemons::Daemon* p) const;
-    };
     
     struct DaemonProcess {
-        std::unique_ptr<daemons::Daemon, DaemonDeleter> daemon;
+        std::shared_ptr<daemons::Daemon> daemon;
         int pid;
-        
-        // Non-owning pointer for signal callbacks
-        daemons::Daemon* daemon_ptr() const { return daemon.get(); }
     };
     
     sys::SysApi& sysApi;
