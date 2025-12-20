@@ -184,16 +184,12 @@ void CPUScheduler::preemptCurrent() {
     }
     
     currentPid = -1;
-    if (algorithm) {
-        algorithm->onContextSwitch(currentSlice);
-    }
+    currentSlice = 0;  // Reset time slice
 }
 
 void CPUScheduler::scheduleProcess(int pid) {
     currentPid = pid;
-    if (algorithm) {
-        algorithm->onContextSwitch(currentSlice);
-    }
+    currentSlice = 0;  // Reset time slice on context switch
     
     Process* process = findProcess(pid);
     if (process) {
@@ -217,9 +213,7 @@ void CPUScheduler::completeProcess(int pid) {
         processes.end());
     
     currentPid = -1;
-    if (algorithm) {
-        algorithm->onContextSwitch(currentSlice);
-    }
+    currentSlice = 0;  // Reset time slice
 }
 
 TickResult CPUScheduler::tick() {
@@ -267,11 +261,19 @@ TickResult CPUScheduler::tick() {
         p->burstTime--;
         result.remainingCycles = p->burstTime;
         
-        // Let algorithm track cycle execution
-        algorithm->onCycleExecuted(currentPid, currentSlice);
+        // Track time slice for Round Robin
+        if (algo == Algorithm::RoundRobin) {
+            if (currentSlice < quantum) {
+                currentSlice++;
+            } else {
+                currentSlice = 1;  // Reset to 1 when quantum reached (start new period)
+            }
+        }
         
-        // Get debug info from algorithm
-        std::string debugInfo = algorithm->getDebugInfo(currentSlice, quantum);
+        // Get debug info
+        std::string debugInfo = (algo == Algorithm::RoundRobin) 
+            ? ", slice=" + std::to_string(currentSlice) + "/" + std::to_string(quantum)
+            : "";
         logDebug("Process " + std::to_string(currentPid) + 
             " executed 1 cycle (remaining=" + std::to_string(p->burstTime) + debugInfo + ")");
         

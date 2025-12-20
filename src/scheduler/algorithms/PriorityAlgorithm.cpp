@@ -27,16 +27,4 @@ bool PriorityAlgorithm::shouldPreempt(const ScheduledTask* current, const std::v
     return false;
 }
 
-void PriorityAlgorithm::onCycleExecuted(int pid, int& currentSlice) {
-    // Priority doesn't use time slices
-}
-
-void PriorityAlgorithm::onContextSwitch(int& currentSlice) {
-    currentSlice = 0;
-}
-
-std::string PriorityAlgorithm::getDebugInfo(int currentSlice, int quantum) const {
-    return "";  // Priority scheduling doesn't use slices
-}
-
 } // namespace scheduler
