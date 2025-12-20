@@ -59,6 +59,8 @@ namespace shell {
 
     class Shell : public common::LoggingMixin {
     private:
+        static constexpr int BUILTIN_CPU_WORK = 1;  // CPU cycles for built-in commands
+        
         lua_State* luaState;
         SysApi& sys;
         const CommandRegistry& registry;

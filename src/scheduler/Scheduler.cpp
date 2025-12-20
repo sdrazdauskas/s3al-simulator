@@ -166,7 +166,7 @@ void CPUScheduler::preemptCurrent() {
     Process* p = findProcess(currentPid);
     if (p && p->burstTime > 0) {
         readyQueue.push(currentPid);
-        log("DEBUG", "Preempted process " + std::to_string(currentPid) + 
+        logDebug("Preempted process " + std::to_string(currentPid) + 
             " (remaining=" + std::to_string(p->burstTime) + ")");
     }
     
@@ -180,7 +180,7 @@ void CPUScheduler::scheduleProcess(int pid) {
     
     Process* process = findProcess(pid);
     if (process) {
-        log("DEBUG", "Selected process " + std::to_string(pid) + 
+        logDebug("Selected process " + std::to_string(pid) + 
             " for execution (burst=" + std::to_string(process->burstTime) + ")");
     }
 }
@@ -267,7 +267,7 @@ TickResult CPUScheduler::tick() {
         p->burstTime--;
         result.remainingCycles = p->burstTime;
         
-        log("DEBUG", "Process " + std::to_string(currentPid) + 
+        logDebug("Process " + std::to_string(currentPid) + 
             " executed 1 cycle (remaining=" + std::to_string(p->burstTime) + 
             ", slice=" + std::to_string(currentSlice) + "/" + std::to_string(quantum) + ")");
         
@@ -289,7 +289,7 @@ TickResult CPUScheduler::tick() {
                     } else {
                         // No other processes, reset slice and continue
                         currentSlice = 0;
-                        log("DEBUG", "Process " + std::to_string(currentPid) + 
+                        logDebug("Process " + std::to_string(currentPid) + 
                             " quantum expired, continuing (no other processes)");
                     }
                 }

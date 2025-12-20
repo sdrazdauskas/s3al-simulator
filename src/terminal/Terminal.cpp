@@ -182,9 +182,9 @@ void Terminal::runBlockingStdioLoop() {
     activeTerminal = this;
     logging::Logger::getInstance().setConsoleOutputCallback([this](bool before) {
         if (before) {
-            clearCurrentLine();  // Clear before log is printed
+            clearCurrentLine();
         } else {
-            redrawPrompt();      // Redraw after log is printed
+            redrawPrompt();
         }
     });
 
@@ -201,7 +201,7 @@ void Terminal::runBlockingStdioLoop() {
     while (!shouldShutdown.load()) {
         if (sigintReceived.load()) {
             sigintReceived.store(false);
-            log("DEBUG", "Received SIGINT (Ctrl+C)");
+            logDebug("Received SIGINT (Ctrl+C)");
             if (shouldShutdown.load()) break;
             continue;
         }

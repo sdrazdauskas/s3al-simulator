@@ -200,14 +200,14 @@ std::string Shell::handleAppendRedirection(std::string segment, const std::strin
 
 void Shell::processCommandLine(const std::string& commandLine) {
     if (commandLine.empty()) {
-        log("DEBUG", "Empty command line received");
+        logDebug("Empty command line received");
         if (outputCallback) outputCallback("Error: No command entered");
         return;
     }
 
     interruptRequested.store(false);
 
-    log("DEBUG", "Processing command: " + commandLine);
+    logDebug("Processing command: " + commandLine);
 
     std::istringstream checkStream(commandLine);
     std::string firstWord;
@@ -325,8 +325,7 @@ std::string Shell::executeCommand(const std::string& command,
 
         // Add minimal CPU work to shell's own process and wait for scheduler
         if (shellPid > 0 && isConnectedToKernel()) {
-            sys.addCPUWork(shellPid, 1);  // Built-ins use 1 cycle
-            // Wait for scheduler to consume the cycles
+            sys.addCPUWork(shellPid, BUILTIN_CPU_WORK);
             if (!sys.waitForProcess(shellPid)) {
                 // Interrupted - return error to stop the chain
                 return "Interrupted";
@@ -336,12 +335,12 @@ std::string Shell::executeCommand(const std::string& command,
         std::ostringstream out, err;
         
         if (inPipeChain) {
-            std::cerr.flush();  // Flush logs before command output
+            std::cerr.flush();
             cmd->execute(argsWithInput, input, out, err, sys);
             if (!err.str().empty()) return out.str() + err.str();
             return out.str();
         } else {
-            std::cerr.flush();  // Flush logs before command output
+            std::cerr.flush();
             CallbackStreamBuf out_buf(outputCallback);
             CallbackStreamBuf err_buf(outputCallback);
             std::ostream os(&out_buf);
@@ -376,10 +375,9 @@ std::string Shell::executeCommand(const std::string& command,
     logInfo("Process started: " + command + " (PID=" + std::to_string(pid) + ")");
 
     // Wait for scheduler to complete the process (simulate CPU time)
-    std::cerr.flush();  // Flush logs before waiting
+    std::cerr.flush();
     if (!sys.waitForProcess(pid)) {
         logInfo("Process interrupted: " + command + " (PID=" + std::to_string(pid) + ")");
-        // Still need to reap the zombie process
         sys.reapProcess(pid);
         return "Interrupted";
     }
@@ -388,7 +386,7 @@ std::string Shell::executeCommand(const std::string& command,
     if (inPipeChain) {
         // Pipe output mode
         std::ostringstream out, err;
-        std::cerr.flush();  // Flush logs before command output
+        std::cerr.flush();
         cmd->execute(argsWithInput, input, out, err, sys);
         // Command finished - call exit() then wait()/reap
         sys.exit(pid);
@@ -397,7 +395,7 @@ std::string Shell::executeCommand(const std::string& command,
     }
 
     // Real time output
-    std::cerr.flush();  // Flush logs before command output
+    std::cerr.flush();
     CallbackStreamBuf out_buf(outputCallback);
     CallbackStreamBuf err_buf(outputCallback);
     std::ostream os(&out_buf);
@@ -405,7 +403,7 @@ std::string Shell::executeCommand(const std::string& command,
     cmd->execute(argsWithInput, input, os, es, sys);
     os.flush(); es.flush();
 
-    // Command finished - call exit() then wait()/reap
+    // Command finished
     sys.exit(pid);
     sys.reapProcess(pid);
     logInfo("Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
@@ -430,7 +428,7 @@ std::string Shell::executeScriptFile(const std::string &fileName) {
         return "Error: Lua file is empty";
     }
 
-    log("DEBUG", "Executing Lua content: " + fileContent.substr(0, 50) + "...");
+    logDebug("Executing Lua content: " + fileContent.substr(0, 50) + "...");
     return runLuaScript(fileContent);
 }
 
