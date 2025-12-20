@@ -4,41 +4,25 @@
 
 namespace scheduler {
 
-CPUScheduler::CPUScheduler() {}
-
-void CPUScheduler::setLogCallback(LogCallback callback) {
-    logCallback = callback;
-}
-
-void CPUScheduler::log(const std::string& level, const std::string& message) {
-    if (logCallback) {
-        logCallback(level, "SCHEDULER", message);
-    }
-}
-
-// ============= Configuration =============
-
 void CPUScheduler::setAlgorithm(Algorithm a) { 
     algo = a;
-    log("INFO", "Algorithm set to: " + algorithmToString(a));
+    logInfo("Algorithm set to: " + algorithmToString(a));
 }
 
 void CPUScheduler::setQuantum(int cycles) { 
     quantum = (cycles > 0) ? cycles : 1;
-    log("INFO", "Quantum set to: " + std::to_string(quantum) + " cycles");
+    logInfo("Quantum set to: " + std::to_string(quantum) + " cycles");
 }
 
 void CPUScheduler::setCyclesPerInterval(int cycles) {
     cyclesPerInterval = (cycles > 0) ? cycles : 1;
-    log("INFO", "Cycles per interval set to: " + std::to_string(cyclesPerInterval));
+    logInfo("Cycles per interval set to: " + std::to_string(cyclesPerInterval));
 }
 
 void CPUScheduler::setTickIntervalMs(int ms) {
     tickIntervalMs = (ms > 0) ? ms : 1;
-    log("INFO", "Tick interval set to: " + std::to_string(tickIntervalMs) + " ms");
+    logInfo("Tick interval set to: " + std::to_string(tickIntervalMs) + " ms");
 }
-
-// ============= Process Lookup =============
 
 Process* CPUScheduler::findProcess(int pid) {
     auto it = std::find_if(processes.begin(), processes.end(),
@@ -57,19 +41,17 @@ int CPUScheduler::getRemainingCycles(int pid) const {
     return p ? p->burstTime : -1;
 }
 
-// ============= Process Management =============
-
 void CPUScheduler::enqueue(int pid, int burstTime, int priority) {
     // Check if already exists
     if (findProcess(pid)) {
-        log("WARN", "Process " + std::to_string(pid) + " already in scheduler");
+        logWarn("Process " + std::to_string(pid) + " already in scheduler");
         return;
     }
     
     processes.emplace_back(pid, 0, burstTime, priority);
     readyQueue.push(pid);
     
-    log("INFO", "Enqueued process " + std::to_string(pid) + 
+    logInfo("Enqueued process " + std::to_string(pid) + 
         " (burst=" + std::to_string(burstTime) + 
         ", priority=" + std::to_string(priority) + ")");
 }
@@ -93,7 +75,7 @@ void CPUScheduler::remove(int pid) {
         suspended.end());
     
     // Can't easily remove from queue, but it will be skipped when not found
-    log("INFO", "Removed process " + std::to_string(pid) + " from scheduler queue");
+    logInfo("Removed process " + std::to_string(pid) + " from scheduler queue");
 }
 
 void CPUScheduler::suspend(int pid) {
@@ -102,12 +84,12 @@ void CPUScheduler::suspend(int pid) {
         suspended.push_back(pid);
         currentPid = -1;
         currentSlice = 0;
-        log("INFO", "Suspended running process " + std::to_string(pid));
+        logInfo("Suspended running process " + std::to_string(pid));
     } else {
         // Mark as suspended (will be skipped when dequeued)
         if (std::find(suspended.begin(), suspended.end(), pid) == suspended.end()) {
             suspended.push_back(pid);
-            log("INFO", "Suspended process " + std::to_string(pid));
+            logInfo("Suspended process " + std::to_string(pid));
         }
     }
 }
@@ -117,11 +99,9 @@ void CPUScheduler::resume(int pid) {
     if (it != suspended.end()) {
         suspended.erase(it);
         readyQueue.push(pid);
-        log("INFO", "Resumed process " + std::to_string(pid));
+        logInfo("Resumed process " + std::to_string(pid));
     }
 }
-
-// ============= Scheduler Core =============
 
 int CPUScheduler::selectNextProcess() {
     while (!readyQueue.empty()) {
@@ -206,7 +186,7 @@ void CPUScheduler::scheduleProcess(int pid) {
 }
 
 void CPUScheduler::completeProcess(int pid) {
-    log("INFO", "Process " + std::to_string(pid) + " completed");
+    logInfo("Process " + std::to_string(pid) + " completed");
     
     // Notify callback
     if (completeCallback) {

@@ -5,6 +5,7 @@
 #include <functional>
 #include <string>
 #include "scheduler/ScheduledTask.h"
+#include "common/LoggingMixin.h"
 
 namespace scheduler {
 
@@ -30,15 +31,8 @@ struct TickResult {
 // Callback when a process completes
 using ProcessCompleteCallback = std::function<void(int pid)>;
 
-class CPUScheduler {
+class CPUScheduler : public common::LoggingMixin {
 public:
-    using LogCallback = std::function<void(const std::string& level, 
-                                           const std::string& module, 
-                                           const std::string& message)>;
-
-    explicit CPUScheduler();
-
-    void setLogCallback(LogCallback callback);
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
     void setAlgorithm(Algorithm a);
@@ -97,11 +91,12 @@ private:
     std::vector<int> suspended;     // PIDs of suspended processes
     
     // Callbacks
-    LogCallback logCallback;
     ProcessCompleteCallback completeCallback;
 
-    // Internal methods
-    void log(const std::string& level, const std::string& message);
+protected:
+    std::string getModuleName() const override { return "SCHEDULER"; }
+
+private:
     Process* findProcess(int pid);
     const Process* findProcess(int pid) const;
     int selectNextProcess();

@@ -5,20 +5,18 @@
 #include <atomic>
 #include <string>
 #include <mutex>
+#include "common/LoggingMixin.h"
 
 namespace terminal {
 
 // Forward declaration
 class History;
 
-class Terminal {
+class Terminal : public common::LoggingMixin {
 public:
     using sendCallback = std::function<void(const std::string&)>;
     using signalCallback = std::function<void(int)>;
     using promptCallback = std::function<std::string()>;
-    using LogCallback = std::function<void(const std::string& level, 
-                                           const std::string& module, 
-                                           const std::string& message)>;
 
     Terminal() = default;
     ~Terminal();
@@ -35,8 +33,6 @@ public:
     
     // Set the prompt callback which will provide the prompt string
     void setPromptCallback(promptCallback cb);
-
-    void setLogCallback(LogCallback callback);
 
     // Start the terminal in a separate thread
     void start();
@@ -59,7 +55,6 @@ private:
     sendCallback sendCb;
     signalCallback sigCb;
     promptCallback promptCb;
-    LogCallback logCallback;
     std::atomic<bool> shouldShutdown{false};
     std::thread terminalThread;
     
@@ -80,7 +75,8 @@ private:
     bool handleCursorMovement(char key, size_t& cursor, size_t bufferSize);
     void handleCharInput(char c, std::string& buffer, size_t& cursor);
 
-    void log(const std::string& level, const std::string& message);
+protected:
+    std::string getModuleName() const override { return "TERMINAL"; }
 };
 
 } // namespace terminal

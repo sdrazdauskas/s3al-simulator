@@ -19,7 +19,7 @@ void Shell::initLuaOnce() {
     if (luaState) return;
     luaState = luaL_newstate();
     if (!luaState) {
-        log("ERROR", "Failed to create Lua state");
+        logError("Failed to create Lua state");
         return;
     }
     luaL_openlibs(luaState);
@@ -77,7 +77,7 @@ void Shell::initLuaOnce() {
 
     lua_setglobal(luaState, "sh");
 
-    log("INFO", "Lua engine initialized");
+    logInfo("Lua engine initialized");
 }
 
 std::string Shell::runLuaScript(const std::string &luaCode) {
@@ -109,18 +109,8 @@ std::string Shell::runLuaScript(const std::string &luaCode) {
     return "OK";
 }
 
-void Shell::setLogCallback(LogCallback callback) {
-    logCallback = callback;
-}
-
 void Shell::setOutputCallback(OutputCallback callback) {
     outputCallback = callback;
-}
-
-void Shell::log(const std::string& level, const std::string& message) {
-    if (logCallback) {
-        logCallback(level, "SHELL", message);
-    }
 }
 
 std::string Shell::parseQuotedToken(std::istringstream& iss, std::string token) {
@@ -201,13 +191,13 @@ std::string Shell::extractBeforeSymbol(const std::string &s, const std::string &
 std::string Shell::handleInputRedirection(const std::string &segment) {
     std::string fileName = extractAfterSymbol(segment, "<");
     if (fileName.empty()) {
-        log("ERROR", "Input redirection missing fileName");
+        logError("Input redirection missing fileName");
         return "";
     }
 
     ICommand* catCmd = registry.find("cat");
     if (!catCmd) {
-        log("ERROR", "No 'cat' command found for input redirection");
+        logError("No 'cat' command found for input redirection");
         return "";
     }
 
@@ -215,7 +205,7 @@ std::string Shell::handleInputRedirection(const std::string &segment) {
     std::vector<std::string> readArgs = { fileName };
     int rc = catCmd->execute(readArgs, "", out, err, sys);
     if (!err.str().empty()) {
-        log("ERROR", err.str());
+        logError(err.str());
         return "";
     }
 
@@ -226,13 +216,13 @@ std::string Shell::handleOutputRedirection(std::string segment, const std::strin
     std::string fileName = extractAfterSymbol(segment, ">");
     segment = extractBeforeSymbol(segment, ">");
     if (fileName.empty()) {
-        log("ERROR", "Output redirection missing fileName");
+        logError("Output redirection missing fileName");
         return "";
     }
 
     ICommand* writeCmd = registry.find("write");
     if (!writeCmd) {
-        log("ERROR", "No 'write' command found for output redirection");
+        logError("No 'write' command found for output redirection");
         return "";
     }
 
@@ -248,7 +238,7 @@ std::string Shell::handleOutputRedirection(std::string segment, const std::strin
     std::vector<std::string> writeArgs = { fileName, cleaned };
     int rc = writeCmd->execute(writeArgs, "", out, err, sys);
     if (!err.str().empty()) {
-        log("ERROR", err.str());
+        logError(err.str());
         return "";
     }
 
@@ -260,7 +250,7 @@ std::string Shell::handleAppendRedirection(std::string segment, const std::strin
     segment = extractBeforeSymbol(segment, ">>");
 
     if (fileName.empty()) {
-        log("ERROR", "Append redirection missing fileName");
+        logError("Append redirection missing fileName");
         return "";
     }
 
@@ -274,7 +264,7 @@ std::string Shell::handleAppendRedirection(std::string segment, const std::strin
 
     auto result = sys.appendFile(fileName, cleaned);
     if (result != shell::SysResult::OK) {
-        log("ERROR", "appendFile failed: " + shell::toString(result));
+        logError("appendFile failed: " + shell::toString(result));
         return "";
     }
 
@@ -311,14 +301,14 @@ void Shell::processCommandLine(const std::string& commandLine) {
 
             // handle interruption
             if (interruptRequested.load()) {
-                log("INFO", "Command interrupted by user");
+                logInfo("Command interrupted by user");
                 interruptRequested.store(false);
                 if (outputCallback) {
                     outputCallback("^C\nCommand interrupted\n");
                 }
             }
         } else {
-            log("ERROR", "Unknown command: " + command);
+            logError("Unknown command: " + command);
             if (outputCallback) {
                 outputCallback("Error: Unknown command: " + command);
             }
@@ -410,11 +400,11 @@ std::string Shell::executeCommand(const std::string& command,
                                   const std::string& input,
                                   bool inPipeChain) {
     if (command.empty()) {
-        log("ERROR", "No command specified");
+        logError("No command specified");
         return "Error: No command specified";
     }
 
-    log("INFO", "Executing command: " + command);
+    logInfo("Executing command: " + command);
 
     if (command.rfind("./", 0) == 0) {
         std::string fileName = command.substr(2);
@@ -480,12 +470,12 @@ std::string Shell::executeCommand(const std::string& command,
     int pid = sys.fork(command, cpuNeeded, memNeeded);
     if (pid <= 0) return "Error: Fork failed.";
 
-    log("INFO", "Process started: " + command + " (PID=" + std::to_string(pid) + ")");
+    logInfo("Process started: " + command + " (PID=" + std::to_string(pid) + ")");
 
     // Wait for scheduler to complete the process (simulate CPU time)
     std::cerr.flush();  // Flush logs before waiting
     if (!sys.waitForProcess(pid)) {
-        log("INFO", "Process interrupted: " + command + " (PID=" + std::to_string(pid) + ")");
+        logInfo("Process interrupted: " + command + " (PID=" + std::to_string(pid) + ")");
         // Still need to reap the zombie process
         sys.reapProcess(pid);
         return "Interrupted";
@@ -515,12 +505,12 @@ std::string Shell::executeCommand(const std::string& command,
     // Command finished - call exit() then wait()/reap
     sys.exit(pid);
     sys.reapProcess(pid);
-    log("INFO", "Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
+    logInfo("Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
     return "";
 }
 
 std::string Shell::executeScriptFile(const std::string &fileName) {
-    log("INFO", "Executing script file: " + fileName);
+    logInfo("Executing script file: " + fileName);
 
 
     // Read file directly from memory filesystem
@@ -529,7 +519,7 @@ std::string Shell::executeScriptFile(const std::string &fileName) {
 
     if (readResult != SysResult::OK) {
         std::string error = "Error: Cannot read Lua file '" + fileName + "': " + shell::toString(readResult);
-        log("ERROR", error);
+        logError(error);
         return error;
     }
 

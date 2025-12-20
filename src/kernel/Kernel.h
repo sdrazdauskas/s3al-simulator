@@ -14,13 +14,14 @@
 #include "process/ProcessManager.h"
 #include "scheduler/Scheduler.h"
 #include "kernel/SysCallsAPI.h"
+#include "common/LoggingMixin.h"
 
 // Forward declaration
 namespace config { struct Config; }
 
 namespace kernel {
 
-class Kernel {
+class Kernel : public common::LoggingMixin {
 public:
     using CommandHandler = std::function<std::string(const std::vector<std::string>&)>;
 
@@ -143,6 +144,9 @@ private:
     storage::StorageManager storageManager;
     scheduler::CPUScheduler cpuScheduler;
     process::ProcessManager procManager;
+
+protected:
+    std::string getModuleName() const override { return "KERNEL"; }
 };
 
 } // namespace kernel

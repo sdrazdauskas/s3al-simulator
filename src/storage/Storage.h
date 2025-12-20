@@ -7,12 +7,13 @@
 #include <chrono>
 #include <filesystem>
 #include "json.hpp"
+#include "common/LoggingMixin.h"
 
 namespace sys { struct SysApi; }
 
 namespace storage {
 
-class StorageManager {
+class StorageManager : public common::LoggingMixin {
 public:
     // ENUMS
     enum class StorageResponse {
@@ -23,10 +24,6 @@ public:
         InvalidArgument,
         Error
     };
-
-    // CALLBACK TYPES
-    using LogCallback =
-        std::function<void(const std::string&, const std::string&, const std::string&)>;
 
     // STRUCTURES
     struct File {
@@ -61,8 +58,6 @@ public:
     // UTILITIES
     static std::string toString(StorageResponse status);
     static bool isNameInvalid(const std::string& s);
-    void setLogCallback(LogCallback callback);
-    void log(const std::string& level, const std::string& message);
 
     // FILE OPERATIONS
     StorageResponse fileExists(const std::string& name) const;
@@ -102,8 +97,10 @@ private:
     // DATA MEMBERS
     std::unique_ptr<Folder> root;
     Folder* currentFolder;
-    LogCallback logCallback;
     sys::SysApi* sysApi = nullptr;
+
+protected:
+    std::string getModuleName() const override { return "STORAGE"; }
 };
 
 // Utility function declarations
