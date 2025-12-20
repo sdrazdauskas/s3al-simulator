@@ -13,6 +13,7 @@ add_library(terminal STATIC)
 target_sources(terminal PRIVATE
     src/terminal/Terminal.cpp
     src/terminal/helper/History.cpp
+    src/terminal/helper/Input.cpp
 )
 target_include_directories(terminal 
     PUBLIC src
