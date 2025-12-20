@@ -200,8 +200,25 @@ int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int prior
 }
 
 bool Kernel::addCPUWork(int pid, int cpuCycles) {
-    // Add cycles to existing process in scheduler
-    cpuScheduler.enqueue(pid, cpuCycles, 0);
+    // Try to add cycles to existing scheduler entry first
+    bool success = cpuScheduler.addCycles(pid, cpuCycles);
+    
+    if (!success) {
+        // Process not in scheduler - get priority from process manager and enqueue
+        auto procs = procManager.snapshot();
+        for (const auto& p : procs) {
+            if (p.getPid() == pid) {
+                cpuScheduler.enqueue(pid, cpuCycles, p.getPriority());
+                logDebug("Re-enqueued process PID=" + std::to_string(pid) + 
+                    " with " + std::to_string(cpuCycles) + " cycles (priority=" + 
+                    std::to_string(p.getPriority()) + ")");
+                return true;
+            }
+        }
+        logWarn("Failed to add CPU cycles to non-existent process PID=" + std::to_string(pid));
+        return false;
+    }
+    
     logDebug("Added " + std::to_string(cpuCycles) + " CPU cycles to process PID=" + std::to_string(pid));
     return true;
 }

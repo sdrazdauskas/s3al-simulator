@@ -52,6 +52,9 @@ public:
     // Add a process to the ready queue
     void enqueue(int pid, int burstTime, int priority = 0);
     
+    // Add CPU cycles to an existing process
+    bool addCycles(int pid, int cycles);
+    
     // Remove a process (e.g., killed)
     void remove(int pid);
     
