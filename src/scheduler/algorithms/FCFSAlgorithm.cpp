@@ -1,16 +1,19 @@
 #include "scheduler/algorithms/FCFSAlgorithm.h"
+#include <deque>
 
 namespace scheduler {
 
-int FCFSAlgorithm::selectNext(const std::vector<ScheduledTask*>& readyQueue) {
-    // FCFS: select first process in queue
-    if (readyQueue.empty()) return -1;
-    return readyQueue.front()->id;
-}
-
-bool FCFSAlgorithm::shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue) {
-    // FCFS is non-preemptive
-    return false;
+ScheduledTask* FCFSAlgorithm::getNextTask(ScheduledTask* currentTask, const std::deque<ScheduledTask*>& readyQueue) {
+    SchedulingDecision decision;
+    // If no process is running, pick the first from the ready queue
+    if (currentTask == nullptr) {
+        if (!readyQueue.empty()) {
+            return readyQueue.front();
+        }
+        return nullptr;
+    }
+    // FCFS is non-preemptive, continue running current
+    return currentTask;
 }
 
 } // namespace scheduler

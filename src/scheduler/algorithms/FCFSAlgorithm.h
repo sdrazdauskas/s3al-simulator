@@ -1,16 +1,15 @@
 #pragma once
 #include "scheduler/algorithms/SchedulingAlgorithm.h"
+#include <deque>
 
 namespace scheduler {
 
 class FCFSAlgorithm : public SchedulingAlgorithm {
 public:
     FCFSAlgorithm() = default;
-    
-    int selectNext(const std::vector<ScheduledTask*>& readyQueue) override;
-    
-    bool shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue) override;
-    
+
+    ScheduledTask* getNextTask(ScheduledTask* currentTask, const std::deque<ScheduledTask*>& readyQueue) override;
+
     std::string getName() const override { return "FCFS"; }
 };
 

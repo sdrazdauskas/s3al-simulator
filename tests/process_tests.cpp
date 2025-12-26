@@ -3,6 +3,9 @@
 #include "process/ProcessManager.h"
 #include "memory/MemoryManager.h"
 #include "scheduler/Scheduler.h"
+#include "scheduler/algorithms/PriorityAlgorithm.h"
+#include "scheduler/algorithms/FCFSAlgorithm.h"
+#include "scheduler/algorithms/RoundRobinAlgorithm.h"
 #include "logger/Logger.h"
 
 using namespace process;
@@ -92,7 +95,7 @@ TEST_F(SchedulerTest, ProcessCompletesAfterEnoughCycles) {
 }
 
 TEST_F(SchedulerTest, FCFSExecutesInOrder) {
-    scheduler->setAlgorithm(Algorithm::FCFS);
+    scheduler->setAlgorithm(std::make_unique<FCFSAlgorithm>());
     
     scheduler->enqueue(1, 2, 1);  // First
     scheduler->enqueue(2, 2, 5);  // Second (higher priority but later)
@@ -109,22 +112,21 @@ TEST_F(SchedulerTest, FCFSExecutesInOrder) {
 }
 
 TEST_F(SchedulerTest, RoundRobinPreemptsAfterQuantum) {
-    scheduler->setAlgorithm(Algorithm::RoundRobin);
-    scheduler->setQuantum(2);
-    
+    scheduler->setAlgorithm(std::make_unique<RoundRobinAlgorithm>(2));
+
     scheduler->enqueue(1, 5, 1);
     scheduler->enqueue(2, 5, 1);
-    
+
     // Tick 1: starts first process, consumes 1 cycle (slice=1)
     auto r1 = scheduler->tick();
     EXPECT_EQ(r1.currentPid, 1);
     EXPECT_TRUE(r1.contextSwitch);
-    
+
     // Tick 2: slice becomes 2 (hits quantum), preempts and switches
     auto r2 = scheduler->tick();
     EXPECT_EQ(r2.currentPid, 2);
     EXPECT_TRUE(r2.contextSwitch);
-    
+
     // Tick 3: running second, slice=1
     auto r3 = scheduler->tick();
     EXPECT_EQ(r3.currentPid, 2);
@@ -132,7 +134,7 @@ TEST_F(SchedulerTest, RoundRobinPreemptsAfterQuantum) {
 }
 
 TEST_F(SchedulerTest, PriorityPreemptsLowerPriority) {
-    scheduler->setAlgorithm(Algorithm::Priority);
+    scheduler->setAlgorithm(std::make_unique<PriorityAlgorithm>());
     
     scheduler->enqueue(1, 10, 10);  // Low priority
     

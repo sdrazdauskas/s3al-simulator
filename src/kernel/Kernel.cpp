@@ -16,7 +16,7 @@
 namespace kernel {
 
 Kernel::Kernel(const config::Config& config)
-        : cpuScheduler(),
+        : cpuScheduler(config),
             memManager(config.memorySize),
             procManager(memManager, cpuScheduler) {
     auto loggerCallback = [](const std::string& level, const std::string& module, const std::string& message){
@@ -27,29 +27,6 @@ Kernel::Kernel(const config::Config& config)
     cpuScheduler.setLogCallback(loggerCallback);
     storageManager.setLogCallback(loggerCallback);
     memManager.setLogCallback(loggerCallback);
-    
-    // Configure scheduler from config
-    switch (config.schedulerAlgorithm) {
-        case config::SchedulerAlgorithm::FCFS:
-            cpuScheduler.setAlgorithm(scheduler::Algorithm::FCFS);
-            break;
-        case config::SchedulerAlgorithm::RoundRobin:
-            cpuScheduler.setAlgorithm(scheduler::Algorithm::RoundRobin);
-            break;
-        case config::SchedulerAlgorithm::Priority:
-            cpuScheduler.setAlgorithm(scheduler::Algorithm::Priority);
-            break;
-    }
-    cpuScheduler.setQuantum(config.schedulerQuantum);
-    cpuScheduler.setCyclesPerInterval(config.cyclesPerTick);
-    cpuScheduler.setTickIntervalMs(config.tickIntervalMs);
-
-    std::cout << "Kernel initialized with scheduler: " 
-              << scheduler::algorithmToString(cpuScheduler.getAlgorithm())
-              << " (quantum=" << cpuScheduler.getQuantum() 
-              << ", cycles/tick=" << cpuScheduler.getCyclesPerInterval()
-              << ", tick=" << cpuScheduler.getTickIntervalMs() << "ms)"
-              << std::endl;
 }
 
 sys::SysApi::SysInfo Kernel::getSysInfo() const {

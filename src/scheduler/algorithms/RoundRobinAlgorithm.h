@@ -1,26 +1,28 @@
 #pragma once
 #include "scheduler/algorithms/SchedulingAlgorithm.h"
+#include "common/LoggingMixin.h"
+#include <deque>
 
 namespace scheduler {
 
-class RoundRobinAlgorithm : public SchedulingAlgorithm {
+
+class RoundRobinAlgorithm : public SchedulingAlgorithm, protected common::LoggingMixin {
+    std::string getModuleName() const override { return "ROUND-ROBIN"; }
+
 public:
-    std::string getDebugInfo(int pid) const override;
     explicit RoundRobinAlgorithm(int quantum) : quantum(quantum), sliceCounter(0), lastPid(-1) {}
 
-    int selectNext(const std::vector<ScheduledTask*>& readyQueue) override;
-
-    // Now manages its own slice counter
-    bool shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue) override;
+    ScheduledTask* getNextTask(ScheduledTask* currentTask, const std::deque<ScheduledTask*>& readyQueue) override;
 
     std::string getName() const override { return "Round Robin"; }
 
-    void setQuantum(int q) { quantum = q; }
-    int getQuantum() const { return quantum; }
+private:
 
-    // Called by scheduler when a process is scheduled or context switch occurs
-    void onSchedule(int pid) override;
-    void onTick(int pid) override;
+    void resetSliceIfProcessChanged(int currentPid);
+    void incrementSlice();
+    bool quantumExpired() const;
+    ScheduledTask* selectNextProcess(ScheduledTask* currentTask, const std::deque<ScheduledTask*>& readyQueue);
+    void resetSlice();
 
 private:
     int quantum;
