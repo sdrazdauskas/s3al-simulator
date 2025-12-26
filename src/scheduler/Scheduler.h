@@ -112,10 +112,10 @@ private:
     ScheduledTask* findProcess(int pid);
     const ScheduledTask* findProcess(int pid) const;
     std::deque<ScheduledTask*> getReadyProcesses();
-    void removeFromReadyQueue(int pid);
+    void removeFromReadyQueue(ScheduledTask* task);
     void preemptCurrent();
     void scheduleProcess(int pid);
-    void completeProcess(int pid);
+    void completeProcess(ScheduledTask* task);
 };
 
 } // namespace scheduler
