@@ -74,13 +74,11 @@ const ScheduledTask* CPUScheduler::findProcess(int pid) const {
     return const_cast<CPUScheduler*>(this)->findProcess(pid);
 }
 
-
 std::deque<ScheduledTask*> CPUScheduler::getReadyProcesses() {
     return readyQueue;
 }
 
-void CPUScheduler::removeFromReadyQueue(int pid) {
-    ScheduledTask* task = findProcess(pid);
+void CPUScheduler::removeFromReadyQueue(ScheduledTask* task) {
     if (!task) return;
     auto it = std::find(readyQueue.begin(), readyQueue.end(), task);
     if (it != readyQueue.end()) {
@@ -196,14 +194,12 @@ void CPUScheduler::scheduleProcess(int pid) {
     }
 }
 
-void CPUScheduler::completeProcess(int pid) {
-    if (!currentTask) return;
-    logInfo("ScheduledTask " + std::to_string(pid) + " completed");
-    if (completeCallback) {
-        completeCallback(pid);
-    }
-    ScheduledTask* task = findProcess(pid);
+void CPUScheduler::completeProcess(ScheduledTask* task) {
     if (!task) return;
+    logInfo("ScheduledTask " + std::to_string(task->id) + " completed");
+    if (completeCallback) {
+        completeCallback(task->id);
+    }
     processes.erase(std::remove(processes.begin(), processes.end(), task), processes.end());
     readyQueue.erase(std::remove(readyQueue.begin(), readyQueue.end(), task), readyQueue.end());
     suspended.erase(std::remove(suspended.begin(), suspended.end(), task), suspended.end());
@@ -264,7 +260,7 @@ TickResult CPUScheduler::tick() {
             logDebug("ScheduledTask " + std::to_string(currentTask->id) + " has completed execution");
             result.processCompleted = true;
             result.completedPid = currentTask->id;
-            completeProcess(currentTask->id);
+            completeProcess(currentTask);
             currentTask = nullptr;
         }
     }

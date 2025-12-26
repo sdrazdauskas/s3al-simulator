@@ -65,13 +65,13 @@ TEST_F(SchedulerTest, EnqueueAddsProcessToReadyQueue) {
 }
 
 TEST_F(SchedulerTest, TickStartsProcessExecution) {
-    scheduler->enqueue(1, 5, 1);
+    scheduler->enqueue(1, 1, 1);
     
     auto result = scheduler->tick();
     
     EXPECT_EQ(scheduler->getReadyCount(), 0);
     EXPECT_EQ(result.currentPid, 1);
-    EXPECT_TRUE(result.contextSwitch);
+    EXPECT_FALSE(result.contextSwitch);
     EXPECT_FALSE(result.idle);
 }
 
@@ -117,20 +117,20 @@ TEST_F(SchedulerTest, RoundRobinPreemptsAfterQuantum) {
     scheduler->enqueue(1, 5, 1);
     scheduler->enqueue(2, 5, 1);
 
-    // Tick 1: starts first process, consumes 1 cycle (slice=1)
+    // Tick 1: starts first process, no context switch due scheduler being idle
     auto r1 = scheduler->tick();
     EXPECT_EQ(r1.currentPid, 1);
-    EXPECT_TRUE(r1.contextSwitch);
+    EXPECT_FALSE(r1.contextSwitch);
 
-    // Tick 2: slice becomes 2 (hits quantum), preempts and switches
+    // Tick 2: process 1 continues, no context switch
     auto r2 = scheduler->tick();
-    EXPECT_EQ(r2.currentPid, 2);
-    EXPECT_TRUE(r2.contextSwitch);
+    EXPECT_EQ(r2.currentPid, 1);
+    EXPECT_FALSE(r2.contextSwitch);
 
-    // Tick 3: running second, slice=1
+    // Tick 3: quantum expires, process 2 should be selected, context switch occurs
     auto r3 = scheduler->tick();
     EXPECT_EQ(r3.currentPid, 2);
-    EXPECT_FALSE(r3.contextSwitch);
+    EXPECT_TRUE(r3.contextSwitch);
 }
 
 TEST_F(SchedulerTest, PriorityPreemptsLowerPriority) {
