@@ -7,12 +7,12 @@
 #include <memory>
 #include "scheduler/ScheduledTask.h"
 #include "scheduler/algorithms/SchedulingAlgorithm.h"
+#include "config/Config.h"
 #include "common/LoggingMixin.h"
 
-namespace scheduler {
+namespace config { struct Config; }
 
-// Type alias for internal use
-using Process = ScheduledTask;
+namespace scheduler {
 
 enum class Algorithm {
     FCFS,           // First Come First Serve - no preemption
@@ -35,20 +35,24 @@ using ProcessCompleteCallback = std::function<void(int pid)>;
 
 class CPUScheduler : public common::LoggingMixin {
 public:
+
     CPUScheduler();
-    
+
+    explicit CPUScheduler(const config::Config& config);
+
+    void setConfig(const config::Config &config);
+
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
-    void setAlgorithm(Algorithm a);
+    void setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm);
     Algorithm getAlgorithm() const { return algo; }
     
-    void setQuantum(int cycles);           // For RoundRobin
-    int getQuantum() const { return quantum; }
-    
-    void setCyclesPerInterval(int cycles); // How many cycles per tick interval
+    // How many cycles per tick interval
+    void setCyclesPerInterval(int cycles); 
     int getCyclesPerInterval() const { return cyclesPerInterval; }
     
-    void setTickIntervalMs(int ms);        // Real-time duration between ticks
+    // Real-time duration between ticks
+    void setTickIntervalMs(int ms); 
     int getTickIntervalMs() const { return tickIntervalMs; }
 
     // Add a process to the ready queue
@@ -66,39 +70,34 @@ public:
     // Resume a suspended process
     void resume(int pid);
 
-    // Advance scheduler by one tick (consumes cycles_per_interval cycles)
+    // Advance scheduler by one tick
     TickResult tick();
     
     // Check if scheduler has work
     bool hasWork() const;
     
     // Get scheduler state
-    int getCurrentPid() const { return currentPid; }
+    int getCurrentPid() const { return currentTask ? currentTask->id : -1; }
     int getSystemTime() const { return systemTime; }
     int getReadyCount() const { return static_cast<int>(readyQueue.size()); }
     
     // Get process remaining cycles (-1 if not found)
     int getRemainingCycles(int pid) const;
-    void scheduleNextProcess(TickResult& result);
-    void handlePreemption(TickResult& result);
-    void handleProcessExecution(TickResult& result);
 
 private:
     // State
     int systemTime{0};
-    int currentPid{-1};
-    int currentSlice{0};           // Cycles used in current time slice
+    ScheduledTask* currentTask{nullptr};
     
     // Configuration
     Algorithm algo{Algorithm::FCFS};
-    int quantum{5};                 // Time quantum for RoundRobin
     int cyclesPerInterval{1};       // Cycles consumed per tick
     int tickIntervalMs{100};        // Real-time tick interval
     
     // Process queues
-    std::vector<Process> processes; // All processes (for lookup)
-    std::deque<int> readyQueue;     // PIDs of ready processes
-    std::vector<int> suspended;     // PIDs of suspended processes
+    std::vector<ScheduledTask*> processes; // All processes (for lookup)
+    std::deque<ScheduledTask*> readyQueue;     // Ready processes (pointers)
+    std::vector<ScheduledTask*> suspended;     // Suspended processes (pointers)
     
     // Scheduling algorithm (strategy pattern)
     std::unique_ptr<SchedulingAlgorithm> algorithm;
@@ -110,22 +109,13 @@ protected:
     std::string getModuleName() const override { return "SCHEDULER"; }
 
 private:
-    Process* findProcess(int pid);
-    const Process* findProcess(int pid) const;
-    std::vector<ScheduledTask*> getReadyProcesses();
+    ScheduledTask* findProcess(int pid);
+    const ScheduledTask* findProcess(int pid) const;
+    std::deque<ScheduledTask*> getReadyProcesses();
     void removeFromReadyQueue(int pid);
     void preemptCurrent();
     void scheduleProcess(int pid);
     void completeProcess(int pid);
 };
-
-inline std::string algorithmToString(Algorithm a) {
-    switch (a) {
-        case Algorithm::FCFS: return "FCFS";
-        case Algorithm::RoundRobin: return "RoundRobin";
-        case Algorithm::Priority: return "Priority";
-        default: return "Unknown";
-    }
-}
 
 } // namespace scheduler

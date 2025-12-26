@@ -59,15 +59,15 @@ namespace shell {
 
     class Shell : public common::LoggingMixin {
     private:
-        static constexpr int BUILTIN_CPU_WORK = 1;  // CPU cycles for built-in commands
+        static constexpr int BUILTIN_CPU_WORK = 1;
         
         lua_State* luaState;
         SysApi& sys;
         const CommandRegistry& registry;
         OutputCallback outputCallback;
         KernelCallback kernelCallback;
-        int shellPid = -1;  // Shell's own process ID
-
+        int shellPid = -1;
+        
         void initLuaOnce();
         std::string runLuaScript(const std::string& luaCode);
         std::string executeScriptFile(const std::string& fileName);

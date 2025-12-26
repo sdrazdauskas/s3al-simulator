@@ -1,30 +1,37 @@
 #include "scheduler/algorithms/PriorityAlgorithm.h"
 #include <algorithm>
+#include <climits>
+#include <deque>
 
 namespace scheduler {
 
-int PriorityAlgorithm::selectNext(const std::vector<ScheduledTask*>& readyQueue) {
-    if (readyQueue.empty()) return -1;
-    
-    // Find highest priority (lowest number = highest priority)
+
+ScheduledTask* PriorityAlgorithm::getNextTask(ScheduledTask* currentTask, const std::deque<ScheduledTask*>& readyQueue) {
+    // If no process is running, pick the highest priority from the ready queue
+    if (currentTask == nullptr) {
+        if (!readyQueue.empty()) {
+            return getHighestPriorityProcess(readyQueue);
+        }
+        return nullptr;
+    }
+
+    // Check if any waiting process has higher priority (lower number)
+    ScheduledTask* highestPrioProc = getHighestPriorityProcess(readyQueue);
+    if (highestPrioProc && highestPrioProc->priority < currentTask->priority) {
+        return highestPrioProc;
+    }
+
+    return currentTask;
+}
+
+ScheduledTask* PriorityAlgorithm::getHighestPriorityProcess(const std::deque<ScheduledTask*>& readyQueue) {
+    if (readyQueue.empty()) return nullptr;
+
     auto it = std::min_element(readyQueue.begin(), readyQueue.end(),
         [](const ScheduledTask* a, const ScheduledTask* b) {
             return a->priority < b->priority;
         });
-    
-    return (*it)->id;
-}
-
-bool PriorityAlgorithm::shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue) {
-    if (!current || readyQueue.empty()) return false;
-    
-    // Check if any waiting process has higher priority (lower number)
-    for (const auto* p : readyQueue) {
-        if (p->priority < current->priority) {
-            return true;
-        }
-    }
-    return false;
+    return *it;
 }
 
 } // namespace scheduler

@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <deque>
 #include "scheduler/ScheduledTask.h"
 
 namespace scheduler {
@@ -13,15 +14,10 @@ struct SchedulingDecision {
 
 class SchedulingAlgorithm {
 public:
-    // Optional: algorithm-specific debug info for logging
-    virtual std::string getDebugInfo(int /*pid*/) const { return ""; }
+
     virtual ~SchedulingAlgorithm() = default;
 
-    // Select next process to run from the ready queue
-    virtual int selectNext(const std::vector<ScheduledTask*>& readyQueue) = 0;
-
-    // Check if current process should be preempted
-    virtual bool shouldPreempt(const ScheduledTask* current, const std::vector<ScheduledTask*>& readyQueue) = 0;
+    virtual ScheduledTask* getNextTask(ScheduledTask* currentTask, const std::deque<ScheduledTask*>& readyQueue) = 0;
 
     // Get algorithm name
     virtual std::string getName() const = 0;
