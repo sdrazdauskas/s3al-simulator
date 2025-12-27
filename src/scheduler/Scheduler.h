@@ -7,17 +7,11 @@
 #include <memory>
 #include "scheduler/ScheduledTask.h"
 #include "scheduler/algorithms/SchedulingAlgorithm.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 #include "common/LoggingMixin.h"
-
-namespace config { struct Config; }
+#include "config/Config.h"
 
 namespace scheduler {
-
-enum class Algorithm {
-    FCFS,           // First Come First Serve - no preemption
-    RoundRobin,     // Time-slice based preemption
-    Priority        // Priority-based scheduling with preemption
-};
 
 // Result of a scheduler tick
 struct TickResult {
@@ -44,8 +38,8 @@ public:
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
     bool setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm);
-    bool setAlgorithm(Algorithm algo, int quantum);
-    Algorithm getAlgorithm() const { return algo; }
+    bool setAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum);
+    scheduler::SchedulerAlgorithm getAlgorithm() const { return algo; }
     
     // How many cycles per tick interval
     void setCyclesPerInterval(int cycles); 
@@ -90,7 +84,7 @@ private:
     ScheduledTask* currentTask{nullptr};
     
     // Configuration
-    Algorithm algo{Algorithm::FCFS};
+    scheduler::SchedulerAlgorithm algo{scheduler::SchedulerAlgorithm::FCFS};
     int cyclesPerInterval{1};       // Cycles consumed per tick
     int tickIntervalMs{100};        // Real-time tick interval
     

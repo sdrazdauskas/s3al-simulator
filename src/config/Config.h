@@ -3,7 +3,7 @@
 #include <string>
 #include <cstddef>
 #include "logger/Logger.h"
-#include "scheduler/Scheduler.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 
 namespace config {
 
@@ -13,7 +13,7 @@ struct Config {
     logging::LogLevel logLevel = logging::LogLevel::DEBUG;
     
     // Scheduler configuration
-    scheduler::Algorithm schedulerAlgorithm = scheduler::Algorithm::FCFS;
+    scheduler::SchedulerAlgorithm schedulerAlgorithm = scheduler::SchedulerAlgorithm::FCFS;
     int schedulerQuantum = 5;               // Time quantum for RoundRobin (cycles)
     int cyclesPerTick = 1;                 // CPU cycles per scheduler tick
     int tickIntervalMs = 100;              // Milliseconds between ticks (CPU speed)

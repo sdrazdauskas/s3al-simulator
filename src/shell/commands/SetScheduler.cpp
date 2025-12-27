@@ -1,5 +1,5 @@
 #include "shell/CommandAPI.h"
-#include "scheduler/Scheduler.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 #include <map>
 #include <algorithm>
 #include <cstring>
@@ -55,14 +55,15 @@ public:
         }
 
         // Map of accepted algorithm names (include common synonyms)
-        static const std::map<std::string, scheduler::Algorithm> algoMap = {
-            {"FCFS", scheduler::Algorithm::FCFS},
-            {"FIFO", scheduler::Algorithm::FCFS},
-            {"RR", scheduler::Algorithm::RoundRobin},
-            {"ROUNDROBIN", scheduler::Algorithm::RoundRobin},
-            {"ROUND-ROBIN", scheduler::Algorithm::RoundRobin},
-            {"PRIORITY", scheduler::Algorithm::Priority},
-            {"PRIO", scheduler::Algorithm::Priority}
+
+        static const std::map<std::string, scheduler::SchedulerAlgorithm> algoMap = {
+            {"FCFS", scheduler::SchedulerAlgorithm::FCFS},
+            {"FIFO", scheduler::SchedulerAlgorithm::FCFS},
+            {"RR", scheduler::SchedulerAlgorithm::RoundRobin},
+            {"ROUNDROBIN", scheduler::SchedulerAlgorithm::RoundRobin},
+            {"ROUND-ROBIN", scheduler::SchedulerAlgorithm::RoundRobin},
+            {"PRIORITY", scheduler::SchedulerAlgorithm::Priority},
+            {"PRIO", scheduler::SchedulerAlgorithm::Priority}
         };
 
         auto it = algoMap.find(algoName);
@@ -72,9 +73,9 @@ public:
             return 1;
         }
 
-        scheduler::Algorithm algo = it->second;
+        scheduler::SchedulerAlgorithm algo = it->second;
 
-        if (quantum > 0 && algo != scheduler::Algorithm::RoundRobin) {
+        if (quantum > 0 && algo != scheduler::SchedulerAlgorithm::RoundRobin) {
             out << "Warning: quantum is only used by RR scheduler; ignoring quantum for selected algorithm\n";
             quantum = 0;
         }
