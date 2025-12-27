@@ -5,9 +5,9 @@
 #include <algorithm>
 #include <chrono>
 #include "terminal/Terminal.h"
-#include "shell/Shell.h"
 #include "logger/Logger.h"
 #include "kernel/SysCalls.h"
+#include "shell/Shell.h"
 #include "shell/CommandsInit.h"
 #include "shell/CommandAPI.h"
 #include "init/Init.h"
@@ -259,7 +259,7 @@ int Kernel::getProcessRemainingCycles(int pid) const {
     return cpuScheduler.getRemainingCycles(pid);
 }
 
-bool Kernel::changeSchedulingAlgorithm(scheduler::Algorithm algo, int quantum) {
+bool Kernel::changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum) {
     return cpuScheduler.setAlgorithm(algo, quantum);
 }
 

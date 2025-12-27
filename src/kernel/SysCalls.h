@@ -1,8 +1,10 @@
 #pragma once
+
 #include "kernel/SysCallsAPI.h"
 #include "storage/Storage.h"
 #include "kernel/Kernel.h"
 #include "logger/Logger.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 #include <string>
 #include <iostream>
 
@@ -362,9 +364,8 @@ struct SysApiKernel : ::sys::SysApi {
         return -1;
     }
 
-    bool changeSchedulingAlgorithm(scheduler::Algorithm algo, int quantum = 0) override {
+    bool changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0) override {
         if (kernelOwner) {
-            // Assume kernel has a method to change scheduling algorithm
             return kernelOwner->changeSchedulingAlgorithm(algo, quantum);
         }
         return false;

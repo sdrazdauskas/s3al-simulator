@@ -15,6 +15,7 @@
 #include "scheduler/Scheduler.h"
 #include "kernel/SysCallsAPI.h"
 #include "common/LoggingMixin.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 
 // Forward declaration
 namespace config { struct Config; }
@@ -107,7 +108,7 @@ public:
     // Get remaining cycles for a process
     int getProcessRemainingCycles(int pid) const;
 
-    bool changeSchedulingAlgorithm(scheduler::Algorithm algo, int quantum = 0);
+    bool changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0);
 
 private:
     struct KernelEvent {

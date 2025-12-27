@@ -6,7 +6,6 @@
 #include <algorithm>
 #include "Scheduler.h"
 #include <iostream>
-#include "config/Config.h"
 
 namespace scheduler {
 
@@ -34,17 +33,17 @@ void CPUScheduler::setConfig(const config::Config& config) {
     setTickIntervalMs(config.tickIntervalMs);
 }
 
-bool CPUScheduler::setAlgorithm(Algorithm algo, int quantum){
+bool CPUScheduler::setAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum){
     std::unique_ptr<SchedulingAlgorithm> algoPtr;
 
     switch (algo) {
-        case Algorithm::FCFS:
+        case scheduler::SchedulerAlgorithm::FCFS:
             algoPtr = std::make_unique<FCFSAlgorithm>();
             break;
-        case Algorithm::RoundRobin:
+        case scheduler::SchedulerAlgorithm::RoundRobin:
             algoPtr = std::make_unique<RoundRobinAlgorithm>(quantum);
             break;
-        case Algorithm::Priority:
+        case scheduler::SchedulerAlgorithm::Priority:
             algoPtr = std::make_unique<PriorityAlgorithm>();
             break;
     }
