@@ -259,6 +259,25 @@ int Kernel::getProcessRemainingCycles(int pid) const {
     return cpuScheduler.getRemainingCycles(pid);
 }
 
+bool Kernel::changeSchedulingAlgorithm(const std::string& algoName, int quantum) {
+    static const std::map<std::string, config::SchedulerAlgorithm> algoMap = {
+        {"FCFS", config::SchedulerAlgorithm::FCFS},
+        {"RR", config::SchedulerAlgorithm::RoundRobin},
+        {"PRIORITY", config::SchedulerAlgorithm::Priority}
+    };
+    
+    auto it = algoMap.find(algoName);
+    if (it != algoMap.end()) {
+        config::SchedulerAlgorithm algo = it->second;
+        cpuScheduler.setAlgorithm(algo, quantum);
+        logInfo("Scheduling algorithm changed to: " + algoName);
+        return true;
+    } else {
+        logWarn("Unknown scheduling algorithm: " + algoName);
+        return false;
+    }
+}
+
 void Kernel::processEvent(const KernelEvent& event) {
     switch (event.type) {
         case KernelEvent::Type::COMMAND:
