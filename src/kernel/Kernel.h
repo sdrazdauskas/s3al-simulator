@@ -107,7 +107,7 @@ public:
     // Get remaining cycles for a process
     int getProcessRemainingCycles(int pid) const;
 
-    bool changeSchedulingAlgorithm(const std::string& algoName, int quantum = 0);
+    bool changeSchedulingAlgorithm(scheduler::Algorithm algo, int quantum = 0);
 
 private:
     struct KernelEvent {

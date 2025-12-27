@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "scheduler/Scheduler.h"
  
 namespace sys {
 
@@ -115,7 +116,7 @@ struct SysApi {
     // Get remaining cycles for a process (-1 if not found)
     virtual int getProcessRemainingCycles(int pid) = 0;
 
-    virtual bool changeSchedulingAlgorithm(const std::string& algoName, int quantum = 0) = 0;
+    virtual bool changeSchedulingAlgorithm(scheduler::Algorithm algo, int quantum = 0) = 0;
 
     virtual ~SysApi() = default;
 };

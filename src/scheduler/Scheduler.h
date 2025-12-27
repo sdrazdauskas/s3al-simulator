@@ -7,7 +7,6 @@
 #include <memory>
 #include "scheduler/ScheduledTask.h"
 #include "scheduler/algorithms/SchedulingAlgorithm.h"
-#include "config/Config.h"
 #include "common/LoggingMixin.h"
 
 namespace config { struct Config; }
@@ -44,8 +43,8 @@ public:
 
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
-    void setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm);
-    void setAlgorithm(config::SchedulerAlgorithm configAlgo, int quantum);
+    bool setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm);
+    bool setAlgorithm(Algorithm algo, int quantum);
     Algorithm getAlgorithm() const { return algo; }
     
     // How many cycles per tick interval

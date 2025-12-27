@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "Scheduler.h"
 #include <iostream>
+#include "config/Config.h"
 
 namespace scheduler {
 
@@ -33,30 +34,32 @@ void CPUScheduler::setConfig(const config::Config& config) {
     setTickIntervalMs(config.tickIntervalMs);
 }
 
-void CPUScheduler::setAlgorithm(config::SchedulerAlgorithm configAlgo, int quantum) {
+bool CPUScheduler::setAlgorithm(Algorithm algo, int quantum){
     std::unique_ptr<SchedulingAlgorithm> algoPtr;
 
-    switch (configAlgo) {
-        case config::SchedulerAlgorithm::FCFS:
+    switch (algo) {
+        case Algorithm::FCFS:
             algoPtr = std::make_unique<FCFSAlgorithm>();
             break;
-        case config::SchedulerAlgorithm::RoundRobin:
+        case Algorithm::RoundRobin:
             algoPtr = std::make_unique<RoundRobinAlgorithm>(quantum);
             break;
-        case config::SchedulerAlgorithm::Priority:
+        case Algorithm::Priority:
             algoPtr = std::make_unique<PriorityAlgorithm>();
             break;
     }
-    setAlgorithm(std::move(algoPtr));
+    return setAlgorithm(std::move(algoPtr));
 }
 
-void CPUScheduler::setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm) {
+bool CPUScheduler::setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm) {
     if (algorithm) {
         this->algorithm = std::move(algorithm);
         logInfo("Algorithm set to: " + this->algorithm->getName());
+        return true;
     } else {
         logWarn("Algorithm pointer is null; no changes made.");
     }
+    return false;
 }
 
 void CPUScheduler::setCyclesPerInterval(int cycles) {

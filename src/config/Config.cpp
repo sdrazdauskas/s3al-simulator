@@ -17,12 +17,12 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
     };
     
     // Map scheduler algorithm strings to enum values
-    static const std::map<std::string, SchedulerAlgorithm> schedulerMap = {
-        {"fcfs", SchedulerAlgorithm::FCFS},
-        {"rr", SchedulerAlgorithm::RoundRobin},
-        {"roundrobin", SchedulerAlgorithm::RoundRobin},
-        {"priority", SchedulerAlgorithm::Priority},
-        {"prio", SchedulerAlgorithm::Priority}
+    static const std::map<std::string, scheduler::Algorithm> schedulerMap = {
+        {"fcfs", scheduler::Algorithm::FCFS},
+        {"rr", scheduler::Algorithm::RoundRobin},
+        {"roundrobin", scheduler::Algorithm::RoundRobin},
+        {"priority", scheduler::Algorithm::Priority},
+        {"prio", scheduler::Algorithm::Priority}
     };
     
     for (int i = 1; i < argc; ++i) {

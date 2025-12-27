@@ -362,10 +362,10 @@ struct SysApiKernel : ::sys::SysApi {
         return -1;
     }
 
-    bool changeSchedulingAlgorithm(const std::string& algoName, int quantum = 0) override {
+    bool changeSchedulingAlgorithm(scheduler::Algorithm algo, int quantum = 0) override {
         if (kernelOwner) {
             // Assume kernel has a method to change scheduling algorithm
-            return kernelOwner->changeSchedulingAlgorithm(algoName, quantum);
+            return kernelOwner->changeSchedulingAlgorithm(algo, quantum);
         }
         return false;
     }
