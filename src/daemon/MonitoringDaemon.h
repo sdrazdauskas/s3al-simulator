@@ -15,7 +15,7 @@ protected:
     int getWaitIntervalMs() const override { return 10000; } // 10 seconds
 
 private:
-    void collect_stats();
+    void collectStats();
 };
 
 } // namespace daemons
