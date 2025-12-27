@@ -45,7 +45,7 @@ public:
     MOCK_METHOD(std::string, readLine, (), (override));
     MOCK_METHOD(void, beginInteractiveMode, (), (override));
     MOCK_METHOD(void, endInteractiveMode, (), (override));
-    MOCK_METHOD(bool, changeSchedulingAlgorithm, (const std::string& algorithm, int quantum), (override));
+    MOCK_METHOD(bool, changeSchedulingAlgorithm, (scheduler::Algorithm algo, int quantum), (override));
     
     // Async command execution
     MOCK_METHOD(int, submitCommand, (const std::string& name, int cpuCycles, int priority), (override));
