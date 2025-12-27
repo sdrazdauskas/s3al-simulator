@@ -45,6 +45,7 @@ public:
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
     void setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm);
+    void setAlgorithm(config::SchedulerAlgorithm configAlgo, int quantum);
     Algorithm getAlgorithm() const { return algo; }
     
     // How many cycles per tick interval
@@ -96,8 +97,8 @@ private:
     
     // Process queues
     std::vector<ScheduledTask*> processes; // All processes (for lookup)
-    std::deque<ScheduledTask*> readyQueue;     // Ready processes (pointers)
-    std::vector<ScheduledTask*> suspended;     // Suspended processes (pointers)
+    std::deque<ScheduledTask*> readyQueue; // Ready processes
+    std::vector<ScheduledTask*> suspended; // Suspended processes
     
     // Scheduling algorithm (strategy pattern)
     std::unique_ptr<SchedulingAlgorithm> algorithm;

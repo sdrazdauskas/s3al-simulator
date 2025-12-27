@@ -9,8 +9,9 @@ ScheduledTask* FCFSAlgorithm::getNextTask(ScheduledTask* currentTask, const std:
     if (currentTask == nullptr) {
         if (!readyQueue.empty()) {
             return readyQueue.front();
+        } else {
+            return nullptr;
         }
-        return nullptr;
     }
     // FCFS is non-preemptive, continue running current
     return currentTask;

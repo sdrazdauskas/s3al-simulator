@@ -28,20 +28,26 @@ CPUScheduler::CPUScheduler(const config::Config& config)
 void CPUScheduler::setConfig(const config::Config& config) {
     std::unique_ptr<SchedulingAlgorithm> algoPtr;
 
-    switch (config.schedulerAlgorithm) {
+    setAlgorithm(config.schedulerAlgorithm, config.schedulerQuantum);
+    setCyclesPerInterval(config.cyclesPerTick);
+    setTickIntervalMs(config.tickIntervalMs);
+}
+
+void CPUScheduler::setAlgorithm(config::SchedulerAlgorithm configAlgo, int quantum) {
+    std::unique_ptr<SchedulingAlgorithm> algoPtr;
+
+    switch (configAlgo) {
         case config::SchedulerAlgorithm::FCFS:
             algoPtr = std::make_unique<FCFSAlgorithm>();
             break;
         case config::SchedulerAlgorithm::RoundRobin:
-            algoPtr = std::make_unique<RoundRobinAlgorithm>(config.schedulerQuantum);
+            algoPtr = std::make_unique<RoundRobinAlgorithm>(quantum);
             break;
         case config::SchedulerAlgorithm::Priority:
             algoPtr = std::make_unique<PriorityAlgorithm>();
             break;
     }
     setAlgorithm(std::move(algoPtr));
-    setCyclesPerInterval(config.cyclesPerTick);
-    setTickIntervalMs(config.tickIntervalMs);
 }
 
 void CPUScheduler::setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm) {
@@ -92,11 +98,11 @@ int CPUScheduler::getRemainingCycles(int pid) const {
 }
 
 void CPUScheduler::enqueue(int pid, int burstTime, int priority) {
-    // Check if already exists
     if (findProcess(pid)) {
         logWarn("ScheduledTask " + std::to_string(pid) + " already in scheduler");
         return;
     }
+
     ScheduledTask* task = new ScheduledTask(pid, 0, burstTime, priority);
     processes.push_back(task);
     readyQueue.push_back(task);
@@ -126,10 +132,10 @@ bool CPUScheduler::addCycles(int pid, int cycles) {
 }
 
 void CPUScheduler::remove(int pid) {
-    // If it's the current process, stop it
     if (currentTask && currentTask->id == pid) {
         currentTask = nullptr;
     }
+    
     ScheduledTask* task = findProcess(pid);
     if (!task) return;
     processes.erase(

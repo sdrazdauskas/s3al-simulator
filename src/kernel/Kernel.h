@@ -107,6 +107,8 @@ public:
     // Get remaining cycles for a process
     int getProcessRemainingCycles(int pid) const;
 
+    bool changeSchedulingAlgorithm(const std::string& algoName, int quantum = 0);
+
 private:
     struct KernelEvent {
         enum class Type {
