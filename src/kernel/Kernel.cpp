@@ -263,6 +263,16 @@ bool Kernel::changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int q
     return cpuScheduler.setAlgorithm(algo, quantum);
 }
 
+bool Kernel::setSchedulerCyclesPerInterval(int cycles) {
+    cpuScheduler.setCyclesPerInterval(cycles);
+    return true;
+}
+
+bool Kernel::setSchedulerTickIntervalMs(int ms) {
+    cpuScheduler.setTickIntervalMs(ms);
+    return true;
+}
+
 void Kernel::processEvent(const KernelEvent& event) {
     switch (event.type) {
         case KernelEvent::Type::COMMAND:
@@ -322,35 +332,34 @@ void Kernel::handleTimerTick() {
 void Kernel::runEventLoop() {
     logInfo("Kernel event loop started");
     
-    auto last_tick = std::chrono::steady_clock::now();
-    // Use the scheduler's configured tick interval
-    const auto tick_interval = std::chrono::milliseconds(cpuScheduler.getTickIntervalMs());
-    
+    auto lastTick = std::chrono::steady_clock::now();
     while (kernelRunning.load()) {
+        // Always get the latest tick interval
+        auto tickInterval = std::chrono::milliseconds(cpuScheduler.getTickIntervalMs());
         std::unique_lock<std::mutex> lock(queueMutex);
-        
+
         // Wait for event or timeout
-        if (queueCondition.wait_for(lock, tick_interval, [this] { 
-            return !eventQueue.empty() || !kernelRunning.load(); 
+        if (queueCondition.wait_for(lock, tickInterval, [this] {
+            return !eventQueue.empty() || !kernelRunning.load();
         })) {
             // Process all pending events
             while (!eventQueue.empty()) {
                 auto event = eventQueue.front();
                 eventQueue.pop();
                 lock.unlock();
-                
+
                 processEvent(event);
-                
+
                 lock.lock();
             }
         } else {
             // Timeout - generate timer tick
             lock.unlock();
-            
+
             auto now = std::chrono::steady_clock::now();
-            if (now - last_tick >= tick_interval) {
+            if (now - lastTick >= tickInterval) {
                 processEvent({KernelEvent::Type::TIMER_TICK, ""});
-                last_tick = now;
+                lastTick = now;
             }
         }
     }

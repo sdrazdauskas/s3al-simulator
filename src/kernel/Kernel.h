@@ -109,6 +109,8 @@ public:
     int getProcessRemainingCycles(int pid) const;
 
     bool changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0);
+    bool setSchedulerCyclesPerInterval(int cycles);
+    bool setSchedulerTickIntervalMs(int ms);
 
 private:
     struct KernelEvent {
