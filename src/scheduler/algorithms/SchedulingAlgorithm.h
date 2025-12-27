@@ -21,10 +21,6 @@ public:
 
     // Get algorithm name
     virtual std::string getName() const = 0;
-
-    // Optional hooks for algorithms that need to track scheduling/tick events
-    virtual void onSchedule(int /*pid*/) {}
-    virtual void onTick(int /*pid*/) {}
 };
 
 } // namespace scheduler
