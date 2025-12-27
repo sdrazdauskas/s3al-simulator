@@ -43,7 +43,7 @@ public:
     
     // How many cycles per tick interval
     void setCyclesPerInterval(int cycles); 
-    int getCyclesPerInterval() const { return cyclesPerInterval; }
+    int getCyclesPerInterval() const { return cyclesPerTick; }
     
     // Real-time duration between ticks
     void setTickIntervalMs(int ms); 
@@ -85,15 +85,15 @@ private:
     
     // Configuration
     scheduler::SchedulerAlgorithm algo{scheduler::SchedulerAlgorithm::FCFS};
-    int cyclesPerInterval{1};       // Cycles consumed per tick
-    int tickIntervalMs{100};        // Real-time tick interval
+    int cyclesPerTick{1};
+    int tickIntervalMs{100}; // Real-time tick interval
     
     // Process queues
     std::vector<ScheduledTask*> processes; // All processes (for lookup)
     std::deque<ScheduledTask*> readyQueue; // Ready processes
     std::vector<ScheduledTask*> suspended; // Suspended processes
     
-    // Scheduling algorithm (strategy pattern)
+    // Scheduling algorithm
     std::unique_ptr<SchedulingAlgorithm> algorithm;
     
     // Callbacks
@@ -108,7 +108,6 @@ private:
     std::deque<ScheduledTask*> getReadyProcesses();
     void removeFromReadyQueue(ScheduledTask* task);
     void preemptCurrent();
-    void scheduleProcess(int pid);
     void completeProcess(ScheduledTask* task);
 };
 
