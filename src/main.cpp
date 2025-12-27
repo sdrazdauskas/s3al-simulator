@@ -5,8 +5,33 @@
 #include <iomanip>
 #include <sstream>
 #include <filesystem>
+#include <atomic>
+#include <csignal>
+#include <unistd.h>
+#include <chrono>
+
+namespace {
+    std::atomic<int> globalSigintCount{0};
+    std::atomic<std::chrono::steady_clock::time_point> globalLastSigintTime{std::chrono::steady_clock::now()};
+    extern "C" void globalSigintHandler(int sig) {
+        using namespace std::chrono;
+        auto now = steady_clock::now();
+        auto prev = globalLastSigintTime.load();
+        if (duration_cast<seconds>(now - prev).count() > 2) {
+            globalSigintCount.store(0);
+        }
+        globalLastSigintTime.store(now);
+        int count = globalSigintCount.fetch_add(1) + 1;
+        if (count >= 5) {
+            write(STDERR_FILENO, "\nForce quitting after multiple Ctrl+C presses.\n", 48);
+            std::_Exit(130);
+        }
+    }
+}
 
 int main(int argc, char* argv[]) {
+    // Install global SIGINT handler for force quit on repeated Ctrl+C
+    std::signal(SIGINT, globalSigintHandler);
     // Parse command-line arguments
     config::Config config;
     if (!config::Config::parseArgs(argc, argv, config)) {
