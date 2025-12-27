@@ -370,6 +370,20 @@ struct SysApiKernel : ::sys::SysApi {
         }
         return false;
     }
+
+    bool setSchedulerCyclesPerInterval(int cycles) override {
+        if (kernelOwner) {
+            return kernelOwner->setSchedulerCyclesPerInterval(cycles);
+        }
+        return false;
+    }
+
+    bool setSchedulerTickIntervalMs(int ms) override {
+        if (kernelOwner) {
+            return kernelOwner->setSchedulerTickIntervalMs(ms);
+        }
+        return false;
+    }
     
 private:
     bool savedConsoleLogging = false;

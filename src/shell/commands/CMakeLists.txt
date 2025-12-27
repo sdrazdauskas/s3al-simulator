@@ -20,6 +20,8 @@ set(SHELL_COMMAND_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Reset.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SaveState.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetScheduler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SetCycles.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/SetTickInterval.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Sleep.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Listdata.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Cp.cpp
