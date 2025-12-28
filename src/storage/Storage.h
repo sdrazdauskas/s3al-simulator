@@ -78,6 +78,7 @@ public:
     std::string getWorkingDir() const;
     StorageResponse copyDir(const std::string& srcName, const std::string& destName);
     StorageResponse moveDir(const std::string& oldName, const std::string& newName);
+    static bool isDescendantOrSame(const Folder* ancestor, const Folder* descendant);
 
     // DISK IO OPERATIONS
     StorageResponse saveToDisk(const std::string& fileName) const;

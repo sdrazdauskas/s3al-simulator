@@ -389,7 +389,12 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
             break;
         }
     }
-    
+
+    if (isDescendantOrSame(srcInfo.folder, destInfo.folder)) { 
+        logError("cannot move '" + srcInfo.name + "' to a subdirectory of itself, '" + destPath + "'"); 
+        return Response::InvalidArgument; 
+    }
+
     if (targetDir) {
         // dest is a directory, move dir into it with original name
         for (const auto& sub : targetDir->subfolders) {
@@ -398,7 +403,7 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
                 return Response::AlreadyExists;
             }
         }
-        
+
         auto folderPtr = std::move(srcInfo.folder->subfolders[srcIndex]);
         srcInfo.folder->subfolders.erase(srcInfo.folder->subfolders.begin() + srcIndex);
         folderPtr->parent = targetDir;
@@ -432,5 +437,16 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
     logInfo("Moved directory '" + srcPath + "' to '" + destPath + "'");
     return Response::OK;
 }
+
+bool StorageManager::isDescendantOrSame(const Folder* ancestor, const Folder* descendant) {
+    if (!ancestor || !descendant) return false;
+    const Folder* p = descendant;
+    while (p != nullptr) {
+        if (p == ancestor) return true;
+        p = p->parent;
+    }
+    return false;
+}
+
 
 }  // namespace storage
