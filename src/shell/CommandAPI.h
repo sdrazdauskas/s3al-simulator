@@ -6,6 +6,7 @@
 #include <memory>
 #include <ostream>
 #include <atomic>
+#include <iostream>
 #include "kernel/SysCallsAPI.h"
 
 namespace shell {
@@ -49,6 +50,17 @@ public:
         }
         if (maxCount >= 0 && args.size() > static_cast<size_t>(maxCount)) {
             err << "Usage: " << getUsage() << "\n";
+            return false;
+        }
+        return true;
+    }
+
+    bool confirmAction(const std::string& prompt, SysApi& sys, std::ostream& out) const {
+        out << prompt << " (yes/no): ";
+        out.flush();
+        std::string response = sys.readLine();
+        if (response != "yes" && response != "y") {
+            out << "Action aborted.\n";
             return false;
         }
         return true;
