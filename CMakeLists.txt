@@ -38,6 +38,11 @@ find_package(Curses REQUIRED)
 target_include_directories(shell PUBLIC ${CURSES_INCLUDE_DIR})
 target_link_libraries(shell PUBLIC ${CURSES_LIBRARIES} logging)
 
+# libcurl for curl command
+find_package(CURL REQUIRED)
+target_include_directories(shell PUBLIC ${CURL_INCLUDE_DIRS})
+target_link_libraries(shell PUBLIC ${CURL_LIBRARIES})
+
 # Config library (application-level configuration)
 add_library(config STATIC)
 target_sources(config PRIVATE src/config/Config.cpp)

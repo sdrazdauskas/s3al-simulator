@@ -7,7 +7,7 @@ build:
   stage: build
   image: ubuntu:24.04
   before_script:
-    - apt-get update && apt-get install -y cmake ninja-build g++ libncurses-dev git lua5.4 liblua5.4-dev
+    - apt-get update && apt-get install -y cmake ninja-build g++ libncurses-dev git lua5.4 liblua5.4-dev libcurl4-openssl-dev
   script:
     - cmake -B build -G Ninja
     - cmake --build build
@@ -21,11 +21,10 @@ build:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
 
-test:
   stage: test
   image: ubuntu:24.04
   before_script:
-    - apt-get update && apt-get install -y libstdc++6 libncurses6 lua5.4 liblua5.4-0
+    - apt-get update && apt-get install -y libstdc++6 libncurses6 lua5.4 liblua5.4-0 libcurl4
   script:
     - chmod +x build/*_tests
     - for test in build/*_tests; do echo "Running $test"; ./"$test" || exit 1; done
