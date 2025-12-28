@@ -12,12 +12,8 @@ public:
                 std::ostream& /*err*/,
                 SysApi& sys) override
     {
-        std::cout << "Are you sure you want to reset current storage? (yes/no): ";
-        std::string confirm = sys.readLine();
-
-        if (confirm != "yes") {
-            out << "Reset aborted.\n";
-            return 0;
+        if (!confirmAction("Are you sure you want to reset current storage?", sys, out)) {
+            return 1;
         }
 
         auto res = sys.resetStorage();

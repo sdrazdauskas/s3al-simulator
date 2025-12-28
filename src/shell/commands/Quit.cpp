@@ -1,5 +1,6 @@
 #include "shell/CommandAPI.h"
 #include <memory>
+#include <iostream>
 
 namespace shell {
 
@@ -11,6 +12,10 @@ public:
                 std::ostream& /*err*/,
                 SysApi& sys) override
     {
+        if (!confirmAction("Are you sure you want to quit? Everything unsaved will be lost.", sys, out)) {
+            return 1;
+        }
+
         out << "Shutting down..." << std::endl;
         sys.requestShutdown();
         return 0;
