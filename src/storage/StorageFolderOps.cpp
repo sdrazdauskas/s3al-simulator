@@ -12,10 +12,24 @@ int StorageManager::findFolderIndex(const std::string& name) const {
     return -1;
 }
 
-void StorageManager::recursiveDelete(Folder& folder) {
-    folder.files.clear();
-    for (auto& sub : folder.subfolders) recursiveDelete(*sub);
+Response StorageManager::recursiveDelete(Folder& folder) {
+    while (!folder.files.empty()) {
+        std::string fileName = folder.files.front()->name;
+        Response res = deleteFile(folder, fileName);
+        if (res != Response::OK) {
+            logError("Failed to delete file '" + fileName + "' during recursiveDelete");
+            return res;
+        }
+    }
+    for (auto& sub : folder.subfolders) {
+        logDebug("Recursively deleting folder: " + sub->name);
+        Response res = recursiveDelete(*sub);
+        if (res != Response::OK) {
+            return res;
+        }
+    }
     folder.subfolders.clear();
+    return Response::OK;
 }
 
 Response StorageManager::makeDir(const std::string& path) {
@@ -53,11 +67,13 @@ Response StorageManager::removeDir(const std::string& path) {
     if (path.empty() || isNameInvalid(path)) {
         return Response::InvalidArgument;
     }
+
     PathInfo info = parsePath(path);
     if (!info.folder) {
         logError("Path not found: " + path);
         return Response::NotFound;
     }
+    
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
 
     // find and remove directory
@@ -76,6 +92,11 @@ Response StorageManager::removeDir(const std::string& path) {
                 tmp = tmp->parent;
             }
 
+            Response delRes = recursiveDelete(*toDelete);
+            if (delRes != Response::OK) {
+                logError("Failed to recursively delete directory: " + path);
+                return delRes;
+            }
             info.folder->subfolders.erase(info.folder->subfolders.begin() + i);
             info.folder->modifiedAt = std::chrono::system_clock::now();
             logInfo("Removed directory: " + path);
