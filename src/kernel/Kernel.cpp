@@ -48,56 +48,7 @@ sys::SysResult Kernel::deallocateMemory(void* ptr) {
     }
 }
 
-std::string Kernel::executeCommand(const std::string& line) {
-    if (!line.empty() && line.back() == '\n') {
-        return processLine(line.substr(0, line.size() - 1));
-    }
-    return processLine(line);
-}
-
-std::string Kernel::executeCommand(const std::string& cmd, const std::vector<std::string>& args) {
-    std::string line = cmd;
-    for (const auto& arg : args) line += " " + arg;
-    return executeCommand(line);
-}
-
 bool Kernel::isKernelRunning() const { return kernelRunning.load(); }
-
-std::string Kernel::processLine(const std::string& line) {
-    if(line.empty()) return "";
-
-    std::istringstream iss(line);
-    std::string command_name;
-    iss >> command_name;
-
-    std::vector<std::string> args;
-    std::string token;
-    while(iss >> token) {
-        if(!token.empty() && token.front()=='"') {
-            std::string quoted = token.substr(1);
-            while(iss && (quoted.empty() || quoted.back()!='"')) {
-                if(!(iss>>token)) break;
-                quoted += " "+token;
-            }
-            if(!quoted.empty() && quoted.back()=='"') quoted.pop_back();
-            args.push_back(quoted);
-        } else {
-            args.push_back(token);
-        }
-    }
-
-    // Make it a bit dynamic by passing args size as resource needs
-    const int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
-    const int cpu_required = 2 * arg_count;
-    const int memory_required = 1024 * arg_count;
-    if (procManager.submit(command_name, cpu_required, memory_required, 0) != -1) {
-        return "OK";
-    } else {
-        return "Error: Unable to execute process for command '" + command_name + "'.";
-    }
-
-    return "Unknown command: '" + command_name + "'.";
-}
 
 std::string Kernel::handleQuit(const std::vector<std::string>& args){
     (void)args;
@@ -256,7 +207,7 @@ int Kernel::getProcessRemainingCycles(int pid) const {
     return cpuScheduler.getRemainingCycles(pid);
 }
 
-bool Kernel::changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum) {
+bool Kernel::setSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum) {
     return cpuScheduler.setAlgorithm(algo, quantum);
 }
 
@@ -331,11 +282,10 @@ void Kernel::runEventLoop() {
     
     auto lastTick = std::chrono::steady_clock::now();
     while (kernelRunning.load()) {
-        // Always get the latest tick interval
+        // Can change during runtime
         auto tickInterval = std::chrono::milliseconds(cpuScheduler.getTickIntervalMs());
         std::unique_lock<std::mutex> lock(queueMutex);
 
-        // Wait for event or timeout
         if (queueCondition.wait_for(lock, tickInterval, [this] {
             return !eventQueue.empty() || !kernelRunning.load();
         })) {

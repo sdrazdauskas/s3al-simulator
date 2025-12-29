@@ -100,7 +100,7 @@ private:
             quantum = 0;
         }
 
-        if (!sys.changeSchedulingAlgorithm(algo, quantum)) {
+        if (!sys.setSchedulingAlgorithm(algo, quantum)) {
             err << "Failed to change scheduler: " << args[1];
             if (quantum > 0) err << " (quantum=" << quantum << ")";
             err << "\n";

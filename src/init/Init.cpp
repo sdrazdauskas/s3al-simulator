@@ -54,24 +54,7 @@ void Init::initializeShell() {
     shell::CommandRegistry registry;
     shell::initCommands(registry);
 
-    // Shell with Kernel callback
-    shell::Shell sh(
-        sysApi,
-        registry,
-        [&](const std::string& cmd, const std::vector<std::string>& args) {
-            auto* sysKernel = dynamic_cast<kernel::SysApiKernel*>(&sysApi);
-            if (!sysKernel) {
-                logError("Init: sysApi is not SysApiKernel.");
-                return;
-            }
-            auto* kernelPtr = sysKernel->getKernel();
-            if (!kernelPtr) {
-                logError("Init: Kernel pointer is null.");
-                return;
-            }
-            std::string result = kernelPtr->executeCommand(cmd, args);
-            logDebug("Kernel returned: " + result);
-    });
+    shell::Shell sh(sysApi, registry);
 
     sh.setShellPid(shellPid);
     

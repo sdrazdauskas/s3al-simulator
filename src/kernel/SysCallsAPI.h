@@ -115,7 +115,7 @@ struct SysApi {
     virtual int getProcessRemainingCycles(int pid) = 0;
 
     // Scheduler configuration
-    virtual bool changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0) = 0;
+    virtual bool setSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0) = 0;
     virtual bool setSchedulerCyclesPerInterval(int cycles) = 0;
     virtual bool setSchedulerTickIntervalMs(int ms) = 0;
 

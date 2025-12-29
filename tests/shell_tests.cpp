@@ -45,7 +45,7 @@ public:
     MOCK_METHOD(std::string, readLine, (), (override));
     MOCK_METHOD(void, beginInteractiveMode, (), (override));
     MOCK_METHOD(void, endInteractiveMode, (), (override));
-    MOCK_METHOD(bool, changeSchedulingAlgorithm, (scheduler::SchedulerAlgorithm algo, int quantum), (override));
+    MOCK_METHOD(bool, setSchedulingAlgorithm, (scheduler::SchedulerAlgorithm algo, int quantum), (override));
     MOCK_METHOD(bool, setSchedulerCyclesPerInterval, (int cycles), (override));
     MOCK_METHOD(bool, setSchedulerTickIntervalMs, (int ms), (override));
     MOCK_METHOD(bool, addCPUWork, (int pid, int cpuCycles), (override));
@@ -75,6 +75,7 @@ protected:
         ON_CALL(mock_sys, exit(_, _)).WillByDefault(Return(true));            // Exits successfully
         ON_CALL(mock_sys, reapProcess(_)).WillByDefault(Return(true));        // Reaps successfully
         ON_CALL(mock_sys, isProcessComplete(_)).WillByDefault(Return(true));
+        ON_CALL(mock_sys, fork(_, _, _, _, _)).WillByDefault(Return(42));
         ON_CALL(mock_sys, getProcessRemainingCycles(_)).WillByDefault(Return(-1));
         ON_CALL(mock_sys, processExists(_)).WillByDefault(Return(true));
     }
