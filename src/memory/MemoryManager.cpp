@@ -16,11 +16,10 @@ MemoryManager::~MemoryManager() {
     }
 }
 
-void *MemoryManager::allocate(size_t size, int processId)
+void* MemoryManager::allocate(size_t size, int processId)
 {
     if (usedMemory + size > totalMemory) {
         logError("Out of memory: requested " + std::to_string(size) + " bytes");
-        std::cerr << "Error: Out of memory\n";
         return nullptr;
     }
 
@@ -32,19 +31,19 @@ void *MemoryManager::allocate(size_t size, int processId)
     return ptr;
 }
 
-void MemoryManager::deallocate(void *ptr)
+bool MemoryManager::deallocate(void *ptr)
 {
     auto it = allocations.find(ptr);
     if (it == allocations.end()) {
         logError("Attempt to deallocate untracked memory");
-        std::cerr << "Error: Attempt to deallocate untracked memory\n";
-        return;
+        return false;
     }
 
     usedMemory -= it->second.size;
     logDebug("Deallocated " + std::to_string(it->second.size) + " bytes");
     delete[] static_cast<std::byte*>(ptr);
     allocations.erase(it);
+    return true;
 }
 
 void MemoryManager::freeProcessMemory(int processId)

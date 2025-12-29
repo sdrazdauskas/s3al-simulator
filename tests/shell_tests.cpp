@@ -48,9 +48,6 @@ public:
     MOCK_METHOD(bool, changeSchedulingAlgorithm, (scheduler::SchedulerAlgorithm algo, int quantum), (override));
     MOCK_METHOD(bool, setSchedulerCyclesPerInterval, (int cycles), (override));
     MOCK_METHOD(bool, setSchedulerTickIntervalMs, (int ms), (override));
-    
-    // Async command execution
-    MOCK_METHOD(int, submitCommand, (const std::string& name, int cpuCycles, int priority), (override));
     MOCK_METHOD(bool, addCPUWork, (int pid, int cpuCycles), (override));
     MOCK_METHOD(bool, waitForProcess, (int pid), (override));
     MOCK_METHOD(bool, exit, (int pid, int exitCode), (override));
@@ -58,7 +55,7 @@ public:
     MOCK_METHOD(bool, isProcessComplete, (int pid), (override));
     MOCK_METHOD(int, getProcessRemainingCycles, (int pid), (override));
     MOCK_METHOD(void*, allocateMemory, (size_t, int), (override));
-    MOCK_METHOD(void, deallocateMemory, (void*), (override));
+    MOCK_METHOD(SysResult, deallocateMemory, (void*), (override));
 };
 
 class ShellTest : public ::testing::Test {
@@ -74,7 +71,6 @@ protected:
         ON_CALL(mock_sys, getWorkingDir()).WillByDefault(Return("/"));
         
         // Default async execution: instant completion
-        ON_CALL(mock_sys, submitCommand(_, _, _)).WillByDefault(Return(100)); // Return a fake PID
         ON_CALL(mock_sys, waitForProcess(_)).WillByDefault(Return(true));     // Completes immediately
         ON_CALL(mock_sys, exit(_, _)).WillByDefault(Return(true));            // Exits successfully
         ON_CALL(mock_sys, reapProcess(_)).WillByDefault(Return(true));        // Reaps successfully

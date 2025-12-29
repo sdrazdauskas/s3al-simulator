@@ -59,7 +59,7 @@ public:
     
     // Memory management syscalls
     void* allocateMemory(size_t size, int processId = 0);
-    void deallocateMemory(void* ptr);
+    sys::SysResult deallocateMemory(void* ptr);
 
     std::string handleQuit(const std::vector<std::string>& args);
     
@@ -80,9 +80,6 @@ public:
     
     // Kernel event loop - runs background tasks
     void runEventLoop();
-    
-    // Submit a command to be processed by the kernel
-    void submitCommand(const std::string& line);
     
     // Submit a command for scheduler-based execution
     int submitAsyncCommand(const std::string& name, int cpuCycles, int priority = 0);

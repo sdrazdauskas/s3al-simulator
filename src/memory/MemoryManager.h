@@ -14,17 +14,17 @@ public:
     virtual ~MemoryManager();
 
     // Allocate memory for a process
-    virtual void *allocate(size_t size, int processId = 0);
+    virtual void* allocate(size_t size, int processId);
 
     // Deallocate specific pointer
-    virtual void deallocate(void* ptr);
+    virtual bool deallocate(void* ptr);
     
     // Deallocate ALL memory owned by a process
     virtual void freeProcessMemory(int processId);
 
     size_t getTotalMemory() const { return totalMemory; }
     size_t getUsedMemory() const { return usedMemory; }
-    size_t get_free_memory() const { return totalMemory - usedMemory; }
+    size_t getFreeMemory() const { return totalMemory - usedMemory; }
 
 private:
     struct Allocation {
