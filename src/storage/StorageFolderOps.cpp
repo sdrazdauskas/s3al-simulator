@@ -411,9 +411,21 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
         }
     }
 
-    if (isDescendantOrSame(srcInfo.folder, destInfo.folder)) { 
-        logError("cannot move '" + srcInfo.name + "' to a subdirectory of itself, '" + destPath + "'"); 
-        return Response::InvalidArgument; 
+    // Only block if destination is inside the source folder (or is the source itself)
+    Folder* srcFolder = nullptr;
+    for (const auto& sub : srcInfo.folder->subfolders) {
+        if (sub->name == srcInfo.name) {
+            srcFolder = sub.get();
+            break;
+        }
+    }
+    if (!srcFolder) {
+        logError("Source directory not found: " + srcPath);
+        return Response::NotFound;
+    }
+    if (isDescendantOrSame(srcFolder, destInfo.folder)) {
+        logError("cannot move '" + srcInfo.name + "' to a subdirectory of itself, '" + destPath + "'");
+        return Response::InvalidArgument;
     }
 
     if (targetDir) {
