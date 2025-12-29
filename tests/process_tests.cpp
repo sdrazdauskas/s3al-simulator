@@ -21,7 +21,7 @@ public:
     MockMemoryManager() : MemoryManager(4096) {}
     
     MOCK_METHOD(void*, allocate, (size_t size, int processId), (override));
-    MOCK_METHOD(void, deallocate, (void* ptr), (override));
+    MOCK_METHOD(bool, deallocate, (void* ptr), (override));
     MOCK_METHOD(void, freeProcessMemory, (int processId), (override));
 };
 

@@ -247,10 +247,11 @@ struct SysApiKernel : ::sys::SysApi {
         return nullptr;
     }
     
-    void deallocateMemory(void* ptr) override {
+    ::sys::SysResult deallocateMemory(void* ptr) override {
         if (kernelOwner) {
-            kernelOwner->deallocateMemory(ptr);
+            return kernelOwner->deallocateMemory(ptr);
         }
+        return ::sys::SysResult::Error;
     }
 
     void requestShutdown() override {
@@ -312,14 +313,6 @@ struct SysApiKernel : ::sys::SysApi {
     void endInteractiveMode() override {
         // Restore console logging state
         logging::Logger::getInstance().setConsoleOutput(savedConsoleLogging);
-    }
-    
-
-    int submitCommand(const std::string& name, int cpuCycles, int priority = 0) override {
-        if (kernelOwner) {
-            return kernelOwner->submitAsyncCommand(name, cpuCycles, priority);
-        }
-        return -1;
     }
     
     bool addCPUWork(int pid, int cpuCycles) override {

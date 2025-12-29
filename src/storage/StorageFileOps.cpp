@@ -97,7 +97,11 @@ Response StorageManager::deleteFile(Folder& folder, const std::string& name) {
     for (size_t i = 0; i < folder.files.size(); ++i) {
         if (folder.files[i]->name == name) {
             if (folder.files[i]->memoryToken && sysApi) {
-                sysApi->deallocateMemory(folder.files[i]->memoryToken);
+                auto result = sysApi->deallocateMemory(folder.files[i]->memoryToken);
+                if (result != sys::SysResult::OK) {
+                    logError("Failed to deallocate memory for file: " + name);
+                    return Response::Error;
+                }
             }
             folder.files.erase(folder.files.begin() + i);
             folder.modifiedAt = std::chrono::system_clock::now();
@@ -128,7 +132,13 @@ Response StorageManager::writeFile(const std::string& path, const std::string& c
             
             // Free old memory token
             if (file->memoryToken) {
-                if (sysApi) sysApi->deallocateMemory(file->memoryToken);
+                if (sysApi) {
+                    auto result = sysApi->deallocateMemory(file->memoryToken);
+                    if (result != sys::SysResult::OK) {
+                        logError("Failed to deallocate memory for file: " + info.name);
+                        return Response::Error;
+                    }
+                }
                 file->memoryToken = nullptr;
             }
             

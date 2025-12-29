@@ -40,8 +40,12 @@ void* Kernel::allocateMemory(size_t size, int processId) {
     return memManager.allocate(size, processId);
 }
 
-void Kernel::deallocateMemory(void* ptr) {
-    memManager.deallocate(ptr);
+sys::SysResult Kernel::deallocateMemory(void* ptr) {
+    if (memManager.deallocate(ptr)) {
+        return sys::SysResult::OK;
+    } else {
+        return sys::SysResult::Error;
+    }
 }
 
 std::string Kernel::executeCommand(const std::string& line) {
@@ -101,7 +105,6 @@ std::string Kernel::handleQuit(const std::vector<std::string>& args){
     
     kernelRunning.store(false);
     
-    // Signal init to shutdown (like kernel sending SIGTERM to PID 1)
     if (initShutdownCb) {
         initShutdownCb();
     }
@@ -114,12 +117,6 @@ std::string Kernel::handleQuit(const std::vector<std::string>& args){
     queueCondition.notify_one();
     
     return "Shutting down kernel.";
-}
-
-void Kernel::submitCommand(const std::string& line) {
-    std::lock_guard<std::mutex> lock(queueMutex);
-    eventQueue.push({KernelEvent::Type::COMMAND, line});
-    queueCondition.notify_one();
 }
 
 void Kernel::handleInterruptSignal(int signal) {
@@ -169,7 +166,7 @@ bool Kernel::processExists(int pid) const {
 }
 
 int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int priority) {
-    // Submit directly to scheduler (no memory allocation needed for command execution)
+    // Submit directly to scheduler, we don't allocate memory for execution
     int pid = procManager.submit(name, cpuCycles, priority);
     logDebug("Submitted async command '" + name + "' (PID=" + std::to_string(pid) + 
               ", cycles=" + std::to_string(cpuCycles) + ")");

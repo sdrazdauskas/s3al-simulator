@@ -61,7 +61,7 @@ struct SysApi {
     
     // Memory allocation syscalls for storage
     virtual void* allocateMemory(size_t size, int processId = 0) = 0;
-    virtual void deallocateMemory(void* ptr) = 0;
+    virtual SysResult deallocateMemory(void* ptr) = 0;
 
     virtual void requestShutdown() = 0;
     
@@ -93,10 +93,6 @@ struct SysApi {
     // Call beginInteractiveMode() before taking over the terminal, endInteractiveMode() when done
     virtual void beginInteractiveMode() = 0;
     virtual void endInteractiveMode() = 0;
-
-    // Submit a command to run through the scheduler with CPU cost cycles
-    // Returns process ID, or -1 on failure
-    virtual int submitCommand(const std::string& name, int cpuCycles, int priority = 0) = 0;
     
     // Add CPU work to an existing process (for daemons doing periodic work)
     // Returns true if successful, false if process not found
