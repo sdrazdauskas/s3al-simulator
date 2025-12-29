@@ -21,6 +21,7 @@ build:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
 
+test:
   stage: test
   image: ubuntu:24.04
   before_script:
