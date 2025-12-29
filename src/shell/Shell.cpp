@@ -14,8 +14,8 @@ namespace shell {
 // Global interrupt flag for Ctrl+C handling
 std::atomic<bool> interruptRequested{false};
 
-Shell::Shell(SysApi& sys_, const CommandRegistry& reg)
-    : sys(sys_), registry(reg), luaState(nullptr) {}
+Shell::Shell(SysApi& sys, const CommandRegistry& reg)
+    : sys(sys), registry(reg), luaState(nullptr) {}
 
 void Shell::initLuaOnce() {
     if (luaState) return;
@@ -361,7 +361,7 @@ std::string Shell::executeCommand(const std::string& command,
 
     logInfo("Process started: " + command + " (PID=" + std::to_string(pid) + ")");
 
-    // Wait for scheduler to complete the process (simulate CPU time)
+    // Wait for scheduler to complete the process
     std::cerr.flush();
     if (!sys.waitForProcess(pid)) {
         logInfo("Process interrupted: " + command + " (PID=" + std::to_string(pid) + ")");
@@ -374,9 +374,9 @@ std::string Shell::executeCommand(const std::string& command,
         // Pipe output mode
         std::ostringstream out, err;
         std::cerr.flush();
-        cmd->execute(argsWithInput, input, out, err, sys);
+        int returnCode = cmd->execute(argsWithInput, input, out, err, sys);
         // Command finished - call exit() then wait()/reap
-        sys.exit(pid);
+        sys.exit(pid, returnCode);
         sys.reapProcess(pid);
         return out.str() + err.str();
     }
@@ -387,11 +387,11 @@ std::string Shell::executeCommand(const std::string& command,
     CallbackStreamBuf err_buf(outputCallback);
     std::ostream os(&out_buf);
     std::ostream es(&err_buf);
-    cmd->execute(argsWithInput, input, os, es, sys);
+    int returnCode = cmd->execute(argsWithInput, input, os, es, sys);
     os.flush(); es.flush();
 
     // Command finished
-    sys.exit(pid);
+    sys.exit(pid, returnCode);
     sys.reapProcess(pid);
     logInfo("Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
     return "";
