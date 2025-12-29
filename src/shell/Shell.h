@@ -73,7 +73,7 @@ namespace shell {
         std::string handleAppendRedirection(std::string segment, const std::string &output);
 
     public:
-        explicit Shell(SysApi& sys_, const CommandRegistry& reg);
+        explicit Shell(SysApi& sys, const CommandRegistry& reg);
 
         OutputCallback getOutputCallback() const { return outputCallback; }
         void setOutputCallback(OutputCallback callback);
