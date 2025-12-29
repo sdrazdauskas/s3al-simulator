@@ -353,6 +353,7 @@ std::string Shell::executeCommand(const std::string& command,
     ICommand* cmd = registry.find(command);
     if (!cmd) return "Error: Command '" + command + "' not found.";
 
+    // Make it a dynamic, not real value
     int memNeeded = std::max(64, static_cast<int>(args.size()) * 1024);
     int cpuNeeded = std::max(2, static_cast<int>(args.size()) * 2);
     

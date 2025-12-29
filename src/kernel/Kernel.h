@@ -66,9 +66,6 @@ public:
     // Kernel event loop - runs background tasks
     void runEventLoop();
     
-    // Submit a command for scheduler-based execution
-    int submitAsyncCommand(const std::string& name, int cpuCycles, int priority = 0);
-    
     // Add CPU work to an existing process
     bool addCPUWork(int pid, int cpuCycles);
     

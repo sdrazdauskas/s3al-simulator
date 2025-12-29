@@ -127,7 +127,6 @@ void Init::handleProcessSignal(int pid, int signal) {
         return;
     }
     
-    // Otherwise forward to daemons (existing behavior)
     handleDaemonSignal(pid, signal);
 }
 

@@ -116,14 +116,6 @@ bool Kernel::processExists(int pid) const {
     return procManager.processExists(pid);
 }
 
-int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int priority) {
-    // Submit directly to scheduler, we don't allocate memory for execution
-    int pid = procManager.submit(name, cpuCycles, priority);
-    logDebug("Submitted async command '" + name + "' (PID=" + std::to_string(pid) + 
-              ", cycles=" + std::to_string(cpuCycles) + ")");
-    return pid;
-}
-
 bool Kernel::addCPUWork(int pid, int cpuCycles) {
     // Try to add cycles to existing scheduler entry first
     bool success = cpuScheduler.addCycles(pid, cpuCycles);
@@ -199,7 +191,6 @@ bool Kernel::reapProcess(int pid) {
 }
 
 bool Kernel::isProcessComplete(int pid) const {
-    // Process is complete if it's not in the scheduler anymore
     return cpuScheduler.getRemainingCycles(pid) < 0;
 }
 
@@ -314,7 +305,7 @@ void Kernel::runEventLoop() {
     logInfo("Kernel event loop stopped");
 }
 
-void Kernel::boot(){
+void Kernel::boot() {
     logging::logInfo("KERNEL", "Booting s3al OS...");
     
     auto loggerCallback = [](const std::string& level, const std::string& module, const std::string& message){
