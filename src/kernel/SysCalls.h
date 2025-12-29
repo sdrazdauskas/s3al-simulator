@@ -357,9 +357,9 @@ struct SysApiKernel : ::sys::SysApi {
         return -1;
     }
 
-    bool changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0) override {
+    bool setSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0) override {
         if (kernelOwner) {
-            return kernelOwner->changeSchedulingAlgorithm(algo, quantum);
+            return kernelOwner->setSchedulingAlgorithm(algo, quantum);
         }
         return false;
     }

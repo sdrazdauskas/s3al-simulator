@@ -17,9 +17,6 @@ namespace shell {
 
     using OutputCallback = std::function<void(const std::string&)>;
 
-    using KernelCallback = std::function<void(const std::string& command,
-                                              const std::vector<std::string>& args)>;
-
     // Custom stream buffer that writes directly to output callback
     class CallbackStreamBuf : public std::streambuf {
     private:
@@ -65,7 +62,6 @@ namespace shell {
         SysApi& sys;
         const CommandRegistry& registry;
         OutputCallback outputCallback;
-        KernelCallback kernelCallback;
         int shellPid = -1;
         
         void initLuaOnce();
@@ -77,11 +73,10 @@ namespace shell {
         std::string handleAppendRedirection(std::string segment, const std::string &output);
 
     public:
-        explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
+        explicit Shell(SysApi& sys_, const CommandRegistry& reg);
 
         OutputCallback getOutputCallback() const { return outputCallback; }
         void setOutputCallback(OutputCallback callback);
-        void setKernelCallback(KernelCallback callback) { kernelCallback = std::move(callback); }
         void setShellPid(int pid) { shellPid = pid; }
 
         void processCommandLine(const std::string& commandLine);
@@ -90,8 +85,6 @@ namespace shell {
                                 const std::string& input = "",
                                 bool inPipeChain = false);
         void parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args);
-
-        bool isConnectedToKernel() const;
 
         bool isCommandAvailable(const std::string& name) const {
             return registry.find(name) != nullptr;
