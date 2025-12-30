@@ -28,6 +28,8 @@ public:
     
     void setConsoleOutput(bool enabled) { logToConsole = enabled; }
     bool getConsoleOutput() const { return logToConsole; }
+    LogLevel getMinLevel() const { return minLevel; }
+    void setMinLevel(LogLevel lvl) { minLevel = lvl; }
     
     // Callback called before/after console output, allowing terminal to redraw prompt
     // Parameter: true = before log output (clear line), false = after log output (redraw prompt)

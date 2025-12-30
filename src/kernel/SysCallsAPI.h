@@ -119,6 +119,12 @@ struct SysApi {
     virtual bool setSchedulerCyclesPerInterval(int cycles) = 0;
     virtual bool setSchedulerTickIntervalMs(int ms) = 0;
 
+    // Logging control
+    virtual bool getConsoleOutput() const = 0;
+    virtual void setConsoleOutput(bool enabled) = 0;
+    virtual std::string getLogLevel() const = 0;
+    virtual void setLogLevel(logging::LogLevel level) = 0;
+
     virtual ~SysApi() = default;
 };
 
