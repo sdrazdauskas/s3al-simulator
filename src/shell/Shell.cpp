@@ -14,8 +14,8 @@ namespace shell {
 // Global interrupt flag for Ctrl+C handling
 std::atomic<bool> interruptRequested{false};
 
-Shell::Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb)
-    : sys(sys_), registry(reg), kernelCallback(std::move(kernelCb)), luaState(nullptr) {}
+Shell::Shell(SysApi& sys, const CommandRegistry& reg)
+    : sys(sys), registry(reg), luaState(nullptr) {}
 
 void Shell::initLuaOnce() {
     if (luaState) return;
@@ -318,13 +318,11 @@ std::string Shell::executeCommand(const std::string& command,
     if (!input.empty())
         argsWithInput.push_back(input);
 
-    // Built in commands
     if (isBuiltinCommand(command)) {
         ICommand* cmd = registry.find(command);
         if (!cmd) return "Error: Builtin missing: " + command;
 
-        // Add minimal CPU work to shell's own process and wait for scheduler
-        if (shellPid > 0 && isConnectedToKernel()) {
+        if (shellPid > 0) {
             sys.addCPUWork(shellPid, BUILTIN_CPU_WORK);
             if (!sys.waitForProcess(shellPid)) {
                 // Interrupted - return error to stop the chain
@@ -355,17 +353,7 @@ std::string Shell::executeCommand(const std::string& command,
     ICommand* cmd = registry.find(command);
     if (!cmd) return "Error: Command '" + command + "' not found.";
 
-    if (!isConnectedToKernel()) {
-        std::ostringstream out, err;
-        cmd->execute(argsWithInput, input, out, err, sys);
-        std::string output = out.str();
-        if (!err.str().empty()) {
-            if (!output.empty()) output += "\n";
-            output += "Error: " + err.str();
-        }
-        return output;
-    }
-
+    // Make it a dynamic, not real value
     int memNeeded = std::max(64, static_cast<int>(args.size()) * 1024);
     int cpuNeeded = std::max(2, static_cast<int>(args.size()) * 2);
     
@@ -374,7 +362,7 @@ std::string Shell::executeCommand(const std::string& command,
 
     logInfo("Process started: " + command + " (PID=" + std::to_string(pid) + ")");
 
-    // Wait for scheduler to complete the process (simulate CPU time)
+    // Wait for scheduler to complete the process
     std::cerr.flush();
     if (!sys.waitForProcess(pid)) {
         logInfo("Process interrupted: " + command + " (PID=" + std::to_string(pid) + ")");
@@ -387,9 +375,9 @@ std::string Shell::executeCommand(const std::string& command,
         // Pipe output mode
         std::ostringstream out, err;
         std::cerr.flush();
-        cmd->execute(argsWithInput, input, out, err, sys);
+        int returnCode = cmd->execute(argsWithInput, input, out, err, sys);
         // Command finished - call exit() then wait()/reap
-        sys.exit(pid);
+        sys.exit(pid, returnCode);
         sys.reapProcess(pid);
         return out.str() + err.str();
     }
@@ -400,11 +388,11 @@ std::string Shell::executeCommand(const std::string& command,
     CallbackStreamBuf err_buf(outputCallback);
     std::ostream os(&out_buf);
     std::ostream es(&err_buf);
-    cmd->execute(argsWithInput, input, os, es, sys);
+    int returnCode = cmd->execute(argsWithInput, input, os, es, sys);
     os.flush(); es.flush();
 
     // Command finished
-    sys.exit(pid);
+    sys.exit(pid, returnCode);
     sys.reapProcess(pid);
     logInfo("Process finished: " + command + " (PID=" + std::to_string(pid) + ")");
     return "";
@@ -435,8 +423,6 @@ std::string Shell::executeScriptFile(const std::string &fileName) {
 void Shell::parseCommand(const std::string& commandLine, std::string& command, std::vector<std::string>& args) {
     StringUtils::parseCommand(commandLine, command, args);
 }
-
-bool Shell::isConnectedToKernel() const { return kernelCallback != nullptr; }
 
 bool Shell::isBuiltinCommand(const std::string& cmd) const {
     static const std::unordered_set<std::string> builtins = {

@@ -40,60 +40,15 @@ void* Kernel::allocateMemory(size_t size, int processId) {
     return memManager.allocate(size, processId);
 }
 
-void Kernel::deallocateMemory(void* ptr) {
-    memManager.deallocate(ptr);
-}
-
-std::string Kernel::executeCommand(const std::string& line) {
-    if (!line.empty() && line.back() == '\n') {
-        return processLine(line.substr(0, line.size() - 1));
+sys::SysResult Kernel::deallocateMemory(void* ptr) {
+    if (memManager.deallocate(ptr)) {
+        return sys::SysResult::OK;
+    } else {
+        return sys::SysResult::Error;
     }
-    return processLine(line);
-}
-
-std::string Kernel::executeCommand(const std::string& cmd, const std::vector<std::string>& args) {
-    std::string line = cmd;
-    for (const auto& arg : args) line += " " + arg;
-    return executeCommand(line);
 }
 
 bool Kernel::isKernelRunning() const { return kernelRunning.load(); }
-
-std::string Kernel::processLine(const std::string& line) {
-    if(line.empty()) return "";
-
-    std::istringstream iss(line);
-    std::string command_name;
-    iss >> command_name;
-
-    std::vector<std::string> args;
-    std::string token;
-    while(iss >> token) {
-        if(!token.empty() && token.front()=='"') {
-            std::string quoted = token.substr(1);
-            while(iss && (quoted.empty() || quoted.back()!='"')) {
-                if(!(iss>>token)) break;
-                quoted += " "+token;
-            }
-            if(!quoted.empty() && quoted.back()=='"') quoted.pop_back();
-            args.push_back(quoted);
-        } else {
-            args.push_back(token);
-        }
-    }
-
-    // Make it a bit dynamic by passing args size as resource needs
-    const int arg_count = static_cast<int>(std::max(static_cast<size_t>(1), args.size()));
-    const int cpu_required = 2 * arg_count;
-    const int memory_required = 1024 * arg_count;
-    if (procManager.submit(command_name, cpu_required, memory_required, 0) != -1) {
-        return "OK";
-    } else {
-        return "Error: Unable to execute process for command '" + command_name + "'.";
-    }
-
-    return "Unknown command: '" + command_name + "'.";
-}
 
 std::string Kernel::handleQuit(const std::vector<std::string>& args){
     (void)args;
@@ -101,7 +56,6 @@ std::string Kernel::handleQuit(const std::vector<std::string>& args){
     
     kernelRunning.store(false);
     
-    // Signal init to shutdown (like kernel sending SIGTERM to PID 1)
     if (initShutdownCb) {
         initShutdownCb();
     }
@@ -114,12 +68,6 @@ std::string Kernel::handleQuit(const std::vector<std::string>& args){
     queueCondition.notify_one();
     
     return "Shutting down kernel.";
-}
-
-void Kernel::submitCommand(const std::string& line) {
-    std::lock_guard<std::mutex> lock(queueMutex);
-    eventQueue.push({KernelEvent::Type::COMMAND, line});
-    queueCondition.notify_one();
 }
 
 void Kernel::handleInterruptSignal(int signal) {
@@ -166,14 +114,6 @@ std::vector<sys::SysApi::ProcessInfo> Kernel::getProcessList() const {
 
 bool Kernel::processExists(int pid) const {
     return procManager.processExists(pid);
-}
-
-int Kernel::submitAsyncCommand(const std::string& name, int cpuCycles, int priority) {
-    // Submit directly to scheduler (no memory allocation needed for command execution)
-    int pid = procManager.submit(name, cpuCycles, priority);
-    logDebug("Submitted async command '" + name + "' (PID=" + std::to_string(pid) + 
-              ", cycles=" + std::to_string(cpuCycles) + ")");
-    return pid;
 }
 
 bool Kernel::addCPUWork(int pid, int cpuCycles) {
@@ -251,7 +191,6 @@ bool Kernel::reapProcess(int pid) {
 }
 
 bool Kernel::isProcessComplete(int pid) const {
-    // Process is complete if it's not in the scheduler anymore
     return cpuScheduler.getRemainingCycles(pid) < 0;
 }
 
@@ -259,7 +198,7 @@ int Kernel::getProcessRemainingCycles(int pid) const {
     return cpuScheduler.getRemainingCycles(pid);
 }
 
-bool Kernel::changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum) {
+bool Kernel::setSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum) {
     return cpuScheduler.setAlgorithm(algo, quantum);
 }
 
@@ -334,11 +273,10 @@ void Kernel::runEventLoop() {
     
     auto lastTick = std::chrono::steady_clock::now();
     while (kernelRunning.load()) {
-        // Always get the latest tick interval
+        // Can change during runtime
         auto tickInterval = std::chrono::milliseconds(cpuScheduler.getTickIntervalMs());
         std::unique_lock<std::mutex> lock(queueMutex);
 
-        // Wait for event or timeout
         if (queueCondition.wait_for(lock, tickInterval, [this] {
             return !eventQueue.empty() || !kernelRunning.load();
         })) {
@@ -367,7 +305,7 @@ void Kernel::runEventLoop() {
     logInfo("Kernel event loop stopped");
 }
 
-void Kernel::boot(){
+void Kernel::boot() {
     logging::logInfo("KERNEL", "Booting s3al OS...");
     
     auto loggerCallback = [](const std::string& level, const std::string& module, const std::string& message){

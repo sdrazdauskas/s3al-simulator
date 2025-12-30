@@ -88,22 +88,28 @@ Response StorageManager::deleteFile(const std::string& path) {
         return Response::NotFound;
     }
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
-    
-    // find and delete file
-    for (size_t i = 0; i < info.folder->files.size(); ++i) {
-        if (info.folder->files[i]->name == info.name) {
-            // Free memory token before deleting file
-            if (info.folder->files[i]->memoryToken && sysApi) {
-                sysApi->deallocateMemory(info.folder->files[i]->memoryToken);
+
+    return deleteFile(*info.folder, info.name);
+}
+
+Response StorageManager::deleteFile(Folder& folder, const std::string& name) {
+    if (isNameInvalid(name)) return Response::InvalidArgument;
+    for (size_t i = 0; i < folder.files.size(); ++i) {
+        if (folder.files[i]->name == name) {
+            if (folder.files[i]->memoryToken && sysApi) {
+                auto result = sysApi->deallocateMemory(folder.files[i]->memoryToken);
+                if (result != sys::SysResult::OK) {
+                    logError("Failed to deallocate memory for file: " + name);
+                    return Response::Error;
+                }
             }
-            info.folder->files.erase(info.folder->files.begin() + i);
-            info.folder->modifiedAt = std::chrono::system_clock::now();
-            logInfo("Deleted file: " + path);
+            folder.files.erase(folder.files.begin() + i);
+            folder.modifiedAt = std::chrono::system_clock::now();
+            logInfo("Deleted file: " + name);
             return Response::OK;
         }
     }
-    
-    logError("File not found: " + path);
+    logError("File not found: " + name);
     return Response::NotFound;
 }
 
@@ -126,7 +132,13 @@ Response StorageManager::writeFile(const std::string& path, const std::string& c
             
             // Free old memory token
             if (file->memoryToken) {
-                if (sysApi) sysApi->deallocateMemory(file->memoryToken);
+                if (sysApi) {
+                    auto result = sysApi->deallocateMemory(file->memoryToken);
+                    if (result != sys::SysResult::OK) {
+                        logError("Failed to deallocate memory for file: " + info.name);
+                        return Response::Error;
+                    }
+                }
                 file->memoryToken = nullptr;
             }
             

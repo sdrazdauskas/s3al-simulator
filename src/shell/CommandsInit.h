@@ -25,6 +25,7 @@ std::unique_ptr<ICommand> createMeminfoCommand();
 std::unique_ptr<ICommand> createMkdirCommand();
 std::unique_ptr<ICommand> createMvCommand();
 std::unique_ptr<ICommand> createMvdirCommand();
+std::unique_ptr<ICommand> createOsLogCommand();
 std::unique_ptr<ICommand> createPsCommand();
 std::unique_ptr<ICommand> createPwdCommand();
 std::unique_ptr<ICommand> createQuitCommand();
@@ -57,6 +58,7 @@ inline void initCommands(CommandRegistry& reg) {
     reg.add(createMkdirCommand());
     reg.add(createMvCommand());
     reg.add(createMvdirCommand());
+    reg.add(createOsLogCommand());
     reg.add(createPsCommand());
     reg.add(createPwdCommand());
     reg.add(createResetCommand());
@@ -70,7 +72,6 @@ inline void initCommands(CommandRegistry& reg) {
     reg.add(createWriteCommand());
     
     reg.add(createHelpCommand(&reg));
-    
     reg.add(createQuitCommand());
     // Add alias for exit -> quit
     auto exitCmd = createQuitCommand();
