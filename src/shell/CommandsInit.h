@@ -1,10 +1,11 @@
 #pragma once
+
 #include "shell/CommandAPI.h"
 #include <memory>
 
 namespace shell {
 
-// Forward declarations of factory functions (camelCase)
+// Forward declarations of factory functions
 std::unique_ptr<ICommand> createCatCommand();
 std::unique_ptr<ICommand> createTouchCommand();
 std::unique_ptr<ICommand> createEchoCommand();
@@ -22,6 +23,7 @@ std::unique_ptr<ICommand> createQuitCommand();
 std::unique_ptr<ICommand> createMeminfoCommand();
 std::unique_ptr<ICommand> createMembarCommand();
 std::unique_ptr<ICommand> createSaveStateCommand();
+std::unique_ptr<ICommand> createSchedulerCommand();
 std::unique_ptr<ICommand> createLoadStateCommand();
 std::unique_ptr<ICommand> createLoadCommand();
 std::unique_ptr<ICommand> createResetCommand();
@@ -50,10 +52,11 @@ inline void initCommands(CommandRegistry& reg) {
     reg.add(createLsCommand());
     reg.add(createPwdCommand());
     reg.add(createSaveStateCommand());
+    reg.add(createSchedulerCommand());
+    reg.add(createSleepCommand());
     reg.add(createLoadStateCommand());
     reg.add(createLoadCommand());
     reg.add(createResetCommand());
-    reg.add(createSleepCommand());
     reg.add(createListdataCommand());
     reg.add(createMvCommand());
     reg.add(createCpCommand());

@@ -153,30 +153,27 @@ void Init::startDaemons() {
     
     auto system_daemons = daemons::DaemonRegistry::getAvailableDaemons();
     
-    for (const auto& daemon_name : system_daemons) {
+    for (const auto& daemonName : system_daemons) {
         // Fork a new persistent process for this daemon
-        int pid = sysApi.fork(daemon_name, 1, 512, 5, true);
+        int pid = sysApi.fork(daemonName, 1, 512, 5, true);
         if (pid <= 0) {
-            logError("Failed to fork daemon: " + daemon_name);
+            logError("Failed to fork daemon: " + daemonName);
             continue;
         }
         
-        // Create the daemon instance using the registry
-        auto daemon = daemons::DaemonRegistry::createDaemon(daemon_name, sysApi);
-        if (!daemon) {
-            logError("Unknown daemon type: " + daemon_name);
+        // Create the daemon instance using the registry (now returns shared_ptr)
+        std::shared_ptr<daemons::Daemon> daemonShared = daemons::DaemonRegistry::createDaemon(daemonName, sysApi);
+        if (!daemonShared) {
+            logError("Unknown daemon type: " + daemonName);
             continue;
         }
-        
-        // Convert to shared_ptr for easier management
-        std::shared_ptr<daemons::Daemon> daemonShared(std::move(daemon));
         
         daemonShared->setPid(pid);
         
         // Set up signal handler - when process gets signaled, notify daemon
-        auto daemon_weak = std::weak_ptr<daemons::Daemon>(daemonShared);
-        daemonShared->setSignalCallback([daemon_weak](int sig) {
-            if (auto daemon_ptr = daemon_weak.lock()) {
+        auto daemonWeak = std::weak_ptr<daemons::Daemon>(daemonShared);
+        daemonShared->setSignalCallback([daemonWeak](int sig) {
+            if (auto daemon_ptr = daemonWeak.lock()) {
                 daemon_ptr->handleSignal(sig);
             }
         });

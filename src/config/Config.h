@@ -3,15 +3,9 @@
 #include <string>
 #include <cstddef>
 #include "logger/Logger.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 
 namespace config {
-
-// Scheduling algorithm options
-enum class SchedulerAlgorithm {
-    FCFS,           // First Come First Serve
-    RoundRobin,     // Time-slice based
-    Priority        // Priority-based with preemption
-};
 
 struct Config {
     bool verbose = false;
@@ -19,7 +13,7 @@ struct Config {
     logging::LogLevel logLevel = logging::LogLevel::DEBUG;
     
     // Scheduler configuration
-    SchedulerAlgorithm schedulerAlgorithm = SchedulerAlgorithm::FCFS;
+    scheduler::SchedulerAlgorithm schedulerAlgorithm = scheduler::SchedulerAlgorithm::FCFS;
     int schedulerQuantum = 5;               // Time quantum for RoundRobin (cycles)
     int cyclesPerTick = 1;                 // CPU cycles per scheduler tick
     int tickIntervalMs = 100;              // Milliseconds between ticks (CPU speed)
