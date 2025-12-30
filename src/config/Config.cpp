@@ -1,4 +1,5 @@
 #include "config/Config.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -17,12 +18,12 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
     };
     
     // Map scheduler algorithm strings to enum values
-    static const std::map<std::string, SchedulerAlgorithm> schedulerMap = {
-        {"fcfs", SchedulerAlgorithm::FCFS},
-        {"rr", SchedulerAlgorithm::RoundRobin},
-        {"roundrobin", SchedulerAlgorithm::RoundRobin},
-        {"priority", SchedulerAlgorithm::Priority},
-        {"prio", SchedulerAlgorithm::Priority}
+    static const std::map<std::string, scheduler::SchedulerAlgorithm> schedulerMap = {
+        {"fcfs", scheduler::SchedulerAlgorithm::FCFS},
+        {"rr", scheduler::SchedulerAlgorithm::RoundRobin},
+        {"roundrobin", scheduler::SchedulerAlgorithm::RoundRobin},
+        {"priority", scheduler::SchedulerAlgorithm::Priority},
+        {"prio", scheduler::SchedulerAlgorithm::Priority}
     };
     
     for (int i = 1; i < argc; ++i) {

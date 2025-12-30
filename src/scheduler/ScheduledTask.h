@@ -11,7 +11,6 @@ struct ScheduledTask {
     int priority;   //simple priority, for prioQ algorith
     int completionTime = 0; //when did process finish execuiting? Useful just for turnaround time calculation
     int turnaroundTime = 0; //metric
-    //int remainingTime = 0; // for Round Robin. Just use the burstTime?
 
     ScheduledTask(int pid, int arrival, int burst, int prio = 0)
         : id(pid), arrivalTime(arrival), burstTime(burst),

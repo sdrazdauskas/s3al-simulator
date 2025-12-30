@@ -28,34 +28,42 @@ CPUScheduler::CPUScheduler(const config::Config& config)
 void CPUScheduler::setConfig(const config::Config& config) {
     std::unique_ptr<SchedulingAlgorithm> algoPtr;
 
-    switch (config.schedulerAlgorithm) {
-        case config::SchedulerAlgorithm::FCFS:
-            algoPtr = std::make_unique<FCFSAlgorithm>();
-            break;
-        case config::SchedulerAlgorithm::RoundRobin:
-            algoPtr = std::make_unique<RoundRobinAlgorithm>(config.schedulerQuantum);
-            break;
-        case config::SchedulerAlgorithm::Priority:
-            algoPtr = std::make_unique<PriorityAlgorithm>();
-            break;
-    }
-    setAlgorithm(std::move(algoPtr));
+    setAlgorithm(config.schedulerAlgorithm, config.schedulerQuantum);
     setCyclesPerInterval(config.cyclesPerTick);
     setTickIntervalMs(config.tickIntervalMs);
 }
 
-void CPUScheduler::setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm) {
+bool CPUScheduler::setAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum){
+    std::unique_ptr<SchedulingAlgorithm> algoPtr;
+
+    switch (algo) {
+        case scheduler::SchedulerAlgorithm::FCFS:
+            algoPtr = std::make_unique<FCFSAlgorithm>();
+            break;
+        case scheduler::SchedulerAlgorithm::RoundRobin:
+            algoPtr = std::make_unique<RoundRobinAlgorithm>(quantum);
+            break;
+        case scheduler::SchedulerAlgorithm::Priority:
+            algoPtr = std::make_unique<PriorityAlgorithm>();
+            break;
+    }
+    return setAlgorithm(std::move(algoPtr));
+}
+
+bool CPUScheduler::setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm) {
     if (algorithm) {
         this->algorithm = std::move(algorithm);
         logInfo("Algorithm set to: " + this->algorithm->getName());
+        return true;
     } else {
         logWarn("Algorithm pointer is null; no changes made.");
     }
+    return false;
 }
 
 void CPUScheduler::setCyclesPerInterval(int cycles) {
-    cyclesPerInterval = (cycles > 0) ? cycles : 1;
-    logInfo("Cycles per interval set to: " + std::to_string(cyclesPerInterval));
+    cyclesPerTick = (cycles > 0) ? cycles : 1;
+    logInfo("Cycles per interval set to: " + std::to_string(cyclesPerTick));
 }
 
 void CPUScheduler::setTickIntervalMs(int ms) {
@@ -92,11 +100,11 @@ int CPUScheduler::getRemainingCycles(int pid) const {
 }
 
 void CPUScheduler::enqueue(int pid, int burstTime, int priority) {
-    // Check if already exists
     if (findProcess(pid)) {
         logWarn("ScheduledTask " + std::to_string(pid) + " already in scheduler");
         return;
     }
+
     ScheduledTask* task = new ScheduledTask(pid, 0, burstTime, priority);
     processes.push_back(task);
     readyQueue.push_back(task);
@@ -126,10 +134,10 @@ bool CPUScheduler::addCycles(int pid, int cycles) {
 }
 
 void CPUScheduler::remove(int pid) {
-    // If it's the current process, stop it
     if (currentTask && currentTask->id == pid) {
         currentTask = nullptr;
     }
+    
     ScheduledTask* task = findProcess(pid);
     if (!task) return;
     processes.erase(
@@ -184,16 +192,6 @@ void CPUScheduler::preemptCurrent() {
     currentTask = nullptr;
 }
 
-void CPUScheduler::scheduleProcess(int pid) {
-    currentTask = findProcess(pid);
-    if (algorithm && currentTask) algorithm->onSchedule(currentTask->id);
-    ScheduledTask* scheduledTask = currentTask ? findProcess(currentTask->id) : nullptr;
-    if (scheduledTask) {
-        logDebug("Selected ScheduledTask " + std::to_string(currentTask->id) +
-            " for execution (burst=" + std::to_string(scheduledTask->burstTime) + ")");
-    }
-}
-
 void CPUScheduler::completeProcess(ScheduledTask* task) {
     if (!task) return;
     logInfo("ScheduledTask " + std::to_string(task->id) + " completed");
@@ -210,10 +208,10 @@ void CPUScheduler::completeProcess(ScheduledTask* task) {
 TickResult CPUScheduler::tick() {
     TickResult result;
     if (!algorithm) return result;
-    for (int cycle = 0; cycle < cyclesPerInterval; ++cycle) {
+    for (int cycle = 0; cycle < cyclesPerTick; ++cycle) {
         systemTime++;
         auto readyProcs = getReadyProcesses();
-        logDebug("Tick " + std::to_string(systemTime) + ", Cycle " + std::to_string(cycle + 1) + "/" + std::to_string(cyclesPerInterval) +
+        logDebug("Tick " + std::to_string(systemTime) + ", Cycle " + std::to_string(cycle + 1) + "/" + std::to_string(cyclesPerTick) +
             ", Current PID: " + std::to_string(currentTask ? currentTask->id : -1) +
             ", Ready Queue Size: " + std::to_string(readyProcs.size()));
 

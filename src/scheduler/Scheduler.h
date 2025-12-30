@@ -7,18 +7,11 @@
 #include <memory>
 #include "scheduler/ScheduledTask.h"
 #include "scheduler/algorithms/SchedulingAlgorithm.h"
-#include "config/Config.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 #include "common/LoggingMixin.h"
-
-namespace config { struct Config; }
+#include "config/Config.h"
 
 namespace scheduler {
-
-enum class Algorithm {
-    FCFS,           // First Come First Serve - no preemption
-    RoundRobin,     // Time-slice based preemption
-    Priority        // Priority-based scheduling with preemption
-};
 
 // Result of a scheduler tick
 struct TickResult {
@@ -44,12 +37,13 @@ public:
 
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
-    void setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm);
-    Algorithm getAlgorithm() const { return algo; }
+    bool setAlgorithm(std::unique_ptr<SchedulingAlgorithm> algorithm);
+    bool setAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum);
+    scheduler::SchedulerAlgorithm getAlgorithm() const { return algo; }
     
     // How many cycles per tick interval
     void setCyclesPerInterval(int cycles); 
-    int getCyclesPerInterval() const { return cyclesPerInterval; }
+    int getCyclesPerInterval() const { return cyclesPerTick; }
     
     // Real-time duration between ticks
     void setTickIntervalMs(int ms); 
@@ -90,16 +84,16 @@ private:
     ScheduledTask* currentTask{nullptr};
     
     // Configuration
-    Algorithm algo{Algorithm::FCFS};
-    int cyclesPerInterval{1};       // Cycles consumed per tick
-    int tickIntervalMs{100};        // Real-time tick interval
+    scheduler::SchedulerAlgorithm algo{scheduler::SchedulerAlgorithm::FCFS};
+    int cyclesPerTick{1};
+    int tickIntervalMs{100}; // Real-time tick interval
     
     // Process queues
     std::vector<ScheduledTask*> processes; // All processes (for lookup)
-    std::deque<ScheduledTask*> readyQueue;     // Ready processes (pointers)
-    std::vector<ScheduledTask*> suspended;     // Suspended processes (pointers)
+    std::deque<ScheduledTask*> readyQueue; // Ready processes
+    std::vector<ScheduledTask*> suspended; // Suspended processes
     
-    // Scheduling algorithm (strategy pattern)
+    // Scheduling algorithm
     std::unique_ptr<SchedulingAlgorithm> algorithm;
     
     // Callbacks
@@ -114,7 +108,6 @@ private:
     std::deque<ScheduledTask*> getReadyProcesses();
     void removeFromReadyQueue(ScheduledTask* task);
     void preemptCurrent();
-    void scheduleProcess(int pid);
     void completeProcess(ScheduledTask* task);
 };
 

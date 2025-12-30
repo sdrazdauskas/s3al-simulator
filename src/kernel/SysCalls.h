@@ -1,8 +1,10 @@
 #pragma once
+
 #include "kernel/SysCallsAPI.h"
 #include "storage/Storage.h"
 #include "kernel/Kernel.h"
 #include "logger/Logger.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 #include <string>
 #include <iostream>
 
@@ -360,6 +362,27 @@ struct SysApiKernel : ::sys::SysApi {
             return kernelOwner->getProcessRemainingCycles(pid);
         }
         return -1;
+    }
+
+    bool changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0) override {
+        if (kernelOwner) {
+            return kernelOwner->changeSchedulingAlgorithm(algo, quantum);
+        }
+        return false;
+    }
+
+    bool setSchedulerCyclesPerInterval(int cycles) override {
+        if (kernelOwner) {
+            return kernelOwner->setSchedulerCyclesPerInterval(cycles);
+        }
+        return false;
+    }
+
+    bool setSchedulerTickIntervalMs(int ms) override {
+        if (kernelOwner) {
+            return kernelOwner->setSchedulerTickIntervalMs(ms);
+        }
+        return false;
     }
     
 private:

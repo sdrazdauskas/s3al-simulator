@@ -9,18 +9,18 @@ MonitoringDaemon::MonitoringDaemon(sys::SysApi& sys)
     : Daemon(sys, "SYSMON") {}
 
 void MonitoringDaemon::doWork() {
-    collect_stats();
+    collectStats();
 }
 
-void MonitoringDaemon::collect_stats() {
+void MonitoringDaemon::collectStats() {
     auto info = sysApi.getSysInfo();
     
-    double mem_usage_percent = (double)info.usedMemory / info.totalMemory * 100.0;
+    double memUsagePercent = (double)info.usedMemory / info.totalMemory * 100.0;
     
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
     oss << "System stats: Memory " << info.usedMemory << "/" << info.totalMemory 
-        << " bytes (" << mem_usage_percent << "% used)";
+        << " bytes (" << memUsagePercent << "% used)";
     
     logInfo(oss.str());
 }
