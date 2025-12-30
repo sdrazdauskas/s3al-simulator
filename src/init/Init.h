@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <mutex>
+#include "common/LoggingMixin.h"
 
 namespace sys { class SysApi; }
 namespace terminal { class Terminal; }
@@ -22,16 +23,12 @@ namespace init {
 // - Starting the shell
 // - Managing system services (daemons)
 // - Handling orphaned processes (not implemented yet)
-class Init {
+class Init : public common::LoggingMixin {
 public:
-    using LogCallback = std::function<void(const std::string& level, 
-                                           const std::string& module, 
-                                           const std::string& message)>;
     using ShutdownCallback = std::function<void()>;
 
     Init(sys::SysApi& sys);
     
-    void setLogCallback(LogCallback callback) { logCallback = callback; }
     void setShutdownCallback(ShutdownCallback callback) { shutdownCb = callback; }
     
     // Called by kernel to signal init to shutdown (like SIGTERM)
@@ -49,31 +46,25 @@ public:
     // Static method to forward signals to daemon threads
     static void forwardSignalToDaemon(int pid, int signal);
 
+protected:
+    std::string getModuleName() const override { return "INIT"; }
+
 private:
     // Static registry for mapping PIDs to daemon instances
-    static std::unordered_map<int, daemons::Daemon*> daemonRegistry;
+    static std::unordered_map<int, std::shared_ptr<daemons::Daemon>> daemonRegistry;
     static std::mutex registryMutex;
-    // Custom deleter to allow forward declaration of Daemon
-    struct DaemonDeleter {
-        void operator()(daemons::Daemon* p) const;
-    };
     
     struct DaemonProcess {
-        std::unique_ptr<daemons::Daemon, DaemonDeleter> daemon;
+        std::shared_ptr<daemons::Daemon> daemon;
         int pid;
-        
-        // Non-owning pointer for signal callbacks
-        daemons::Daemon* daemon_ptr() const { return daemon.get(); }
     };
     
     sys::SysApi& sysApi;
-    LogCallback logCallback;
     ShutdownCallback shutdownCb;
     terminal::Terminal* terminal = nullptr;
     std::vector<DaemonProcess> daemons;
-    int shellPid = -1;  // PID of the shell process
+    int shellPid = -1;
     
-    void log(const std::string& level, const std::string& message);
     void startDaemons();
     void stopDaemons();
     void initializeShell();

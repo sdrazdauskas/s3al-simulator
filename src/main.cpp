@@ -25,13 +25,13 @@ int main(int argc, char* argv[]) {
     logging::Logger::getInstance().setConsoleOutput(config.verbose);
 
     // Start OS
-    LOG_INFO("MAIN", "Starting s3al OS simulator");
-    LOG_INFO("MAIN", "Memory size: " + std::to_string(config.memorySize) + " bytes (" + 
+    logging::logInfo("MAIN", "Starting s3al OS simulator");
+    logging::logInfo("MAIN", "Memory size: " + std::to_string(config.memorySize) + " bytes (" + 
              std::to_string(config.memorySize / 1024) + " KB)");
 
     kernel::Kernel kernel(config);
     kernel.boot();
 
-    LOG_INFO("MAIN", "Shutdown complete");
+    logging::logInfo("MAIN", "Shutdown complete");
     return 0;
 }

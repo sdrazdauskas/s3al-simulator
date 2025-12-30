@@ -7,6 +7,7 @@
 #include <ostream>
 #include <streambuf>
 #include "shell/CommandAPI.h"
+#include "common/LoggingMixin.h"
 #include <atomic>
 #include <lua.hpp>
 
@@ -15,9 +16,6 @@ extern std::atomic<bool> interruptRequested;
 namespace shell {
 
     using OutputCallback = std::function<void(const std::string&)>;
-    using LogCallback = std::function<void(const std::string& level,
-                                           const std::string& module,
-                                           const std::string& message)>;
 
     using KernelCallback = std::function<void(const std::string& command,
                                               const std::vector<std::string>& args)>;
@@ -59,26 +57,20 @@ namespace shell {
         }
     };
 
-    class Shell {
+    class Shell : public common::LoggingMixin {
     private:
+        static constexpr int BUILTIN_CPU_WORK = 1;
+        
         lua_State* luaState;
         SysApi& sys;
         const CommandRegistry& registry;
         OutputCallback outputCallback;
-        LogCallback logCallback;
         KernelCallback kernelCallback;
-        int shellPid = -1;  // Shell's own process ID
-
+        int shellPid = -1;
+        
         void initLuaOnce();
         std::string runLuaScript(const std::string& luaCode);
-        void log(const std::string& level, const std::string& message);
-        std::string parseQuotedToken(std::istringstream& iss, std::string token);
-        std::vector<std::string> splitByAndOperator(const std::string& commandLine);
-        std::vector<std::string> splitByPipeOperator(const std::string& commandLine);
         std::string executeScriptFile(const std::string& fileName);
-        std::string trim(const std::string &s);
-        std::string extractAfterSymbol(const std::string &s, const std::string &symbol);
-        std::string extractBeforeSymbol(const std::string &s, const std::string &symbol);
 
         std::string handleInputRedirection(const std::string &segment);
         std::string handleOutputRedirection(std::string segment, const std::string &output);
@@ -88,7 +80,6 @@ namespace shell {
         explicit Shell(SysApi& sys_, const CommandRegistry& reg, KernelCallback kernelCb = KernelCallback());
 
         OutputCallback getOutputCallback() const { return outputCallback; }
-        void setLogCallback(LogCallback callback);
         void setOutputCallback(OutputCallback callback);
         void setKernelCallback(KernelCallback callback) { kernelCallback = std::move(callback); }
         void setShellPid(int pid) { shellPid = pid; }
@@ -107,5 +98,8 @@ namespace shell {
         }
 
         bool isBuiltinCommand(const std::string& cmd) const;
+
+    protected:
+        std::string getModuleName() const override { return "SHELL"; }
     };
 }  // namespace shell

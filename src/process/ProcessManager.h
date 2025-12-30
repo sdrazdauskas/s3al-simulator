@@ -5,24 +5,20 @@
 #include <vector>
 #include <functional>
 #include "process/Process.h"
+#include "common/LoggingMixin.h"
 
 namespace memory { class MemoryManager; }
 namespace scheduler { class CPUScheduler; }
 
 namespace process {
     
-class ProcessManager {
+class ProcessManager : public common::LoggingMixin {
 public:
-    using LogCallback = std::function<void(const std::string& level, 
-                                           const std::string& module, 
-                                           const std::string& message)>;
-    
     // Callback invoked when a process completes execution
     using ProcessCompleteCallback = std::function<void(int pid, int exitCode)>;
 
     ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu);
 
-    void setLogCallback(LogCallback callback) { logCallback = callback; }
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
 
     // Submit a new process with given CPU cost (cycles needed)
@@ -69,13 +65,14 @@ private:
     memory::MemoryManager& memManager;
     scheduler::CPUScheduler& cpuScheduler;
     
-    LogCallback logCallback;
     SignalCallback signalCallback;
     ProcessCompleteCallback completeCallback;
 
     Process* find(int pid);
-    void log(const std::string& level, const std::string& message);
     void onProcessComplete(int pid);
+
+protected:
+    std::string getModuleName() const override { return "PROCESS_MGR"; }
 };
 
 } // namespace process
