@@ -377,6 +377,30 @@ struct SysApiKernel : ::sys::SysApi {
         }
         return false;
     }
+
+    bool getConsoleOutput() const override {
+        return logging::Logger::getInstance().getConsoleOutput();
+    }
+    
+    void setConsoleOutput(bool enabled) override {
+        logging::Logger::getInstance().setConsoleOutput(enabled);
+    }
+    
+    std::string getLogLevel() const override {
+        using LL = logging::LogLevel;
+        LL lvl = logging::Logger::getInstance().getMinLevel();
+        switch (lvl) {
+            case LL::DEBUG: return "debug";
+            case LL::INFO: return "info";
+            case LL::WARNING: return "warn";
+            case LL::ERROR: return "error";
+            default: return "unknown";
+        }
+    }
+    
+    void setLogLevel(logging::LogLevel level) override {
+        logging::Logger::getInstance().setMinLevel(level);
+    }
     
 private:
     bool savedConsoleLogging = false;

@@ -55,6 +55,10 @@ public:
     MOCK_METHOD(bool, isProcessComplete, (int pid), (override));
     MOCK_METHOD(int, getProcessRemainingCycles, (int pid), (override));
     MOCK_METHOD(void*, allocateMemory, (size_t, int), (override));
+    MOCK_METHOD(void, setConsoleOutput, (bool), (override));
+    MOCK_METHOD(bool, getConsoleOutput, (), (const, override));
+    MOCK_METHOD(std::string, getLogLevel, (), (const, override));
+    MOCK_METHOD(void, setLogLevel, (logging::LogLevel), (override));
     MOCK_METHOD(SysResult, deallocateMemory, (void*), (override));
 };
 
