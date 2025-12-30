@@ -1,6 +1,7 @@
 #pragma once
 
 namespace scheduler {
+  
 struct ScheduledTask {
     int id; //PiD
     int arrivalTime;  //When did process arrive to queue? 

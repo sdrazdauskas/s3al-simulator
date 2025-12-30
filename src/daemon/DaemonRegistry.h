@@ -22,8 +22,7 @@ public:
     // Returns nullptr if daemon type is unknown
     static std::unique_ptr<Daemon> createDaemon(
         const std::string& name,
-        sys::SysApi& sys,
-        LogCallback logCallback
+        sys::SysApi& sys
     );
     
     // Get list of available daemon names

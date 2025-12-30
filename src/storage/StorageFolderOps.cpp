@@ -24,7 +24,7 @@ Response StorageManager::makeDir(const std::string& path) {
     }
     PathInfo info = parsePath(path);
     if (!info.folder) {
-        log("ERROR", "Path not found: " + path);
+        logError("Path not found: " + path);
         return Response::NotFound;
     }
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
@@ -32,7 +32,7 @@ Response StorageManager::makeDir(const std::string& path) {
     // check if directory already exists
     for (const auto& sub : info.folder->subfolders) {
         if (sub->name == info.name) {
-            log("ERROR", "Directory already exists: " + path);
+            logError("Directory already exists: " + path);
             return Response::AlreadyExists;
         }
     }
@@ -45,7 +45,7 @@ Response StorageManager::makeDir(const std::string& path) {
 
     info.folder->subfolders.push_back(std::move(folder));
     info.folder->modifiedAt = std::chrono::system_clock::now();
-    log("INFO", "Created directory: " + path);
+    logInfo("Created directory: " + path);
     return Response::OK;
 }
 
@@ -55,7 +55,7 @@ Response StorageManager::removeDir(const std::string& path) {
     }
     PathInfo info = parsePath(path);
     if (!info.folder) {
-        log("ERROR", "Path not found: " + path);
+        logError("Path not found: " + path);
         return Response::NotFound;
     }
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
@@ -78,12 +78,12 @@ Response StorageManager::removeDir(const std::string& path) {
 
             info.folder->subfolders.erase(info.folder->subfolders.begin() + i);
             info.folder->modifiedAt = std::chrono::system_clock::now();
-            log("INFO", "Removed directory: " + path);
+            logInfo("Removed directory: " + path);
             return Response::OK;
         }
     }
 
-    log("ERROR", "Directory not found: " + path);
+    logError("Directory not found: " + path);
     return Response::NotFound;
 }
 
@@ -93,7 +93,7 @@ Response StorageManager::changeDir(const std::string& path) {
     // handle special case "/"
     if (path == "/") {
         currentFolder = root.get();
-        log("INFO", "Changed directory to: /");
+        logInfo("Changed directory to: /");
         return Response::OK;
     }
     
@@ -101,7 +101,7 @@ Response StorageManager::changeDir(const std::string& path) {
     if (path == "..") {
         if (currentFolder->parent == nullptr) return Response::AtRoot;
         currentFolder = currentFolder->parent;
-        log("INFO", "Changed directory to: " + currentFolder->name);
+        logInfo("Changed directory to: " + currentFolder->name);
         return Response::OK;
     }
     
@@ -154,25 +154,25 @@ Response StorageManager::changeDir(const std::string& path) {
                     }
                 }
                 if (!found) {
-                    log("ERROR", "Directory not found: " + path);
+                    logError("Directory not found: " + path);
                     return Response::NotFound;
                 }
             }
         }
         
         currentFolder = current;
-        log("INFO", "Changed directory to: " + currentFolder->name);
+        logInfo("Changed directory to: " + currentFolder->name);
         return Response::OK;
     }
     
     // single directory name in current folder
     int i = findFolderIndex(path);
     if (i == -1) {
-        log("ERROR", "Directory not found: " + path);
+        logError("Directory not found: " + path);
         return Response::NotFound;
     }
     currentFolder = currentFolder->subfolders[i].get();
-    log("INFO", "Changed directory to: " + currentFolder->name);
+    logInfo("Changed directory to: " + currentFolder->name);
     return Response::OK;
 }
 
@@ -281,7 +281,7 @@ Response StorageManager::copyDir(const std::string& srcPath, const std::string& 
     // parse source
     PathInfo srcInfo = parsePath(srcPath);
     if (!srcInfo.folder || isNameInvalid(srcInfo.name)) {
-        log("ERROR", "Invalid source path: " + srcPath);
+        logError("Invalid source path: " + srcPath);
         return srcInfo.folder ? Response::InvalidArgument : Response::NotFound;
     }
     
@@ -295,14 +295,14 @@ Response StorageManager::copyDir(const std::string& srcPath, const std::string& 
     }
     
     if (!srcFolder) {
-        log("ERROR", "Source directory not found: " + srcPath);
+        logError("Source directory not found: " + srcPath);
         return Response::NotFound;
     }
 
     // parse destination
     PathInfo destInfo = parsePath(destPath);
     if (!destInfo.folder || isNameInvalid(destInfo.name)) {
-        log("ERROR", "Invalid destination path: " + destPath);
+        logError("Invalid destination path: " + destPath);
         return destInfo.folder ? Response::InvalidArgument : Response::NotFound;
     }
     
@@ -319,7 +319,7 @@ Response StorageManager::copyDir(const std::string& srcPath, const std::string& 
         // dest is a directory, copy dir into it with original name
         for (const auto& sub : targetDir->subfolders) {
             if (sub->name == srcInfo.name) {
-                log("ERROR", "Directory already exists: " + srcInfo.name);
+                logError("Directory already exists: " + srcInfo.name);
                 return Response::AlreadyExists;
             }
         }
@@ -327,14 +327,14 @@ Response StorageManager::copyDir(const std::string& srcPath, const std::string& 
         recursiveCopyDir(*srcFolder, *targetDir);
         targetDir->modifiedAt = std::chrono::system_clock::now();
         
-        log("INFO", "Copied directory '" + srcPath + "' into '" + destPath + "'");
+        logInfo("Copied directory '" + srcPath + "' into '" + destPath + "'");
         return Response::OK;
     }
     
     // dest is not a directory - copy with new name
     for (const auto& sub : destInfo.folder->subfolders) {
         if (sub->name == destInfo.name) {
-            log("ERROR", "Destination directory already exists: " + destPath);
+            logError("Destination directory already exists: " + destPath);
             return Response::AlreadyExists;
         }
     }
@@ -343,7 +343,7 @@ Response StorageManager::copyDir(const std::string& srcPath, const std::string& 
     destInfo.folder->subfolders.back()->name = destInfo.name;
     destInfo.folder->modifiedAt = std::chrono::system_clock::now();
 
-    log("INFO", "Copied directory '" + srcPath + "' to '" + destPath + "'");
+    logInfo("Copied directory '" + srcPath + "' to '" + destPath + "'");
     return Response::OK;
 }
 
@@ -356,7 +356,7 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
     // parse source
     PathInfo srcInfo = parsePath(srcPath);
     if (!srcInfo.folder || isNameInvalid(srcInfo.name)) {
-        log("ERROR", "Invalid source path: " + srcPath);
+        logError("Invalid source path: " + srcPath);
         return srcInfo.folder ? Response::InvalidArgument : Response::NotFound;
     }
     
@@ -370,14 +370,14 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
     }
     
     if (srcIndex == -1) {
-        log("ERROR", "Source directory not found: " + srcPath);
+        logError("Source directory not found: " + srcPath);
         return Response::NotFound;
     }
 
     // parse destination
     PathInfo destInfo = parsePath(destPath);
     if (!destInfo.folder || isNameInvalid(destInfo.name)) {
-        log("ERROR", "Invalid destination path: " + destPath);
+        logError("Invalid destination path: " + destPath);
         return destInfo.folder ? Response::InvalidArgument : Response::NotFound;
     }
     
@@ -394,7 +394,7 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
         // dest is a directory, move dir into it with original name
         for (const auto& sub : targetDir->subfolders) {
             if (sub->name == srcInfo.name) {
-                log("ERROR", "Directory already exists: " + srcInfo.name);
+                logError("Directory already exists: " + srcInfo.name);
                 return Response::AlreadyExists;
             }
         }
@@ -407,14 +407,14 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
         srcInfo.folder->modifiedAt = std::chrono::system_clock::now();
         targetDir->modifiedAt = std::chrono::system_clock::now();
         
-        log("INFO", "Moved directory '" + srcPath + "' into '" + destPath + "'");
+        logInfo("Moved directory '" + srcPath + "' into '" + destPath + "'");
         return Response::OK;
     }
     
     // dest is not a directory, rename/move with new name
     for (const auto& sub : destInfo.folder->subfolders) {
         if (sub->name == destInfo.name) {
-            log("ERROR", "Destination directory already exists: " + destPath);
+            logError("Destination directory already exists: " + destPath);
             return Response::AlreadyExists;
         }
     }
@@ -429,7 +429,7 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
     srcInfo.folder->modifiedAt = std::chrono::system_clock::now();
     destInfo.folder->modifiedAt = std::chrono::system_clock::now();
 
-    log("INFO", "Moved directory '" + srcPath + "' to '" + destPath + "'");
+    logInfo("Moved directory '" + srcPath + "' to '" + destPath + "'");
     return Response::OK;
 }
 

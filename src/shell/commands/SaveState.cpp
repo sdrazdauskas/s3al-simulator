@@ -3,7 +3,7 @@
 
 namespace shell {
 
-class SaveCommand : public ICommand {
+class SaveStateCommand : public ICommand {
 public:
     int execute(const std::vector<std::string>& args,
                 const std::string&,
@@ -19,13 +19,13 @@ public:
         return res == SysResult::OK ? 0 : 1;
     }
     
-    const char* getName() const override { return "save"; }
-    const char* getDescription() const override { return "Save current storage state"; }
-    const char* getUsage() const override { return "save <name>"; }
+    const char* getName() const override { return "savestate"; }
+    const char* getDescription() const override { return "Save entire filesystem state to disk"; }
+    const char* getUsage() const override { return "savestate <name>"; }
 };
 
-std::unique_ptr<ICommand> createSaveCommand() {
-    return std::make_unique<SaveCommand>();
+std::unique_ptr<ICommand> createSaveStateCommand() {
+    return std::make_unique<SaveStateCommand>();
 }
 
 } // namespace shell

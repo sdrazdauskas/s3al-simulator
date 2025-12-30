@@ -13,6 +13,7 @@ add_library(terminal STATIC)
 target_sources(terminal PRIVATE
     src/terminal/Terminal.cpp
     src/terminal/helper/History.cpp
+    src/terminal/helper/Input.cpp
 )
 target_include_directories(terminal 
     PUBLIC src
@@ -35,7 +36,7 @@ target_include_directories(shell
 # curses used by "texed" text editor command
 find_package(Curses REQUIRED)
 target_include_directories(shell PUBLIC ${CURSES_INCLUDE_DIR})
-target_link_libraries(shell PUBLIC ${CURSES_LIBRARIES})
+target_link_libraries(shell PUBLIC ${CURSES_LIBRARIES} logging)
 
 # Config library (application-level configuration)
 add_library(config STATIC)
@@ -67,6 +68,7 @@ target_include_directories(storage
     PUBLIC src ${CMAKE_SOURCE_DIR}/include
     PRIVATE src/storage
 )
+target_link_libraries(storage PUBLIC logging)
 
 # Process library
 add_library(process STATIC)
@@ -78,6 +80,7 @@ target_include_directories(process
     PUBLIC src
     PRIVATE src/process
 )
+target_link_libraries(process PUBLIC logging)
 
 # Daemon library (background services)
 add_library(daemon STATIC)
@@ -90,7 +93,7 @@ target_include_directories(daemon
     PUBLIC src
     PRIVATE src/daemon
 )
-target_link_libraries(daemon PUBLIC Threads::Threads)
+target_link_libraries(daemon PUBLIC Threads::Threads logging)
 
 # Init process (PID 1) - First user-space process
 add_library(init STATIC)
@@ -108,14 +111,21 @@ target_include_directories(memory
     PUBLIC src
     PRIVATE src/memory
 )
+target_link_libraries(memory PUBLIC logging)
 
 # Scheduler library
 add_library(scheduler STATIC)
-target_sources(scheduler PRIVATE src/scheduler/Scheduler.cpp)
+target_sources(scheduler PRIVATE 
+    src/scheduler/Scheduler.cpp
+    src/scheduler/algorithms/RoundRobinAlgorithm.cpp
+    src/scheduler/algorithms/PriorityAlgorithm.cpp
+    src/scheduler/algorithms/FCFSAlgorithm.cpp
+)
 target_include_directories(scheduler 
     PUBLIC src
     PRIVATE src/scheduler
 )
+target_link_libraries(scheduler PUBLIC logging)
 
 # Logging library
 add_library(logging STATIC)

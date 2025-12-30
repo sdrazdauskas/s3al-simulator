@@ -26,7 +26,7 @@ Response StorageManager::createFile(const std::string& path) {
     }
     PathInfo info = parsePath(path);
     if (!info.folder) {
-        log("ERROR", "Path not found: " + path);
+        logError("Path not found: " + path);
         return Response::NotFound;
     }
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
@@ -34,7 +34,7 @@ Response StorageManager::createFile(const std::string& path) {
     // check if file already exists
     for (const auto& file : info.folder->files) {
         if (file->name == info.name) {
-            log("ERROR", "File already exists: " + path);
+            logError("File already exists: " + path);
             return Response::AlreadyExists;
         }
     }
@@ -47,7 +47,7 @@ Response StorageManager::createFile(const std::string& path) {
 
     info.folder->files.push_back(std::move(newFile));
     info.folder->modifiedAt = std::chrono::system_clock::now();
-    log("INFO", "Created file: " + path);
+    logInfo("Created file: " + path);
     return Response::OK;
 }
 
@@ -57,7 +57,7 @@ Response StorageManager::touchFile(const std::string& path) {
     }
     PathInfo info = parsePath(path);
     if (!info.folder) {
-        log("ERROR", "Path not found: " + path);
+        logError("Path not found: " + path);
         return Response::NotFound;
     }
 
@@ -68,13 +68,13 @@ Response StorageManager::touchFile(const std::string& path) {
         if (file->name == info.name) {
             file->modifiedAt = std::chrono::system_clock::now();
             info.folder->modifiedAt = std::chrono::system_clock::now();
-            log("INFO", "File already exists, timestamp updated: " + path);
+            logInfo("File already exists, timestamp updated: " + path);
             return Response::OK;
         }
     }
 
     // file does not exist, create it
-    log("INFO", "File does not exist, will be created: " + path);
+    logInfo("File does not exist, will be created: " + path);
     return createFile(path);
 }
 
@@ -84,7 +84,7 @@ Response StorageManager::deleteFile(const std::string& path) {
     }
     PathInfo info = parsePath(path);
     if (!info.folder) {
-        log("ERROR", "Path not found: " + path);
+        logError("Path not found: " + path);
         return Response::NotFound;
     }
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
@@ -98,12 +98,12 @@ Response StorageManager::deleteFile(const std::string& path) {
             }
             info.folder->files.erase(info.folder->files.begin() + i);
             info.folder->modifiedAt = std::chrono::system_clock::now();
-            log("INFO", "Deleted file: " + path);
+            logInfo("Deleted file: " + path);
             return Response::OK;
         }
     }
     
-    log("ERROR", "File not found: " + path);
+    logError("File not found: " + path);
     return Response::NotFound;
 }
 
@@ -113,7 +113,7 @@ Response StorageManager::writeFile(const std::string& path, const std::string& c
     }
     PathInfo info = parsePath(path);
     if (!info.folder) {
-        log("ERROR", "Path not found: " + path);
+        logError("Path not found: " + path);
         return Response::NotFound;
     }
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
@@ -134,7 +134,7 @@ Response StorageManager::writeFile(const std::string& path, const std::string& c
             if (newSize > 0 && sysApi) {
                 file->memoryToken = sysApi->allocateMemory(newSize, 0);
                 if (!file->memoryToken) {
-                    log("ERROR", "Out of memory writing to file: " + path);
+                    logError("Out of memory writing to file: " + path);
                     return Response::Error;
                 }
             }
@@ -142,12 +142,12 @@ Response StorageManager::writeFile(const std::string& path, const std::string& c
             file->content = content + "\n";
             file->modifiedAt = std::chrono::system_clock::now();
             info.folder->modifiedAt = std::chrono::system_clock::now();
-            log("INFO", "Wrote to file: " + path);
+            logInfo("Wrote to file: " + path);
             return Response::OK;
         }
     }
 
-    log("ERROR", "File not found: " + path);
+    logError("File not found: " + path);
     return Response::NotFound;
 }
 
@@ -175,7 +175,7 @@ Response StorageManager::editFile(const std::string& path, const std::string& ne
     }
     PathInfo info = parsePath(path);
     if (!info.folder) {
-        log("ERROR", "Path not found: " + path);
+        logError("Path not found: " + path);
         return Response::NotFound;
     }
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
@@ -185,12 +185,12 @@ Response StorageManager::editFile(const std::string& path, const std::string& ne
             file->content += newContent;
             file->modifiedAt = std::chrono::system_clock::now();
             info.folder->modifiedAt = std::chrono::system_clock::now();
-            log("INFO", "Edited file: " + path);
+            logInfo("Edited file: " + path);
             return Response::OK;
         }
     }
     
-    log("ERROR", "File not found: " + path);
+    logError("File not found: " + path);
     return Response::NotFound;
 }
 
@@ -203,7 +203,7 @@ Response StorageManager::copyFile(const std::string& srcPath, const std::string&
     // parse source
     PathInfo srcInfo = parsePath(srcPath);
     if (!srcInfo.folder || isNameInvalid(srcInfo.name)) {
-        log("ERROR", "Invalid source path: " + srcPath);
+        logError("Invalid source path: " + srcPath);
         return srcInfo.folder ? Response::InvalidArgument : Response::NotFound;
     }
     
@@ -217,14 +217,14 @@ Response StorageManager::copyFile(const std::string& srcPath, const std::string&
     }
     
     if (!srcFile) {
-        log("ERROR", "Source file not found: " + srcPath);
+        logError("Source file not found: " + srcPath);
         return Response::NotFound;
     }
 
     // parse destination
     PathInfo destInfo = parsePath(destPath);
     if (!destInfo.folder || isNameInvalid(destInfo.name)) {
-        log("ERROR", "Invalid destination path: " + destPath);
+        logError("Invalid destination path: " + destPath);
         return destInfo.folder ? Response::InvalidArgument : Response::NotFound;
     }
     
@@ -241,7 +241,7 @@ Response StorageManager::copyFile(const std::string& srcPath, const std::string&
         // dest is a directory, copy file into it with original name
         for (const auto& f : targetDir->files) {
             if (f->name == srcInfo.name) {
-                log("ERROR", "File already exists: " + srcInfo.name);
+                logError("File already exists: " + srcInfo.name);
                 return Response::AlreadyExists;
             }
         }
@@ -252,14 +252,14 @@ Response StorageManager::copyFile(const std::string& srcPath, const std::string&
         targetDir->files.push_back(std::move(newFile));
         targetDir->modifiedAt = std::chrono::system_clock::now();
         
-        log("INFO", "Copied file '" + srcPath + "' into directory '" + destPath + "'");
+        logInfo("Copied file '" + srcPath + "' into directory '" + destPath + "'");
         return Response::OK;
     }
     
     // dest is not a directory, copy to exact path with new name
     for (const auto& file : destInfo.folder->files) {
         if (file->name == destInfo.name) {
-            log("ERROR", "Destination file already exists: " + destPath);
+            logError("Destination file already exists: " + destPath);
             return Response::AlreadyExists;
         }
     }
@@ -271,7 +271,7 @@ Response StorageManager::copyFile(const std::string& srcPath, const std::string&
     destInfo.folder->files.push_back(std::move(newFile));
     destInfo.folder->modifiedAt = std::chrono::system_clock::now();
 
-    log("INFO", "Copied file '" + srcPath + "' to '" + destPath + "'");
+    logInfo("Copied file '" + srcPath + "' to '" + destPath + "'");
     return Response::OK;
 }
 
@@ -284,7 +284,7 @@ Response StorageManager::moveFile(const std::string& srcPath, const std::string&
     // parse source
     PathInfo srcInfo = parsePath(srcPath);
     if (!srcInfo.folder || isNameInvalid(srcInfo.name)) {
-        log("ERROR", "Invalid source path: " + srcPath);
+        logError("Invalid source path: " + srcPath);
         return srcInfo.folder ? Response::InvalidArgument : Response::NotFound;
     }
     
@@ -298,14 +298,14 @@ Response StorageManager::moveFile(const std::string& srcPath, const std::string&
     }
     
     if (srcIndex == -1) {
-        log("ERROR", "Source file not found: " + srcPath);
+        logError("Source file not found: " + srcPath);
         return Response::NotFound;
     }
 
     // parse destination
     PathInfo destInfo = parsePath(destPath);
     if (!destInfo.folder || isNameInvalid(destInfo.name)) {
-        log("ERROR", "Invalid destination path: " + destPath);
+        logError("Invalid destination path: " + destPath);
         return destInfo.folder ? Response::InvalidArgument : Response::NotFound;
     }
     
@@ -322,7 +322,7 @@ Response StorageManager::moveFile(const std::string& srcPath, const std::string&
         // dest is a directory, move file into it with original name
         for (const auto& f : targetDir->files) {
             if (f->name == srcInfo.name) {
-                log("ERROR", "File already exists: " + srcInfo.name);
+                logError("File already exists: " + srcInfo.name);
                 return Response::AlreadyExists;
             }
         }
@@ -334,14 +334,14 @@ Response StorageManager::moveFile(const std::string& srcPath, const std::string&
         srcInfo.folder->modifiedAt = std::chrono::system_clock::now();
         targetDir->modifiedAt = std::chrono::system_clock::now();
         
-        log("INFO", "Moved file '" + srcPath + "' into directory '" + destPath + "'");
+        logInfo("Moved file '" + srcPath + "' into directory '" + destPath + "'");
         return Response::OK;
     }
     
     // dest is not a directory, rename/move to exact path
     for (const auto& file : destInfo.folder->files) {
         if (file->name == destInfo.name) {
-            log("ERROR", "Destination file already exists: " + destPath);
+            logError("Destination file already exists: " + destPath);
             return Response::AlreadyExists;
         }
     }
@@ -355,7 +355,7 @@ Response StorageManager::moveFile(const std::string& srcPath, const std::string&
     srcInfo.folder->modifiedAt = std::chrono::system_clock::now();
     destInfo.folder->modifiedAt = std::chrono::system_clock::now();
 
-    log("INFO", "Moved file '" + srcPath + "' to '" + destPath + "'");
+    logInfo("Moved file '" + srcPath + "' to '" + destPath + "'");
     return Response::OK;
 }
 

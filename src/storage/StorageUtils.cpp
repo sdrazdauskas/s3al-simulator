@@ -36,12 +36,6 @@ bool StorageManager::isNameInvalid(const std::string& s) {
     });
 }
 
-void StorageManager::log(const std::string& level, const std::string& message) {
-    if (logCallback) {
-        logCallback(level, "STORAGE", message);
-    }
-}
-
 std::string formatTime(const std::chrono::system_clock::time_point& tp) {
     auto seconds = std::chrono::floor<std::chrono::seconds>(tp);
     return std::format("{:%Y-%m-%d %H:%M:%S}", seconds);

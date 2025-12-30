@@ -4,19 +4,14 @@
 #include <cstddef>
 #include <functional>
 #include <string>
+#include "common/LoggingMixin.h"
 
 namespace memory {
 
-class MemoryManager {
+class MemoryManager : public common::LoggingMixin {
 public:
-    using LogCallback = std::function<void(const std::string& level, 
-                                           const std::string& module, 
-                                           const std::string& message)>;
-
     MemoryManager(size_t total_size);
     virtual ~MemoryManager();
-
-    void setLogCallback(LogCallback callback) { logCallback = callback; }
 
     // Allocate memory for a process
     virtual void *allocate(size_t size, int processId = 0);
@@ -40,9 +35,9 @@ private:
     std::map<void*, Allocation> allocations;
     size_t totalMemory;
     size_t usedMemory;
-    LogCallback logCallback;
 
-    void log(const std::string& level, const std::string& message);
+protected:
+    std::string getModuleName() const override { return "MEMORY"; }
 };
 
 } // namespace memory
