@@ -247,10 +247,11 @@ struct SysApiKernel : ::sys::SysApi {
         return nullptr;
     }
     
-    void deallocateMemory(void* ptr) override {
+    ::sys::SysResult deallocateMemory(void* ptr) override {
         if (kernelOwner) {
-            kernelOwner->deallocateMemory(ptr);
+            return kernelOwner->deallocateMemory(ptr);
         }
+        return ::sys::SysResult::Error;
     }
 
     void requestShutdown() override {
@@ -314,14 +315,6 @@ struct SysApiKernel : ::sys::SysApi {
         logging::Logger::getInstance().setConsoleOutput(savedConsoleLogging);
     }
     
-
-    int submitCommand(const std::string& name, int cpuCycles, int priority = 0) override {
-        if (kernelOwner) {
-            return kernelOwner->submitAsyncCommand(name, cpuCycles, priority);
-        }
-        return -1;
-    }
-    
     bool addCPUWork(int pid, int cpuCycles) override {
         if (kernelOwner) {
             return kernelOwner->addCPUWork(pid, cpuCycles);
@@ -364,9 +357,9 @@ struct SysApiKernel : ::sys::SysApi {
         return -1;
     }
 
-    bool changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0) override {
+    bool setSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0) override {
         if (kernelOwner) {
-            return kernelOwner->changeSchedulingAlgorithm(algo, quantum);
+            return kernelOwner->setSchedulingAlgorithm(algo, quantum);
         }
         return false;
     }
@@ -383,6 +376,30 @@ struct SysApiKernel : ::sys::SysApi {
             return kernelOwner->setSchedulerTickIntervalMs(ms);
         }
         return false;
+    }
+
+    bool getConsoleOutput() const override {
+        return logging::Logger::getInstance().getConsoleOutput();
+    }
+    
+    void setConsoleOutput(bool enabled) override {
+        logging::Logger::getInstance().setConsoleOutput(enabled);
+    }
+    
+    std::string getLogLevel() const override {
+        using LL = logging::LogLevel;
+        LL lvl = logging::Logger::getInstance().getMinLevel();
+        switch (lvl) {
+            case LL::DEBUG: return "debug";
+            case LL::INFO: return "info";
+            case LL::WARNING: return "warn";
+            case LL::ERROR: return "error";
+            default: return "unknown";
+        }
+    }
+    
+    void setLogLevel(logging::LogLevel level) override {
+        logging::Logger::getInstance().setMinLevel(level);
     }
     
 private:

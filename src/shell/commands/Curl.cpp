@@ -37,7 +37,7 @@ public:
     }
 
     const char* getName() const override { return "curl"; }
-    const char* getDescription() const override { return "HTTP GET request (like curl)"; }
+    const char* getDescription() const override { return "HTTP GET request"; }
     const char* getUsage() const override { return "curl <url>"; }
 
 private:

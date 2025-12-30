@@ -29,21 +29,6 @@ public:
     explicit Kernel(const config::Config& config);
 
     /**
-     * @brief Processes a single line of input as a command and returns the result.
-     * @param line The full command line to execute.
-     * @return The output of the command.
-     */
-    std::string executeCommand(const std::string& line);
-
-    /**
-     * @brief Executes a command with separated command name and arguments.
-     * @param cmd The command name.
-     * @param args The command arguments.
-     * @return The output of the command.
-     */
-    std::string executeCommand(const std::string& cmd, const std::vector<std::string>& args);
-
-    /**
      * @brief Checks if the kernel is still in a running state.
      * @return true if the kernel should continue running, false otherwise.
      */
@@ -59,7 +44,7 @@ public:
     
     // Memory management syscalls
     void* allocateMemory(size_t size, int processId = 0);
-    void deallocateMemory(void* ptr);
+    sys::SysResult deallocateMemory(void* ptr);
 
     std::string handleQuit(const std::vector<std::string>& args);
     
@@ -80,12 +65,6 @@ public:
     
     // Kernel event loop - runs background tasks
     void runEventLoop();
-    
-    // Submit a command to be processed by the kernel
-    void submitCommand(const std::string& line);
-    
-    // Submit a command for scheduler-based execution
-    int submitAsyncCommand(const std::string& name, int cpuCycles, int priority = 0);
     
     // Add CPU work to an existing process
     bool addCPUWork(int pid, int cpuCycles);
@@ -108,7 +87,7 @@ public:
     // Get remaining cycles for a process
     int getProcessRemainingCycles(int pid) const;
 
-    bool changeSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0);
+    bool setSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0);
     bool setSchedulerCyclesPerInterval(int cycles);
     bool setSchedulerTickIntervalMs(int ms);
 
@@ -138,9 +117,6 @@ private:
     // For notifying waiters when cycles are consumed
     std::mutex cycleWaitMutex;
     std::condition_variable cycleWaitCV;
-    std::map<int, int> lastRemainingCycles;  // Track last known remaining cycles per PID
-    
-    std::string processLine(const std::string& line);
 
     // Callback to signal init process to shutdown
     std::function<void()> initShutdownCb;

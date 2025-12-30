@@ -12,10 +12,24 @@ int StorageManager::findFolderIndex(const std::string& name) const {
     return -1;
 }
 
-void StorageManager::recursiveDelete(Folder& folder) {
-    folder.files.clear();
-    for (auto& sub : folder.subfolders) recursiveDelete(*sub);
+Response StorageManager::recursiveDelete(Folder& folder) {
+    while (!folder.files.empty()) {
+        std::string fileName = folder.files.front()->name;
+        Response res = deleteFile(folder, fileName);
+        if (res != Response::OK) {
+            logError("Failed to delete file '" + fileName + "' during recursiveDelete");
+            return res;
+        }
+    }
+    for (auto& sub : folder.subfolders) {
+        logDebug("Recursively deleting folder: " + sub->name);
+        Response res = recursiveDelete(*sub);
+        if (res != Response::OK) {
+            return res;
+        }
+    }
     folder.subfolders.clear();
+    return Response::OK;
 }
 
 Response StorageManager::makeDir(const std::string& path) {
@@ -53,11 +67,13 @@ Response StorageManager::removeDir(const std::string& path) {
     if (path.empty() || isNameInvalid(path)) {
         return Response::InvalidArgument;
     }
+
     PathInfo info = parsePath(path);
     if (!info.folder) {
         logError("Path not found: " + path);
         return Response::NotFound;
     }
+    
     if (isNameInvalid(info.name)) return Response::InvalidArgument;
 
     // find and remove directory
@@ -76,6 +92,11 @@ Response StorageManager::removeDir(const std::string& path) {
                 tmp = tmp->parent;
             }
 
+            Response delRes = recursiveDelete(*toDelete);
+            if (delRes != Response::OK) {
+                logError("Failed to recursively delete directory: " + path);
+                return delRes;
+            }
             info.folder->subfolders.erase(info.folder->subfolders.begin() + i);
             info.folder->modifiedAt = std::chrono::system_clock::now();
             logInfo("Removed directory: " + path);
@@ -389,7 +410,24 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
             break;
         }
     }
-    
+
+    // Only block if destination is inside the source folder (or is the source itself)
+    Folder* srcFolder = nullptr;
+    for (const auto& sub : srcInfo.folder->subfolders) {
+        if (sub->name == srcInfo.name) {
+            srcFolder = sub.get();
+            break;
+        }
+    }
+    if (!srcFolder) {
+        logError("Source directory not found: " + srcPath);
+        return Response::NotFound;
+    }
+    if (isDescendantOrSame(srcFolder, destInfo.folder)) {
+        logError("cannot move '" + srcInfo.name + "' to a subdirectory of itself, '" + destPath + "'");
+        return Response::InvalidArgument;
+    }
+
     if (targetDir) {
         // dest is a directory, move dir into it with original name
         for (const auto& sub : targetDir->subfolders) {
@@ -398,7 +436,7 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
                 return Response::AlreadyExists;
             }
         }
-        
+
         auto folderPtr = std::move(srcInfo.folder->subfolders[srcIndex]);
         srcInfo.folder->subfolders.erase(srcInfo.folder->subfolders.begin() + srcIndex);
         folderPtr->parent = targetDir;
@@ -432,5 +470,16 @@ Response StorageManager::moveDir(const std::string& srcPath, const std::string& 
     logInfo("Moved directory '" + srcPath + "' to '" + destPath + "'");
     return Response::OK;
 }
+
+bool StorageManager::isDescendantOrSame(const Folder* ancestor, const Folder* descendant) {
+    if (!ancestor || !descendant) return false;
+    const Folder* p = descendant;
+    while (p != nullptr) {
+        if (p == ancestor) return true;
+        p = p->parent;
+    }
+    return false;
+}
+
 
 }  // namespace storage

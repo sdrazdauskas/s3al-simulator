@@ -93,21 +93,3 @@ TEST_F(AcceptanceTest, UserSavesAndRestoresSessionScenario) {
     
     std::filesystem::remove(session_file);
 }
-
-// Sys init
-TEST_F(AcceptanceTest, SystemInitializationScenario) {
-    config::Config cfg;
-    cfg.memorySize = 4096;
-    Kernel kernel(cfg);
-    
-    EXPECT_TRUE(kernel.isKernelRunning());
-    
-    auto sysinfo = kernel.getSysInfo();
-    EXPECT_EQ(sysinfo.totalMemory, 4096);
-    EXPECT_EQ(sysinfo.usedMemory, 0);
-    
-    std::string result = kernel.executeCommand("ls");
-    EXPECT_FALSE(result.empty());
-    
-    EXPECT_TRUE(kernel.isKernelRunning());
-}

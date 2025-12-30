@@ -429,7 +429,7 @@ public:
     }
 
     const char* getName() const override { return "texed"; }
-    const char* getDescription() const override { return "Terminal text editor (ncurses)"; }
+    const char* getDescription() const override { return "Terminal text editor (ncurses), will create the file if it doesn't exist"; }
     const char* getUsage() const override { return "texed <fileName>"; }
     int getCpuCost() const override { return 10; }
 };

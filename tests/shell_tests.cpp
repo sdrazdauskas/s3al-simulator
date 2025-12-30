@@ -45,12 +45,9 @@ public:
     MOCK_METHOD(std::string, readLine, (), (override));
     MOCK_METHOD(void, beginInteractiveMode, (), (override));
     MOCK_METHOD(void, endInteractiveMode, (), (override));
-    MOCK_METHOD(bool, changeSchedulingAlgorithm, (scheduler::SchedulerAlgorithm algo, int quantum), (override));
+    MOCK_METHOD(bool, setSchedulingAlgorithm, (scheduler::SchedulerAlgorithm algo, int quantum), (override));
     MOCK_METHOD(bool, setSchedulerCyclesPerInterval, (int cycles), (override));
     MOCK_METHOD(bool, setSchedulerTickIntervalMs, (int ms), (override));
-    
-    // Async command execution
-    MOCK_METHOD(int, submitCommand, (const std::string& name, int cpuCycles, int priority), (override));
     MOCK_METHOD(bool, addCPUWork, (int pid, int cpuCycles), (override));
     MOCK_METHOD(bool, waitForProcess, (int pid), (override));
     MOCK_METHOD(bool, exit, (int pid, int exitCode), (override));
@@ -58,7 +55,11 @@ public:
     MOCK_METHOD(bool, isProcessComplete, (int pid), (override));
     MOCK_METHOD(int, getProcessRemainingCycles, (int pid), (override));
     MOCK_METHOD(void*, allocateMemory, (size_t, int), (override));
-    MOCK_METHOD(void, deallocateMemory, (void*), (override));
+    MOCK_METHOD(void, setConsoleOutput, (bool), (override));
+    MOCK_METHOD(bool, getConsoleOutput, (), (const, override));
+    MOCK_METHOD(std::string, getLogLevel, (), (const, override));
+    MOCK_METHOD(void, setLogLevel, (logging::LogLevel), (override));
+    MOCK_METHOD(SysResult, deallocateMemory, (void*), (override));
 };
 
 class ShellTest : public ::testing::Test {
@@ -74,11 +75,11 @@ protected:
         ON_CALL(mock_sys, getWorkingDir()).WillByDefault(Return("/"));
         
         // Default async execution: instant completion
-        ON_CALL(mock_sys, submitCommand(_, _, _)).WillByDefault(Return(100)); // Return a fake PID
         ON_CALL(mock_sys, waitForProcess(_)).WillByDefault(Return(true));     // Completes immediately
         ON_CALL(mock_sys, exit(_, _)).WillByDefault(Return(true));            // Exits successfully
         ON_CALL(mock_sys, reapProcess(_)).WillByDefault(Return(true));        // Reaps successfully
         ON_CALL(mock_sys, isProcessComplete(_)).WillByDefault(Return(true));
+        ON_CALL(mock_sys, fork(_, _, _, _, _)).WillByDefault(Return(42));
         ON_CALL(mock_sys, getProcessRemainingCycles(_)).WillByDefault(Return(-1));
         ON_CALL(mock_sys, processExists(_)).WillByDefault(Return(true));
     }

@@ -64,6 +64,7 @@ public:
     StorageResponse createFile(const std::string& name);
     StorageResponse touchFile(const std::string& name);
     StorageResponse deleteFile(const std::string& name);
+    StorageResponse deleteFile(Folder& folder, const std::string& name);
     StorageResponse writeFile(const std::string& name, const std::string& content);
     StorageResponse readFile(const std::string& name, std::string& outContent) const;
     StorageResponse editFile(const std::string& name, const std::string& newContent);
@@ -78,6 +79,7 @@ public:
     std::string getWorkingDir() const;
     StorageResponse copyDir(const std::string& srcName, const std::string& destName);
     StorageResponse moveDir(const std::string& oldName, const std::string& newName);
+    static bool isDescendantOrSame(const Folder* ancestor, const Folder* descendant);
 
     // DISK IO OPERATIONS
     StorageResponse saveToDisk(const std::string& fileName) const;
@@ -91,7 +93,7 @@ private:
     // INTERNAL HELPERS
     PathInfo parsePath(const std::string& path) const;
     int findFolderIndex(const std::string& name) const;
-    void recursiveDelete(Folder& folder);
+    StorageResponse recursiveDelete(Folder& folder);
     void recursiveCopyDir(const Folder& src, Folder& destParent);
 
     // DATA MEMBERS

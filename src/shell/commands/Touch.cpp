@@ -28,7 +28,7 @@ public:
     }
     
     const char* getName() const override { return "touch"; }
-    const char* getDescription() const override { return "Create a new empty file or update the modification timestamp"; }
+    const char* getDescription() const override { return "Update the modification timestamp of the provided file, if file doesn't exist, it will be created"; }
     const char* getUsage() const override { return "touch <fileName> [fileName...]"; }
     int getCpuCost() const override { return 2; }
 };

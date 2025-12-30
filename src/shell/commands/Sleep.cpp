@@ -10,7 +10,7 @@ public:
     const char* getName() const override { return "sleep"; }
     
     const char* getDescription() const override {
-        return "Sleep for N seconds (demonstrates kernel continues running in background)";
+        return "Sleep for provided seconds";
     }
     
     const char* getUsage() const override {
