@@ -183,11 +183,11 @@ void CPUScheduler::resume(int pid) {
 
 void CPUScheduler::preemptCurrent() {
     if (!currentTask) return;
-    ScheduledTask* p = findProcess(currentTask->id);
-    if (p && p->burstTime > 0) {
-        readyQueue.push_back(p);
+
+    if (currentTask && currentTask->burstTime > 0) {
+        readyQueue.push_back(currentTask);
         logDebug("Preempted ScheduledTask " + std::to_string(currentTask->id) + 
-            " (remaining=" + std::to_string(p->burstTime) + ")");
+            " (remaining=" + std::to_string(currentTask->burstTime) + ")");
     }
     currentTask = nullptr;
 }
