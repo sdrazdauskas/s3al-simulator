@@ -25,6 +25,8 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
         {"priority", scheduler::SchedulerAlgorithm::Priority},
         {"prio", scheduler::SchedulerAlgorithm::Priority}
     };
+
+    const size_t MAX_MEMORY = 2ULL * 1024 * 1024 * 1024; // 2GB
     
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -86,6 +88,12 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
                 // Check if entire string was consumed (no invalid characters)
                 if (pos != memStr.length()) {
                     throw std::invalid_argument("contains non-numeric characters");
+                }
+
+                if (config.memorySize > MAX_MEMORY) {
+                    std::cerr << "Memory size exceeds maximum of " 
+                            << (MAX_MEMORY / (1024*1024)) << "MB" << std::endl;
+                    return false;
                 }
             } catch (const std::exception& e) {
                 std::cerr << "Invalid memory size: " << argv[i] << std::endl;
