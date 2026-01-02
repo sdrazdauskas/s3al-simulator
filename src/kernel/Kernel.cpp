@@ -214,11 +214,6 @@ bool Kernel::setSchedulerTickIntervalMs(int ms) {
 
 void Kernel::processEvent(const KernelEvent& event) {
     switch (event.type) {
-        case KernelEvent::Type::COMMAND:
-            logDebug("Processing command: " + event.data);
-            // Command processing happens in shell, we just logged it
-            break;
-            
         case KernelEvent::Type::TIMER_TICK:
             handleTimerTick();
             break;
