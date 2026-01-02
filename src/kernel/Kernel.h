@@ -94,7 +94,6 @@ public:
 private:
     struct KernelEvent {
         enum class Type {
-            COMMAND,
             TIMER_TICK,
             INTERRUPT_SIGNAL,
             SHUTDOWN
