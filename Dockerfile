@@ -21,6 +21,7 @@ RUN cmake -S . -B build -G Ninja \
 
 FROM ubuntu:24.04 AS runtime
 
+ENV TZ=Europe/Vilnius
 WORKDIR /app
 
 RUN apt-get update \
@@ -29,6 +30,9 @@ RUN apt-get update \
         liblua5.4-0 \
         libcurl4 \
         ca-certificates \
+        tzdata \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/build/s3al_sim /app/s3al_sim
