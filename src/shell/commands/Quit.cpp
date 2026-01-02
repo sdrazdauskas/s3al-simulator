@@ -12,7 +12,7 @@ public:
                 std::ostream& /*err*/,
                 SysApi& sys) override
     {
-        if (!confirmAction("Are you sure you want to quit? You must run saveState command to save your work.", sys, out)) {
+        if (!confirmAction("Are you sure you want to quit? You must run savestate command to save your work.", sys, out)) {
             return 1;
         }
 

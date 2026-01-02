@@ -37,8 +37,13 @@ bool StorageManager::isNameInvalid(const std::string& s) {
 }
 
 std::string formatTime(const std::chrono::system_clock::time_point& tp) {
-    auto seconds = std::chrono::floor<std::chrono::seconds>(tp);
-    return std::format("{:%Y-%m-%d %H:%M:%S}", seconds);
+    std::time_t t = std::chrono::system_clock::to_time_t(tp);
+    std::tm local{};
+    localtime_r(&t, &local);
+
+    std::ostringstream oss;
+    oss << std::put_time(&local, "%Y-%m-%d %H:%M:%S");
+    return oss.str();
 }
 
 StorageManager::PathInfo StorageManager::parsePath(const std::string& path) const {
