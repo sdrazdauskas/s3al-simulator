@@ -59,9 +59,10 @@ struct SysApi {
 
     virtual SysInfo getSysInfo() = 0;
     
-    // Memory allocation syscalls for storage
+    // Memory allocation syscalls for storage and processes
     virtual void* allocateMemory(size_t size, int processId = 0) = 0;
     virtual SysResult deallocateMemory(void* ptr) = 0;
+    virtual void freeProcessMemory(int processId) = 0;
 
     virtual void requestShutdown() = 0;
     

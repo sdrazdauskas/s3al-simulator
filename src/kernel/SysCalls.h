@@ -253,6 +253,12 @@ struct SysApiKernel : ::sys::SysApi {
         }
         return ::sys::SysResult::Error;
     }
+    
+    void freeProcessMemory(int processId) override {
+        if (kernelOwner) {
+            kernelOwner->freeProcessMemory(processId);
+        }
+    }
 
     void requestShutdown() override {
         if (kernelOwner) kernelOwner->handleQuit(std::vector<std::string>());

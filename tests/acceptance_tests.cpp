@@ -39,6 +39,8 @@ public:
         return sys::SysResult::OK;
     }
     
+    void freeProcessMemory(int processId) override {}
+    
     ~MockSysApi() {
         for (auto& [ptr, size] : allocations) {
             delete[] static_cast<char*>(ptr);

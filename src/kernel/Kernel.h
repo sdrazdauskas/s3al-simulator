@@ -45,6 +45,7 @@ public:
     // Memory management syscalls
     void* allocateMemory(size_t size, int processId = 0);
     sys::SysResult deallocateMemory(void* ptr);
+    void freeProcessMemory(int processId);
 
     std::string handleQuit(const std::vector<std::string>& args);
     
