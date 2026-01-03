@@ -60,6 +60,8 @@ public:
     MOCK_METHOD(std::string, getLogLevel, (), (const, override));
     MOCK_METHOD(void, setLogLevel, (logging::LogLevel), (override));
     MOCK_METHOD(SysResult, deallocateMemory, (void*), (override));
+    
+    void freeProcessMemory(int processId) override {}
 };
 
 class ShellTest : public ::testing::Test {

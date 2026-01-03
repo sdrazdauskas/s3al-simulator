@@ -18,7 +18,7 @@ namespace kernel {
 Kernel::Kernel(const config::Config& config)
         : cpuScheduler(config),
             memManager(config.memorySize),
-            procManager(memManager, cpuScheduler) {
+            procManager(nullptr, cpuScheduler) {
     auto loggerCallback = [](const std::string& level, const std::string& module, const std::string& message){
         logging::Logger::getInstance().log(level, module, message);
     };
@@ -46,6 +46,10 @@ sys::SysResult Kernel::deallocateMemory(void* ptr) {
     } else {
         return sys::SysResult::Error;
     }
+}
+
+void Kernel::freeProcessMemory(int processId) {
+    memManager.freeProcessMemory(processId);
 }
 
 bool Kernel::isKernelRunning() const { return kernelRunning.load(); }
@@ -325,8 +329,9 @@ void Kernel::boot() {
     // Create syscall interface for user-space processes
     SysApiKernel sys(storageManager, this);
     
-    // Wire storage to use syscalls for memory management
+    // Wire subsystems to use syscalls for memory management
     storageManager.setSysApi(&sys);
+    procManager.setSysApi(&sys);
     
     // Create and start init process (PID 1)
     init::Init init(sys);
