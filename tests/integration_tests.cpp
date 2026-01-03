@@ -6,6 +6,7 @@
 #include "process/ProcessManager.h"
 #include "scheduler/Scheduler.h"
 #include "logger/Logger.h"
+#include "testHelpers/MockSysApi.h"
 
 using namespace kernel;
 using namespace storage;
@@ -14,7 +15,7 @@ using namespace process;
 using namespace scheduler;
 
 // SysApi wrapper that uses real MemoryManager for integration testing
-class IntegrationSysApi : public sys::SysApi {
+class IntegrationSysApi : public testHelpers::MockSysApi {
 private:
     MemoryManager& memManager;
     
@@ -32,58 +33,7 @@ public:
     void freeProcessMemory(int processId) override {
         memManager.freeProcessMemory(processId);
     }
-    
-    void scheduleProcess(int, int, int) override {}
-    void unscheduleProcess(int) override {}
-    void suspendScheduledProcess(int) override {}
-    void resumeScheduledProcess(int) override {}
-    
-    // Stub implementations for other methods
-    sys::SysResult fileExists(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult readFile(const std::string&, std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult createFile(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult deleteFile(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult writeFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult editFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult copyFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult moveFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult appendFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    std::string getWorkingDir() override { return "/"; }
-    sys::SysResult listDir(const std::string&, std::vector<std::string>&) override { return sys::SysResult::OK; }
-    sys::SysResult makeDir(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult removeDir(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult changeDir(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult copyDir(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult moveDir(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult saveToDisk(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult loadFromDisk(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult resetStorage() override { return sys::SysResult::OK; }
-    sys::SysResult listDataFiles(std::vector<std::string>&) override { return sys::SysResult::OK; }
-    sys::SysApi::SysInfo getSysInfo() override { return {}; }
-    void requestShutdown() override {}
-    void sendSignal(int) override {}
-    sys::SysResult sendSignalToProcess(int, int) override { return sys::SysResult::OK; }
-    int fork(const std::string&, int, int, int, bool) override { return 0; }
-    std::vector<ProcessInfo> getProcessList() override { return {}; }
-    bool processExists(int) override { return false; }
-    std::string readLine() override { return ""; }
-    void beginInteractiveMode() override {}
-    void endInteractiveMode() override {}
-    bool addCPUWork(int, int) override { return false; }
-    bool waitForProcess(int) override { return false; }
-    bool exit(int, int) override { return false; }
-    bool reapProcess(int) override { return false; }
-    bool isProcessComplete(int) override { return false; }
-    int getProcessRemainingCycles(int) override { return -1; }
-    bool setSchedulingAlgorithm(scheduler::SchedulerAlgorithm, int) override { return false; }
-    bool setSchedulerCyclesPerInterval(int) override { return false; }
-    bool setSchedulerTickIntervalMs(int) override { return false; }
-    bool getConsoleOutput() const override { return false; }
-    void setConsoleOutput(bool) override {}
-    std::string getLogLevel() const override { return "INFO"; }
-    void setLogLevel(logging::LogLevel) override {}
 };
-
 
 class IntegrationTest : public ::testing::Test {
 protected:
