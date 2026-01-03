@@ -3,6 +3,7 @@
 #include <string>
 #include <functional>
 #include "logger/Logger.h"
+#include "common/ColorUtils.h"
 
 namespace common {
 
@@ -25,6 +26,7 @@ protected:
             logCallback(level, getModuleName(), message);
         } else {
             // Default to logging directly to Logger if no callback is set
+            // Use logColored with cached colored module name for performance
             logging::Logger::getInstance().log(level, getModuleName(), message);
         }
     }
