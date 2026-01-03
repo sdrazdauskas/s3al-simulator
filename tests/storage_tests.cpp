@@ -1,12 +1,96 @@
 #include <gtest/gtest.h>
 #include "storage/Storage.h"
+#include "kernel/SysCallsAPI.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
+#include "logger/Logger.h"
+#include <map>
 
 using namespace storage;
 using Response = StorageManager::StorageResponse;
 
+// Mock SysApi for testing - only implements memory allocation methods
+class MockSysApi : public sys::SysApi {
+private:
+    std::map<void*, size_t> allocations;
+    
+public:
+    void* allocateMemory(size_t size, int processId = 0) override {
+        void* ptr = new char[size];
+        allocations[ptr] = size;
+        return ptr;
+    }
+    
+    sys::SysResult deallocateMemory(void* ptr) override {
+        auto it = allocations.find(ptr);
+        if (it == allocations.end()) {
+            return sys::SysResult::Error;
+        }
+        delete[] static_cast<char*>(ptr);
+        allocations.erase(it);
+        return sys::SysResult::OK;
+    }
+    
+    ~MockSysApi() {
+        // Cleanup any remaining allocations
+        for (auto& [ptr, size] : allocations) {
+            delete[] static_cast<char*>(ptr);
+        }
+    }
+    
+    // Stub implementations for required pure virtual methods
+    sys::SysResult fileExists(const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult readFile(const std::string&, std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult createFile(const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult deleteFile(const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult writeFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult editFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult copyFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult moveFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult appendFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
+    std::string getWorkingDir() override { return "/"; }
+    sys::SysResult listDir(const std::string&, std::vector<std::string>&) override { return sys::SysResult::OK; }
+    sys::SysResult makeDir(const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult removeDir(const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult changeDir(const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult copyDir(const std::string&, const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult moveDir(const std::string&, const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult saveToDisk(const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult loadFromDisk(const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult resetStorage() override { return sys::SysResult::OK; }
+    sys::SysResult listDataFiles(std::vector<std::string>&) override { return sys::SysResult::OK; }
+    sys::SysApi::SysInfo getSysInfo() override { return {}; }
+    void requestShutdown() override {}
+    void sendSignal(int) override {}
+    sys::SysResult sendSignalToProcess(int, int) override { return sys::SysResult::OK; }
+    int fork(const std::string&, int, int, int, bool) override { return 0; }
+    std::vector<ProcessInfo> getProcessList() override { return {}; }
+    bool processExists(int) override { return false; }
+    std::string readLine() override { return ""; }
+    void beginInteractiveMode() override {}
+    void endInteractiveMode() override {}
+    bool addCPUWork(int, int) override { return false; }
+    bool waitForProcess(int) override { return false; }
+    bool exit(int, int) override { return false; }
+    bool reapProcess(int) override { return false; }
+    bool isProcessComplete(int) override { return false; }
+    int getProcessRemainingCycles(int) override { return -1; }
+    bool setSchedulingAlgorithm(scheduler::SchedulerAlgorithm, int) override { return false; }
+    bool setSchedulerCyclesPerInterval(int) override { return false; }
+    bool setSchedulerTickIntervalMs(int) override { return false; }
+    bool getConsoleOutput() const override { return false; }
+    void setConsoleOutput(bool) override {}
+    std::string getLogLevel() const override { return "INFO"; }
+    void setLogLevel(logging::LogLevel) override {}
+};
+
 class StorageManagerTest : public ::testing::Test {
 protected:
+    MockSysApi mockSysApi;
     StorageManager storage;
+    
+    void SetUp() override {
+        storage.setSysApi(&mockSysApi);
+    }
 };
 
 // FILE CREATION, DELETION
