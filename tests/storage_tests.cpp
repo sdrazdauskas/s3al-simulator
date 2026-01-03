@@ -1,98 +1,14 @@
 #include <gtest/gtest.h>
 #include "storage/Storage.h"
-#include "kernel/SysCallsAPI.h"
-#include "scheduler/algorithms/SchedulerAlgorithm.h"
+#include "testHelpers/MockSysApi.h"
 #include "logger/Logger.h"
-#include <map>
 
 using namespace storage;
 using Response = StorageManager::StorageResponse;
 
-// Mock SysApi for testing - only implements memory allocation methods
-class MockSysApi : public sys::SysApi {
-private:
-    std::map<void*, size_t> allocations;
-    
-public:
-    void* allocateMemory(size_t size, int processId = 0) override {
-        void* ptr = new char[size];
-        allocations[ptr] = size;
-        return ptr;
-    }
-    
-    sys::SysResult deallocateMemory(void* ptr) override {
-        auto it = allocations.find(ptr);
-        if (it == allocations.end()) {
-            return sys::SysResult::Error;
-        }
-        delete[] static_cast<char*>(ptr);
-        allocations.erase(it);
-        return sys::SysResult::OK;
-    }
-    
-    void freeProcessMemory(int processId) override {}
-    
-    void scheduleProcess(int, int, int) override {}
-    void unscheduleProcess(int) override {}
-    void suspendScheduledProcess(int) override {}
-    void resumeScheduledProcess(int) override {}
-    
-    ~MockSysApi() {
-        // Cleanup any remaining allocations
-        for (auto& [ptr, size] : allocations) {
-            delete[] static_cast<char*>(ptr);
-        }
-    }
-    
-    // Stub implementations for required pure virtual methods
-    sys::SysResult fileExists(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult readFile(const std::string&, std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult createFile(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult deleteFile(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult writeFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult editFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult copyFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult moveFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult appendFile(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    std::string getWorkingDir() override { return "/"; }
-    sys::SysResult listDir(const std::string&, std::vector<std::string>&) override { return sys::SysResult::OK; }
-    sys::SysResult makeDir(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult removeDir(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult changeDir(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult copyDir(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult moveDir(const std::string&, const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult saveToDisk(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult loadFromDisk(const std::string&) override { return sys::SysResult::OK; }
-    sys::SysResult resetStorage() override { return sys::SysResult::OK; }
-    sys::SysResult listDataFiles(std::vector<std::string>&) override { return sys::SysResult::OK; }
-    sys::SysApi::SysInfo getSysInfo() override { return {}; }
-    void requestShutdown() override {}
-    void sendSignal(int) override {}
-    sys::SysResult sendSignalToProcess(int, int) override { return sys::SysResult::OK; }
-    int fork(const std::string&, int, int, int, bool) override { return 0; }
-    std::vector<ProcessInfo> getProcessList() override { return {}; }
-    bool processExists(int) override { return false; }
-    std::string readLine() override { return ""; }
-    void beginInteractiveMode() override {}
-    void endInteractiveMode() override {}
-    bool addCPUWork(int, int) override { return false; }
-    bool waitForProcess(int) override { return false; }
-    bool exit(int, int) override { return false; }
-    bool reapProcess(int) override { return false; }
-    bool isProcessComplete(int) override { return false; }
-    int getProcessRemainingCycles(int) override { return -1; }
-    bool setSchedulingAlgorithm(scheduler::SchedulerAlgorithm, int) override { return false; }
-    bool setSchedulerCyclesPerInterval(int) override { return false; }
-    bool setSchedulerTickIntervalMs(int) override { return false; }
-    bool getConsoleOutput() const override { return false; }
-    void setConsoleOutput(bool) override {}
-    std::string getLogLevel() const override { return "INFO"; }
-    void setLogLevel(logging::LogLevel) override {}
-};
-
 class StorageManagerTest : public ::testing::Test {
 protected:
-    MockSysApi mockSysApi;
+    testHelpers::MockSysApi mockSysApi;
     StorageManager storage;
     
     void SetUp() override {
@@ -101,7 +17,6 @@ protected:
 };
 
 // FILE CREATION, DELETION
-
 TEST_F(StorageManagerTest, TouchFile_ShouldSucceedIfFileAlreadyExists) {
     EXPECT_EQ(storage.createFile("exists.txt"), Response::OK);
     EXPECT_EQ(storage.touchFile("exists.txt"), Response::OK);
@@ -141,7 +56,6 @@ TEST_F(StorageManagerTest, DeleteFile_InvalidOrMissing) {
 }
 
 // FILE READ, WRITE, EDIT
-
 TEST_F(StorageManagerTest, WriteAndReadFile_Success) {
     EXPECT_EQ(storage.createFile("data.txt"), Response::OK);
     EXPECT_EQ(storage.writeFile("data.txt", "hello"), Response::OK);
@@ -187,7 +101,6 @@ TEST_F(StorageManagerTest, ReadFile_FromDirectory_ShouldReturnInvalidArgument) {
 }
 
 // FILE COPY, MOVE
-
 TEST_F(StorageManagerTest, CopyFile_Success) {
     EXPECT_EQ(storage.createFile("src.txt"), Response::OK);
     EXPECT_EQ(storage.writeFile("src.txt", "data"), Response::OK);
@@ -245,7 +158,6 @@ TEST_F(StorageManagerTest, MoveFile_ToSubdirectory2) {
 }
 
 // DIRECTORY CREATION
-
 TEST_F(StorageManagerTest, MakeDir_Success) {
     EXPECT_EQ(storage.makeDir("stuff"), Response::OK);
     EXPECT_EQ(storage.changeDir("stuff"), Response::OK);
@@ -281,7 +193,6 @@ TEST_F(StorageManagerTest, ChangeDir_BeyondRoot_ShouldStayAtRoot) {
 }
 
 // DIRECTORY COPY, MOVE
-
 TEST_F(StorageManagerTest, CopyDir_SuccessRecursive) {
     EXPECT_EQ(storage.makeDir("src"), Response::OK);
     EXPECT_EQ(storage.createFile("src/data.txt"), Response::OK);
@@ -450,7 +361,6 @@ TEST_F(StorageManagerTest, ListDir_ShouldIncludeHiddenFiles) {
 }
 
 // PATH RESOLUTION
-
 TEST_F(StorageManagerTest, PathNormalization_ShouldCollapseExtraSlashes) {
     EXPECT_EQ(storage.makeDir("a/b/c"), Response::NotFound);
     EXPECT_EQ(storage.makeDir("a"), Response::OK);
@@ -528,7 +438,6 @@ TEST_F(StorageManagerTest, ChangeDir_WithAbsolutePath) {
 }
 
 // ELSE
-
 TEST_F(StorageManagerTest, FileLifecycle_EndToEnd) {
     EXPECT_EQ(storage.createFile("story.txt"), Response::OK);
     EXPECT_EQ(storage.writeFile("story.txt", "Chapter 1"), Response::OK);
