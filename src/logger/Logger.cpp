@@ -1,6 +1,23 @@
 #include "logger/Logger.h"
+#include "common/ColorUtils.h"
 #include <iostream>
 #include <map>
+
+namespace {
+    using namespace common;
+    
+    std::string getLevelColor(logging::LogLevel level) {
+        static const std::map<logging::LogLevel, const char*> colorMap = {
+            {logging::LogLevel::DEBUG,   ColorUtils::CYAN},
+            {logging::LogLevel::INFO,    ColorUtils::GREEN},
+            {logging::LogLevel::WARNING, ColorUtils::YELLOW},
+            {logging::LogLevel::ERROR,   ColorUtils::RED}
+        };
+        
+        auto it = colorMap.find(level);
+        return (it != colorMap.end()) ? it->second : ColorUtils::RESET;
+    }
+}
 
 namespace logging {
 
@@ -55,7 +72,18 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
         if (consoleOutputCallback) {
             consoleOutputCallback(true);  // true = before log
         }
-        std::cerr << log_entry << std::endl;
+        
+        // Colored console output
+        std::string levelColor = getLevelColor(level);
+        std::string moduleColor = common::ColorUtils::getColorForString(module);
+        std::string coloredModule = moduleColor + "[" + module + "]" + common::ColorUtils::RESET;
+        
+        std::cerr << getCurrentTime() << " "
+                  << levelColor << common::ColorUtils::BOLD << "[" << levelToString(level) << "]" 
+                  << common::ColorUtils::RESET << " "
+                  << coloredModule << " "
+                  << message << std::endl;
+        
         // Call callback after output to redraw the prompt
         if (consoleOutputCallback) {
             consoleOutputCallback(false);  // false = after log
