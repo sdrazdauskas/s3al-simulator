@@ -1,10 +1,43 @@
 #include "storage/Storage.h"
 #include "kernel/SysCallsAPI.h"
 #include <iostream>
+#include <cstring>
 
 namespace storage {
 
 using Response = StorageManager::StorageResponse;
+
+Response StorageManager::allocateFileMemory(File& file, const void* data, size_t size) {
+    // Free old memory if exists
+    if (file.memoryToken && sysApi) {
+        auto result = sysApi->deallocateMemory(file.memoryToken);
+        if (result != sys::SysResult::OK) {
+            logError("Failed to deallocate memory for file: " + file.name);
+            return Response::Error;
+        }
+        file.memoryToken = nullptr;
+        file.contentSize = 0;
+    }
+    
+    // Allocate new memory if size > 0
+    if (size > 0 && sysApi) {
+        file.memoryToken = sysApi->allocateMemory(size, 0);
+        if (!file.memoryToken) {
+            logError("Out of memory for file: " + file.name);
+            return Response::Error;
+        }
+        
+        if (data) {
+            std::memcpy(file.memoryToken, data, size);
+        }
+        file.contentSize = size;
+    } else {
+        file.memoryToken = nullptr;
+        file.contentSize = 0;
+    }
+    
+    return Response::OK;
+}
 
 Response StorageManager::fileExists(const std::string& path) const {
     PathInfo info = parsePath(path);
@@ -41,7 +74,8 @@ Response StorageManager::createFile(const std::string& path) {
 
     auto newFile = std::make_unique<File>();
     newFile->name = info.name;
-    newFile->content = "";
+    newFile->memoryToken = nullptr;
+    newFile->contentSize = 0;
     newFile->createdAt = std::chrono::system_clock::now();
     newFile->modifiedAt = std::chrono::system_clock::now();
 
@@ -127,31 +161,13 @@ Response StorageManager::writeFile(const std::string& path, const std::string& c
     // find file
     for (auto& file : info.folder->files) {
         if (file->name == info.name) {
-            size_t oldSize = file->content.size();
-            size_t newSize = content.size() + 1; // +1 for newline
+            std::string contentWithNewline = content + "\n";
             
-            // Free old memory token
-            if (file->memoryToken) {
-                if (sysApi) {
-                    auto result = sysApi->deallocateMemory(file->memoryToken);
-                    if (result != sys::SysResult::OK) {
-                        logError("Failed to deallocate memory for file: " + info.name);
-                        return Response::Error;
-                    }
-                }
-                file->memoryToken = nullptr;
+            auto result = allocateFileMemory(*file, contentWithNewline.c_str(), contentWithNewline.size());
+            if (result != Response::OK) {
+                return result;
             }
             
-            // Allocate new memory token for content size (PID 0 for storage)
-            if (newSize > 0 && sysApi) {
-                file->memoryToken = sysApi->allocateMemory(newSize, 0);
-                if (!file->memoryToken) {
-                    logError("Out of memory writing to file: " + path);
-                    return Response::Error;
-                }
-            }
-            
-            file->content = content + "\n";
             file->modifiedAt = std::chrono::system_clock::now();
             info.folder->modifiedAt = std::chrono::system_clock::now();
             logInfo("Wrote to file: " + path);
@@ -173,7 +189,12 @@ Response StorageManager::readFile(const std::string& path, std::string& outConte
     
     for (const auto& file : info.folder->files) {
         if (file->name == info.name) {
-            outContent = file->content;
+            if (file->memoryToken && file->contentSize > 0) {
+                const char* src = static_cast<const char*>(file->memoryToken);
+                outContent.assign(src, file->contentSize);
+            } else {
+                outContent.clear();
+            }
             return Response::OK;
         }
     }
@@ -194,7 +215,19 @@ Response StorageManager::editFile(const std::string& path, const std::string& ne
     
     for (auto& file : info.folder->files) {
         if (file->name == info.name) {
-            file->content += newContent;
+            std::string existingContent;
+            if (file->memoryToken && file->contentSize > 0) {
+                const char* src = static_cast<const char*>(file->memoryToken);
+                existingContent.assign(src, file->contentSize);
+            }
+            
+            std::string combined = existingContent + newContent;
+            
+            auto result = allocateFileMemory(*file, combined.c_str(), combined.size());
+            if (result != Response::OK) {
+                return result;
+            }
+            
             file->modifiedAt = std::chrono::system_clock::now();
             info.folder->modifiedAt = std::chrono::system_clock::now();
             logInfo("Edited file: " + path);
@@ -258,9 +291,16 @@ Response StorageManager::copyFile(const std::string& srcPath, const std::string&
             }
         }
         
-        auto newFile = std::make_unique<File>(*srcFile);
+        auto newFile = std::make_unique<File>();
+        newFile->name = srcFile->name;
         newFile->createdAt = std::chrono::system_clock::now();
         newFile->modifiedAt = std::chrono::system_clock::now();
+        
+        auto result = allocateFileMemory(*newFile, srcFile->memoryToken, srcFile->contentSize);
+        if (result != Response::OK) {
+            return result;
+        }
+        
         targetDir->files.push_back(std::move(newFile));
         targetDir->modifiedAt = std::chrono::system_clock::now();
         
@@ -276,10 +316,16 @@ Response StorageManager::copyFile(const std::string& srcPath, const std::string&
         }
     }
 
-    auto newFile = std::make_unique<File>(*srcFile);
+    auto newFile = std::make_unique<File>();
     newFile->name = destInfo.name;
     newFile->createdAt = std::chrono::system_clock::now();
     newFile->modifiedAt = std::chrono::system_clock::now();
+    
+    auto result = allocateFileMemory(*newFile, srcFile->memoryToken, srcFile->contentSize);
+    if (result != Response::OK) {
+        return result;
+    }
+    
     destInfo.folder->files.push_back(std::move(newFile));
     destInfo.folder->modifiedAt = std::chrono::system_clock::now();
 

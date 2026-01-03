@@ -28,10 +28,10 @@ public:
     // STRUCTURES
     struct File {
         std::string name;
-        std::string content;
+        void* memoryToken = nullptr;
+        size_t contentSize = 0;
         std::chrono::system_clock::time_point createdAt;
         std::chrono::system_clock::time_point modifiedAt;
-        void* memoryToken = nullptr; // Token from MemoryManager to track content size
     };
 
     struct Folder {
@@ -95,6 +95,7 @@ private:
     int findFolderIndex(const std::string& name) const;
     StorageResponse recursiveDelete(Folder& folder);
     void recursiveCopyDir(const Folder& src, Folder& destParent);
+    StorageResponse allocateFileMemory(File& file, const void* data, size_t size);
 
     // DATA MEMBERS
     std::unique_ptr<Folder> root;
