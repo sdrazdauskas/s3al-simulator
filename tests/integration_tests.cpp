@@ -33,6 +33,11 @@ public:
         memManager.freeProcessMemory(processId);
     }
     
+    void scheduleProcess(int, int, int) override {}
+    void unscheduleProcess(int) override {}
+    void suspendScheduledProcess(int) override {}
+    void resumeScheduledProcess(int) override {}
+    
     // Stub implementations for other methods
     sys::SysResult fileExists(const std::string&) override { return sys::SysResult::OK; }
     sys::SysResult readFile(const std::string&, std::string&) override { return sys::SysResult::OK; }
@@ -87,44 +92,8 @@ protected:
 // ProcessManager + MemoryManager + CPUScheduler integration
 TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
     MemoryManager memory(4096);
-    CPUScheduler scheduler;
     IntegrationSysApi sysApi(memory);
-    ProcessManager procMgr(&sysApi, scheduler);
-    
-public:
-    void* allocateMemory(size_t size, int processId = 0) override {
-        void* ptr = new char[size];
-        allocations[ptr] = size;
-        return ptr;
-    }
-    
-    sys::SysResult deallocateMemory(void* ptr) override {
-        auto it = allocations.find(ptr);
-        if (it == allocations.end()) {
-            return sys::SysResult::Error;
-        }
-        delete[] static_cast<char*>(ptr);
-        allocations.erase(it);
-        return sys::SysResult::OK;
-    }
-
-    bool getConsoleOutput() const override { return false; }
-    void setConsoleOutput(bool) override {}
-    std::string getLogLevel() const override { return "INFO"; }
-    void setLogLevel(logging::LogLevel) override {}
-};
-
-
-class IntegrationTest : public ::testing::Test {
-protected:
-};
-
-// ProcessManager + MemoryManager + CPUScheduler integration
-TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
-    MemoryManager memory(4096);
-    CPUScheduler scheduler;
-    IntegrationSysApi sysApi(memory);
-    ProcessManager procMgr(&sysApi, scheduler);
+    ProcessManager procMgr(&sysApi);
     
     int pid1 = procMgr.submit("proc1", 10, 512, 5);
     int pid2 = procMgr.submit("proc2", 20, 256, 10);
