@@ -8,7 +8,6 @@
 #include "common/LoggingMixin.h"
 
 namespace sys { struct SysApi; }
-namespace scheduler { class CPUScheduler; }
 
 namespace process {
     
@@ -17,7 +16,7 @@ public:
     // Callback invoked when a process completes execution
     using ProcessCompleteCallback = std::function<void(int pid, int exitCode)>;
 
-    ProcessManager(sys::SysApi* sysApi, scheduler::CPUScheduler& cpu);
+    ProcessManager(sys::SysApi* sysApi);
 
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
     
@@ -66,7 +65,6 @@ private:
     std::vector<Process> processTable;
     
     sys::SysApi* sysApi;
-    scheduler::CPUScheduler& cpuScheduler;
     
     SignalCallback signalCallback;
     ProcessCompleteCallback completeCallback;

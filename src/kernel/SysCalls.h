@@ -259,6 +259,30 @@ struct SysApiKernel : ::sys::SysApi {
             kernelOwner->freeProcessMemory(processId);
         }
     }
+    
+    void scheduleProcess(int pid, int cpuCycles, int priority) override {
+        if (kernelOwner) {
+            kernelOwner->scheduleProcess(pid, cpuCycles, priority);
+        }
+    }
+    
+    void unscheduleProcess(int pid) override {
+        if (kernelOwner) {
+            kernelOwner->unscheduleProcess(pid);
+        }
+    }
+    
+    void suspendScheduledProcess(int pid) override {
+        if (kernelOwner) {
+            kernelOwner->suspendScheduledProcess(pid);
+        }
+    }
+    
+    void resumeScheduledProcess(int pid) override {
+        if (kernelOwner) {
+            kernelOwner->resumeScheduledProcess(pid);
+        }
+    }
 
     void requestShutdown() override {
         if (kernelOwner) kernelOwner->handleQuit(std::vector<std::string>());
