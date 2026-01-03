@@ -63,6 +63,12 @@ struct SysApi {
     virtual void* allocateMemory(size_t size, int processId = 0) = 0;
     virtual SysResult deallocateMemory(void* ptr) = 0;
     virtual void freeProcessMemory(int processId) = 0;
+    
+    // Scheduler operations
+    virtual void scheduleProcess(int pid, int cpuCycles, int priority) = 0;
+    virtual void unscheduleProcess(int pid) = 0;
+    virtual void suspendScheduledProcess(int pid) = 0;
+    virtual void resumeScheduledProcess(int pid) = 0;
 
     virtual void requestShutdown() = 0;
     

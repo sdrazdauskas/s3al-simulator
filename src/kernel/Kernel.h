@@ -46,6 +46,12 @@ public:
     void* allocateMemory(size_t size, int processId = 0);
     sys::SysResult deallocateMemory(void* ptr);
     void freeProcessMemory(int processId);
+    
+    // Scheduler operations
+    void scheduleProcess(int pid, int cpuCycles, int priority);
+    void unscheduleProcess(int pid);
+    void suspendScheduledProcess(int pid);
+    void resumeScheduledProcess(int pid);
 
     std::string handleQuit(const std::vector<std::string>& args);
     

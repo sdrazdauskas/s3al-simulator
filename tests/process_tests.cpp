@@ -42,6 +42,11 @@ public:
         // In real implementation, MemoryManager tracks by PID
     }
     
+    void scheduleProcess(int, int, int) override {}
+    void unscheduleProcess(int) override {}
+    void suspendScheduledProcess(int) override {}
+    void resumeScheduledProcess(int) override {}
+    
     ~MockSysApi() {
         for (auto& [ptr, size] : allocations) {
             delete[] static_cast<char*>(ptr);
@@ -106,7 +111,7 @@ protected:
 
 // Memory allocation failure handling
 TEST_F(ProcessManagerMockTest, ProcessCreationFailsWhenMemoryUnavailable) {
-    ProcessManager pm(&mockSysApi, *scheduler);
+    ProcessManager pm(&mockSysApi);
     
     // Submit process - allocation happens at submit time
     int pid = pm.submit("test_process", 100, 512, 5);

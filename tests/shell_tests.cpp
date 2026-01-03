@@ -62,6 +62,11 @@ public:
     MOCK_METHOD(SysResult, deallocateMemory, (void*), (override));
     
     void freeProcessMemory(int processId) override {}
+    
+    void scheduleProcess(int, int, int) override {}
+    void unscheduleProcess(int) override {}
+    void suspendScheduledProcess(int) override {}
+    void resumeScheduledProcess(int) override {}
 };
 
 class ShellTest : public ::testing::Test {

@@ -41,6 +41,11 @@ public:
     
     void freeProcessMemory(int processId) override {}
     
+    void scheduleProcess(int, int, int) override {}
+    void unscheduleProcess(int) override {}
+    void suspendScheduledProcess(int) override {}
+    void resumeScheduledProcess(int) override {}
+    
     ~MockSysApi() {
         for (auto& [ptr, size] : allocations) {
             delete[] static_cast<char*>(ptr);

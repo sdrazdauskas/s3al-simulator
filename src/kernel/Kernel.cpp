@@ -18,7 +18,7 @@ namespace kernel {
 Kernel::Kernel(const config::Config& config)
         : cpuScheduler(config),
             memManager(config.memorySize),
-            procManager(nullptr, cpuScheduler) {
+            procManager(nullptr) {
     auto loggerCallback = [](const std::string& level, const std::string& module, const std::string& message){
         logging::Logger::getInstance().log(level, module, message);
     };
@@ -50,6 +50,22 @@ sys::SysResult Kernel::deallocateMemory(void* ptr) {
 
 void Kernel::freeProcessMemory(int processId) {
     memManager.freeProcessMemory(processId);
+}
+
+void Kernel::scheduleProcess(int pid, int cpuCycles, int priority) {
+    cpuScheduler.enqueue(pid, cpuCycles, priority);
+}
+
+void Kernel::unscheduleProcess(int pid) {
+    cpuScheduler.remove(pid);
+}
+
+void Kernel::suspendScheduledProcess(int pid) {
+    cpuScheduler.suspend(pid);
+}
+
+void Kernel::resumeScheduledProcess(int pid) {
+    cpuScheduler.resume(pid);
 }
 
 bool Kernel::isKernelRunning() const { return kernelRunning.load(); }
@@ -332,6 +348,18 @@ void Kernel::boot() {
     // Wire subsystems to use syscalls for memory management
     storageManager.setSysApi(&sys);
     procManager.setSysApi(&sys);
+    
+    // Wire scheduler callback to ProcessManager
+    cpuScheduler.setProcessCompleteCallback([this](int pid) {
+        // Forward to ProcessManager's internal handler
+        auto processes = procManager.snapshot();
+        for (const auto& p : processes) {
+            if (p.getPid() == pid) {
+                // Process completed - ProcessManager will handle via its callback
+                break;
+            }
+        }
+    });
     
     // Create and start init process (PID 1)
     init::Init init(sys);

@@ -32,6 +32,11 @@ public:
     
     void freeProcessMemory(int processId) override {}
     
+    void scheduleProcess(int, int, int) override {}
+    void unscheduleProcess(int) override {}
+    void suspendScheduledProcess(int) override {}
+    void resumeScheduledProcess(int) override {}
+    
     ~MockSysApi() {
         // Cleanup any remaining allocations
         for (auto& [ptr, size] : allocations) {
