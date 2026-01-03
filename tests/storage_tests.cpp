@@ -30,6 +30,8 @@ public:
         return sys::SysResult::OK;
     }
     
+    void freeProcessMemory(int processId) override {}
+    
     ~MockSysApi() {
         // Cleanup any remaining allocations
         for (auto& [ptr, size] : allocations) {
