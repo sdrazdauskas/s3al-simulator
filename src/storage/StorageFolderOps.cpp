@@ -241,7 +241,8 @@ Response StorageManager::listDir(const std::string& path, std::vector<std::strin
         std::ostringstream line;
         line << "[F] " << fl->name
              << " | created: " << formatTime(fl->createdAt)
-             << " | modified: " << formatTime(fl->modifiedAt);
+             << " | modified: " << formatTime(fl->modifiedAt)
+             << " | size: " << fl->contentSize << " bytes";
         outEntries.push_back(line.str());
     }
     
