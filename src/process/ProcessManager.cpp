@@ -1,4 +1,4 @@
-#include "memory/MemoryManager.h"
+#include "kernel/SysCallsAPI.h"
 #include "scheduler/Scheduler.h"
 #include "process/ProcessManager.h"
 #include <algorithm>
@@ -6,8 +6,8 @@
 
 namespace process {
 
-ProcessManager::ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu)
-    : memManager(mem), cpuScheduler(cpu) 
+ProcessManager::ProcessManager(sys::SysApi* api, scheduler::CPUScheduler& cpu)
+    : sysApi(api), cpuScheduler(cpu) 
 {
     cpuScheduler.setProcessCompleteCallback([this](int pid) {
         onProcessComplete(pid);
@@ -59,7 +59,9 @@ int ProcessManager::submit(const std::string& processName,
     }
     
     processTable.push_back(process);
-    memManager.allocate(memoryNeeded, pid);
+    if (sysApi && memoryNeeded > 0) {
+        sysApi->allocateMemory(memoryNeeded, pid);
+    }
     cpuScheduler.enqueue(pid, cpuCycles, priority);
 
     logInfo("Submitted process '" + processName + "' (PID=" + std::to_string(pid) + 
@@ -121,7 +123,9 @@ bool ProcessManager::exit(int pid, int exitCode) {
     }
     
     logDebug("Process '" + process->getName() + "' exited with code " + std::to_string(exitCode) + " (PID=" + std::to_string(pid) + ")");
-    memManager.freeProcessMemory(pid);
+    if (sysApi) {
+        sysApi->freeProcessMemory(pid);
+    }
     return process->makeZombie();
 }
 
@@ -177,7 +181,9 @@ bool ProcessManager::sendSignal(int pid, int signal) {
         case 15: // SIGTERM
             logInfo("Terminating process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
             cpuScheduler.remove(pid);
-            memManager.freeProcessMemory(pid);
+            if (sysApi) {
+                sysApi->freeProcessMemory(pid);
+            }
             if (!process->makeZombie()) {
                 logError("Failed to make process zombie: PID=" + std::to_string(pid));
                 return false;
