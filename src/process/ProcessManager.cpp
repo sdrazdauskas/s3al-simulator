@@ -21,7 +21,7 @@ bool ProcessManager::processExists(int pid) const {
 }
 
 bool ProcessManager::isProcessPersistent(int pid) const {
-    Process* process = const_cast<ProcessManager*>(this)->find(pid);
+    const Process* process = const_cast<ProcessManager*>(this)->find(pid);
     return process && process->isPersistent();
 }
 
