@@ -105,7 +105,7 @@ void CPUScheduler::enqueue(int pid, int burstTime, int priority) {
         return;
     }
 
-    ScheduledTask* task = new ScheduledTask(pid, 0, burstTime, priority);
+    ScheduledTask* task = new ScheduledTask(pid, systemTime, burstTime, priority);
     processes.push_back(task);
     readyQueue.push_back(task);
     logInfo("Enqueued ScheduledTask " + std::to_string(pid) + 
@@ -194,7 +194,9 @@ void CPUScheduler::preemptCurrent() {
 
 void CPUScheduler::completeProcess(ScheduledTask* task) {
     if (!task) return;
-    logInfo("ScheduledTask " + std::to_string(task->id) + " completed");
+    task->completionTime = systemTime;
+    task->turnaroundTime = task->completionTime - task->arrivalTime;
+    logInfo("ScheduledTask " + std::to_string(task->id) + " turnaround time " + std::to_string(task->turnaroundTime) + ", completed");
     if (completeCallback) {
         completeCallback(task->id);
     }
