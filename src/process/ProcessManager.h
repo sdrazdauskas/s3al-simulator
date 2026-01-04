@@ -7,8 +7,7 @@
 #include "process/Process.h"
 #include "common/LoggingMixin.h"
 
-namespace memory { class MemoryManager; }
-namespace scheduler { class CPUScheduler; }
+namespace sys { struct SysApi; }
 
 namespace process {
     
@@ -17,9 +16,12 @@ public:
     // Callback invoked when a process completes execution
     using ProcessCompleteCallback = std::function<void(int pid, int exitCode)>;
 
-    ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu);
+    ProcessManager(sys::SysApi* sysApi);
 
     void setProcessCompleteCallback(ProcessCompleteCallback cb) { completeCallback = cb; }
+    
+    // Set system API (must be called before operations that need memory)
+    void setSysApi(sys::SysApi* api) { sysApi = api; }
 
     // Submit a new process with given CPU cost (cycles needed)
     // Returns PID on success, -1 on failure
@@ -62,8 +64,7 @@ private:
     int nextPid{1};  // 0 is reserved for kernel
     std::vector<Process> processTable;
     
-    memory::MemoryManager& memManager;
-    scheduler::CPUScheduler& cpuScheduler;
+    sys::SysApi* sysApi;
     
     SignalCallback signalCallback;
     ProcessCompleteCallback completeCallback;

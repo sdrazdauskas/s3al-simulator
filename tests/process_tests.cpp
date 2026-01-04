@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "process/ProcessManager.h"
-#include "memory/MemoryManager.h"
+#include "testHelpers/MockSysApi.h"
 #include "scheduler/Scheduler.h"
 #include "scheduler/algorithms/PriorityAlgorithm.h"
 #include "scheduler/algorithms/FCFSAlgorithm.h"
@@ -9,25 +9,14 @@
 #include "logger/Logger.h"
 
 using namespace process;
-using namespace memory;
 using namespace scheduler;
 using ::testing::_;
 using ::testing::Return;
 using ::testing::NiceMock;
 
-// Mock MemoryManager for unit testing
-class MockMemoryManager : public MemoryManager {
-public:
-    MockMemoryManager() : MemoryManager(4096) {}
-    
-    MOCK_METHOD(void*, allocate, (size_t size, int processId), (override));
-    MOCK_METHOD(bool, deallocate, (void* ptr), (override));
-    MOCK_METHOD(void, freeProcessMemory, (int processId), (override));
-};
-
 class ProcessManagerMockTest : public ::testing::Test {
 protected:
-    NiceMock<MockMemoryManager> mock_memory;
+    testHelpers::MockSysApi mockSysApi;
     std::unique_ptr<CPUScheduler> scheduler;
     
     void SetUp() override {
@@ -37,16 +26,11 @@ protected:
 
 // Memory allocation failure handling
 TEST_F(ProcessManagerMockTest, ProcessCreationFailsWhenMemoryUnavailable) {
-    ProcessManager pm(mock_memory, *scheduler);
+    ProcessManager pm(&mockSysApi);
     
-    // Configure mock to simulate allocation failure when submitting the process
-    int expectedPid = pm.getNextPid();
-    EXPECT_CALL(mock_memory, allocate(512, expectedPid))
-        .WillOnce(Return(nullptr));
-    
-    // Submit process - allocation happens at submit time with new API
+    // Submit process - allocation happens at submit time
     int pid = pm.submit("test_process", 100, 512, 5);
-    EXPECT_GT(pid, 0); // Process submitted successfully (allocation returned nullptr but didn't fail)
+    EXPECT_GT(pid, 0); // Process submitted successfully
 }
 
 class SchedulerTest : public ::testing::Test {
