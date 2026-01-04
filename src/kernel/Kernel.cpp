@@ -259,6 +259,17 @@ void Kernel::boot() {
     
     logInfo("Starting init process (PID 1)...");
     
+    // Create syscall interface for user-space processes
+    SysApiKernel sys(storageManager, memManager, procManager, cpuScheduler, this);
+    
+    storageManager.setSysApi(&sys);
+    procManager.setSysApi(&sys);
+    
+    // notify ProcessManager so it can handle state transitions
+    cpuScheduler.setProcessCompleteCallback([this](int pid) {
+        procManager.onProcessComplete(pid);
+    });
+    
     // Create init as actual process with PID 1 (persistent process)
     int initPid = procManager.submit("init", 1, 1024, 10, true);
     if (initPid != 1) {
@@ -266,26 +277,6 @@ void Kernel::boot() {
         return;
     }
     
-    // Create syscall interface for user-space processes
-    SysApiKernel sys(storageManager, memManager, procManager, cpuScheduler, this);
-    
-    // Wire subsystems to use syscalls for memory management
-    storageManager.setSysApi(&sys);
-    procManager.setSysApi(&sys);
-    
-    // Wire scheduler callback to ProcessManager
-    cpuScheduler.setProcessCompleteCallback([this](int pid) {
-        // Forward to ProcessManager's internal handler
-        auto processes = procManager.snapshot();
-        for (const auto& p : processes) {
-            if (p.getPid() == pid) {
-                // Process completed - ProcessManager will handle via its callback
-                break;
-            }
-        }
-    });
-    
-    // Create and start init process (PID 1)
     init::Init init(sys);
     init.setLogCallback(loggerCallback);
     

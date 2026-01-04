@@ -51,6 +51,9 @@ public:
     // Reap a zombie process (remove from process table after completion)
     bool reapProcess(int pid);
     
+    // Called by scheduler when a process completes its CPU cycles
+    void onProcessComplete(int pid);
+    
     using SignalCallback = std::function<void(int pid, int signal)>;
     void setSignalCallback(SignalCallback callback) { signalCallback = callback; }
 
@@ -70,7 +73,6 @@ private:
     ProcessCompleteCallback completeCallback;
 
     Process* find(int pid);
-    void onProcessComplete(int pid);
 
 protected:
     std::string getModuleName() const override { return "PROCESS_MGR"; }
