@@ -41,8 +41,8 @@ bool MemoryManager::deallocate(void *ptr)
 
     usedMemory -= it->second.size;
     logDebug("Deallocated " + std::to_string(it->second.size) + " bytes");
-    delete[] static_cast<std::byte*>(ptr);
     allocations.erase(it);
+    delete[] static_cast<std::byte*>(ptr);
     return true;
 }
 
@@ -53,8 +53,9 @@ void MemoryManager::freeProcessMemory(int processId)
         if (it->second.processId == processId) {
             usedMemory -= it->second.size;
             freed += it->second.size;
-            delete[] static_cast<std::byte*>(it->first);
-            it = allocations.erase(it); 
+            void* ptrToDelete = it->first;
+            it = allocations.erase(it);
+            delete[] static_cast<std::byte*>(ptrToDelete);
         } else {
             ++it;
         }
