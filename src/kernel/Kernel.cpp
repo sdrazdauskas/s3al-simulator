@@ -259,17 +259,9 @@ void Kernel::boot() {
     
     logInfo("Starting init process (PID 1)...");
     
-    // Create init as actual process with PID 1 (persistent process)
-    int initPid = procManager.submit("init", 1, 1024, 10, true);
-    if (initPid != 1) {
-        logError("Failed to create init process");
-        return;
-    }
-    
     // Create syscall interface for user-space processes
     SysApiKernel sys(storageManager, memManager, procManager, cpuScheduler, this);
     
-    // Wire subsystems to use syscalls for memory management
     storageManager.setSysApi(&sys);
     procManager.setSysApi(&sys);
     
@@ -278,7 +270,13 @@ void Kernel::boot() {
         procManager.onProcessComplete(pid);
     });
     
-    // Create and start init process (PID 1)
+    // Create init as actual process with PID 1 (persistent process)
+    int initPid = procManager.submit("init", 1, 1024, 10, true);
+    if (initPid != 1) {
+        logError("Failed to create init process");
+        return;
+    }
+    
     init::Init init(sys);
     init.setLogCallback(loggerCallback);
     
