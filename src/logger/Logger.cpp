@@ -1,6 +1,24 @@
 #include "logger/Logger.h"
+#include "common/ColorUtils.h"
+#include "common/TimeUtils.h"
 #include <iostream>
 #include <map>
+
+namespace {
+    using namespace common;
+    
+    std::string getLevelColor(logging::LogLevel level) {
+        static const std::map<logging::LogLevel, const char*> colorMap = {
+            {logging::LogLevel::DEBUG,   ColorUtils::CYAN},
+            {logging::LogLevel::INFO,    ColorUtils::GREEN},
+            {logging::LogLevel::WARNING, ColorUtils::YELLOW},
+            {logging::LogLevel::ERROR,   ColorUtils::RED}
+        };
+        
+        auto it = colorMap.find(level);
+        return (it != colorMap.end()) ? it->second : ColorUtils::RESET;
+    }
+}
 
 namespace logging {
 
@@ -21,7 +39,7 @@ void Logger::init(const std::string& fileName, LogLevel minLevel) {
 
     if (file.is_open()) {
         file << getCurrentTime() << " "
-             << "[INFO] [LOGGER] Logger initialized: " << fileName << "\n";
+             << "[INFO]  [LOGGER] Logger initialized: " << fileName << "\n";
         file.flush();
     } else {
         std::cerr << "ERROR: Failed to open log file: " << fileName << std::endl;
@@ -40,8 +58,10 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
 
     std::lock_guard<std::mutex> lock(mutex);
 
+    std::string levelStr = levelToString(level);
+    std::string spacing = (levelStr.length() < 5) ? "  " : " ";
     std::string log_entry = getCurrentTime() + " " +
-                            "[" + levelToString(level) + "] " +
+                            "[" + levelStr + "]" + spacing +
                             "[" + module + "] " +
                             message;
 
@@ -55,7 +75,18 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
         if (consoleOutputCallback) {
             consoleOutputCallback(true);  // true = before log
         }
-        std::cerr << log_entry << std::endl;
+        
+        // Colored console output
+        std::string levelColor = getLevelColor(level);
+        
+        std::string levelStr = levelToString(level);
+        std::string spacing = (levelStr.length() < 5) ? "  " : " ";
+        std::cerr << getCurrentTime() << " "
+                  << levelColor << common::ColorUtils::BOLD << "[" << levelStr << "]" 
+                  << common::ColorUtils::RESET << spacing
+                  << "[" << module << "] "
+                  << message << std::endl;
+        
         // Call callback after output to redraw the prompt
         if (consoleOutputCallback) {
             consoleOutputCallback(false);  // false = after log
@@ -96,15 +127,7 @@ std::string Logger::levelToString(LogLevel level) {
 }
 
 std::string Logger::getCurrentTime() {
-    auto now = std::chrono::system_clock::now();
-    auto time = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now.time_since_epoch()) % 1000;
-    
-    std::ostringstream oss;
-    oss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S")
-        << '.' << std::setfill('0') << std::setw(3) << ms.count();
-    return oss.str();
+    return common::TimeUtils::now(common::TimeUtils::Format::DateTimeMilliseconds);
 }
 
 } // namespace logging
