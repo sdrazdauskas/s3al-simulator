@@ -273,16 +273,9 @@ void Kernel::boot() {
     storageManager.setSysApi(&sys);
     procManager.setSysApi(&sys);
     
-    // Wire scheduler callback to ProcessManager
+    // notify ProcessManager so it can handle state transitions
     cpuScheduler.setProcessCompleteCallback([this](int pid) {
-        // Forward to ProcessManager's internal handler
-        auto processes = procManager.snapshot();
-        for (const auto& p : processes) {
-            if (p.getPid() == pid) {
-                // Process completed - ProcessManager will handle via its callback
-                break;
-            }
-        }
+        procManager.onProcessComplete(pid);
     });
     
     // Create and start init process (PID 1)
