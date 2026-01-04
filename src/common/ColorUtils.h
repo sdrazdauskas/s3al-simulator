@@ -47,27 +47,6 @@ public:
     static constexpr const char* UNDERLINE_WHITE = "\033[4;37m";
     
     /**
-     * Get a consistent color for a string based on its hash
-     * Returns underlined colors to visually distinguish from bold log levels
-     * @param str The string to hash
-     * @return ANSI color code with underline
-     */
-    static std::string getColorForString(const std::string& str) {
-        static const char* colors[] = {
-            UNDERLINE_MAGENTA,
-            UNDERLINE_BLUE,
-            UNDERLINE_CYAN,
-            UNDERLINE_GREEN,
-            UNDERLINE_YELLOW,
-            UNDERLINE_RED,
-        };
-        static const size_t numColors = sizeof(colors) / sizeof(colors[0]);
-        
-        size_t hash = std::hash<std::string>{}(str);
-        return colors[hash % numColors];
-    }
-    
-    /**
      * Wrap text with color codes
      * @param text The text to colorize
      * @param color The ANSI color code

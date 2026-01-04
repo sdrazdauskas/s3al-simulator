@@ -39,7 +39,7 @@ void Logger::init(const std::string& fileName, LogLevel minLevel) {
 
     if (file.is_open()) {
         file << getCurrentTime() << " "
-             << "[INFO] [LOGGER] Logger initialized: " << fileName << "\n";
+             << "[INFO]  [LOGGER] Logger initialized: " << fileName << "\n";
         file.flush();
     } else {
         std::cerr << "ERROR: Failed to open log file: " << fileName << std::endl;
@@ -58,8 +58,10 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
 
     std::lock_guard<std::mutex> lock(mutex);
 
+    std::string levelStr = levelToString(level);
+    std::string spacing = (levelStr.length() < 5) ? "  " : " ";
     std::string log_entry = getCurrentTime() + " " +
-                            "[" + levelToString(level) + "] " +
+                            "[" + levelStr + "]" + spacing +
                             "[" + module + "] " +
                             message;
 
@@ -76,13 +78,13 @@ void Logger::log(LogLevel level, const std::string& module, const std::string& m
         
         // Colored console output
         std::string levelColor = getLevelColor(level);
-        std::string moduleColor = common::ColorUtils::getColorForString(module);
-        std::string coloredModule = moduleColor + "[" + module + "]" + common::ColorUtils::RESET;
         
+        std::string levelStr = levelToString(level);
+        std::string spacing = (levelStr.length() < 5) ? "  " : " ";
         std::cerr << getCurrentTime() << " "
-                  << levelColor << common::ColorUtils::BOLD << "[" << levelToString(level) << "]" 
-                  << common::ColorUtils::RESET << " "
-                  << coloredModule << " "
+                  << levelColor << common::ColorUtils::BOLD << "[" << levelStr << "]" 
+                  << common::ColorUtils::RESET << spacing
+                  << "[" << module << "] "
                   << message << std::endl;
         
         // Call callback after output to redraw the prompt
