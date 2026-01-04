@@ -1,11 +1,7 @@
 #include "storage/Storage.h"
+#include "common/TimeUtils.h"
 #include <algorithm>
-#include <iomanip>
-#include <ctime>
-#include <sstream>
 #include <cctype>
-#include <chrono>
-#include <format>
 
 namespace storage {
 
@@ -37,13 +33,7 @@ bool StorageManager::isNameInvalid(const std::string& s) {
 }
 
 std::string formatTime(const std::chrono::system_clock::time_point& tp) {
-    std::time_t t = std::chrono::system_clock::to_time_t(tp);
-    std::tm local{};
-    localtime_r(&t, &local);
-
-    std::ostringstream oss;
-    oss << std::put_time(&local, "%Y-%m-%d %H:%M:%S");
-    return oss.str();
+    return common::TimeUtils::format(tp, common::TimeUtils::Format::DateTimeSeconds);
 }
 
 StorageManager::PathInfo StorageManager::parsePath(const std::string& path) const {
