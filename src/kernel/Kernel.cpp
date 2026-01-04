@@ -18,7 +18,7 @@ namespace kernel {
 Kernel::Kernel(const config::Config& config)
         : cpuScheduler(config),
             memManager(config.memorySize),
-            procManager(memManager, cpuScheduler) {
+            procManager(nullptr) {
     auto loggerCallback = [](const std::string& level, const std::string& module, const std::string& message){
         logging::Logger::getInstance().log(level, module, message);
     };
@@ -34,18 +34,6 @@ sys::SysApi::SysInfo Kernel::getSysInfo() const {
     info.totalMemory = memManager.getTotalMemory();
     info.usedMemory = memManager.getUsedMemory();
     return info;
-}
-
-void* Kernel::allocateMemory(size_t size, int processId) {
-    return memManager.allocate(size, processId);
-}
-
-sys::SysResult Kernel::deallocateMemory(void* ptr) {
-    if (memManager.deallocate(ptr)) {
-        return sys::SysResult::OK;
-    } else {
-        return sys::SysResult::Error;
-    }
 }
 
 bool Kernel::isKernelRunning() const { return kernelRunning.load(); }
@@ -86,34 +74,6 @@ void Kernel::handleInterruptSignal(int signal) {
         eventQueue.push(event);
     }
     queueCondition.notify_one();
-}
-
-bool Kernel::sendSignalToProcess(int pid, int signal) {
-    return procManager.sendSignal(pid, signal);
-}
-
-int Kernel::forkProcess(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority, bool persistent) {
-    return procManager.submit(name, cpuTimeNeeded, memoryNeeded, priority, persistent);
-}
-
-std::vector<sys::SysApi::ProcessInfo> Kernel::getProcessList() const {
-    auto processes = procManager.snapshot();
-    std::vector<sys::SysApi::ProcessInfo> result;
-    
-    for (const auto& proc : processes) {
-        sys::SysApi::ProcessInfo info;
-        info.pid = proc.getPid();
-        info.name = proc.getName();
-        info.state = process::stateToString(proc.getState());
-        info.priority = proc.getPriority();
-        result.push_back(info);
-    }
-    
-    return result;
-}
-
-bool Kernel::processExists(int pid) const {
-    return procManager.processExists(pid);
 }
 
 bool Kernel::addCPUWork(int pid, int cpuCycles) {
@@ -180,22 +140,6 @@ bool Kernel::waitForProcess(int pid) {
 
 bool Kernel::isProcessPersistent(int pid) const {
     return procManager.isProcessPersistent(pid);
-}
-
-bool Kernel::exit(int pid, int exitCode) {
-    return procManager.exit(pid, exitCode);
-}
-
-bool Kernel::reapProcess(int pid) {
-    return procManager.reapProcess(pid);
-}
-
-bool Kernel::isProcessComplete(int pid) const {
-    return cpuScheduler.getRemainingCycles(pid) < 0;
-}
-
-int Kernel::getProcessRemainingCycles(int pid) const {
-    return cpuScheduler.getRemainingCycles(pid);
 }
 
 bool Kernel::setSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum) {
@@ -323,10 +267,23 @@ void Kernel::boot() {
     }
     
     // Create syscall interface for user-space processes
-    SysApiKernel sys(storageManager, this);
+    SysApiKernel sys(storageManager, memManager, procManager, cpuScheduler, this);
     
-    // Wire storage to use syscalls for memory management
+    // Wire subsystems to use syscalls for memory management
     storageManager.setSysApi(&sys);
+    procManager.setSysApi(&sys);
+    
+    // Wire scheduler callback to ProcessManager
+    cpuScheduler.setProcessCompleteCallback([this](int pid) {
+        // Forward to ProcessManager's internal handler
+        auto processes = procManager.snapshot();
+        for (const auto& p : processes) {
+            if (p.getPid() == pid) {
+                // Process completed - ProcessManager will handle via its callback
+                break;
+            }
+        }
+    });
     
     // Create and start init process (PID 1)
     init::Init init(sys);

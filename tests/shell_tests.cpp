@@ -2,7 +2,7 @@
 #include <gmock/gmock.h>
 #include "shell/Shell.h"
 #include "shell/CommandsInit.h"
-#include "kernel/SysCallsAPI.h"
+#include "testHelpers/MockSysApi.h"
 #include "logger/Logger.h"
 #include <sstream>
 
@@ -13,58 +13,32 @@ using ::testing::NiceMock;
 using ::testing::DoAll;
 using ::testing::SetArgReferee;
 
-class MockSysApi : public SysApi {
+// Shell-specific mock that only mocks what the tests actually verify
+class MockSysApiForShell : public testHelpers::MockSysApi {
 public:
-    MOCK_METHOD(SysResult, fileExists, (const std::string& name), (override));
-    MOCK_METHOD(SysResult, readFile, (const std::string& name, std::string& out), (override));
+    // File operations tested by shell
     MOCK_METHOD(SysResult, createFile, (const std::string& name), (override));
-    MOCK_METHOD(SysResult, deleteFile, (const std::string& name), (override));
-    MOCK_METHOD(SysResult, writeFile, (const std::string& name, const std::string& content), (override));
-    MOCK_METHOD(SysResult, editFile, (const std::string& name, const std::string& newContent), (override));
-    MOCK_METHOD(SysResult, copyFile, (const std::string& src, const std::string& dest), (override));
-    MOCK_METHOD(SysResult, moveFile, (const std::string& src, const std::string& dest), (override));
-    MOCK_METHOD(SysResult, appendFile, (const std::string& name, const std::string& content), (override));
-    MOCK_METHOD(std::string, getWorkingDir, (), (override));
     MOCK_METHOD(SysResult, listDir, (const std::string& path, std::vector<std::string>& out), (override));
-    MOCK_METHOD(SysResult, makeDir, (const std::string& name), (override));
-    MOCK_METHOD(SysResult, removeDir, (const std::string& name), (override));
-    MOCK_METHOD(SysResult, changeDir, (const std::string& name), (override));
-    MOCK_METHOD(SysResult, copyDir, (const std::string& src, const std::string& dest), (override));
-    MOCK_METHOD(SysResult, moveDir, (const std::string& src, const std::string& dest), (override));
-    MOCK_METHOD(SysResult, saveToDisk, (const std::string& fileName), (override));
-    MOCK_METHOD(SysResult, loadFromDisk, (const std::string& fileName), (override));
-    MOCK_METHOD(SysResult, resetStorage, (), (override));
-    MOCK_METHOD(SysResult, listDataFiles, (std::vector<std::string>& out), (override));
+    MOCK_METHOD(std::string, getWorkingDir, (), (override));
+    
+    // System info tested by shell
     MOCK_METHOD(SysInfo, getSysInfo, (), (override));
-    MOCK_METHOD(void, requestShutdown, (), (override));
-    MOCK_METHOD(void, sendSignal, (int signal), (override));
+    
+    // Process operations tested by shell
     MOCK_METHOD(SysResult, sendSignalToProcess, (int pid, int signal), (override));
     MOCK_METHOD(int, fork, (const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority, bool persistent), (override));
     MOCK_METHOD(std::vector<ProcessInfo>, getProcessList, (), (override));
     MOCK_METHOD(bool, processExists, (int pid), (override));
-    MOCK_METHOD(std::string, readLine, (), (override));
-    MOCK_METHOD(void, beginInteractiveMode, (), (override));
-    MOCK_METHOD(void, endInteractiveMode, (), (override));
-    MOCK_METHOD(bool, setSchedulingAlgorithm, (scheduler::SchedulerAlgorithm algo, int quantum), (override));
-    MOCK_METHOD(bool, setSchedulerCyclesPerInterval, (int cycles), (override));
-    MOCK_METHOD(bool, setSchedulerTickIntervalMs, (int ms), (override));
-    MOCK_METHOD(bool, addCPUWork, (int pid, int cpuCycles), (override));
     MOCK_METHOD(bool, waitForProcess, (int pid), (override));
     MOCK_METHOD(bool, exit, (int pid, int exitCode), (override));
     MOCK_METHOD(bool, reapProcess, (int pid), (override));
     MOCK_METHOD(bool, isProcessComplete, (int pid), (override));
     MOCK_METHOD(int, getProcessRemainingCycles, (int pid), (override));
-    MOCK_METHOD(void*, allocateMemory, (size_t, int), (override));
-    MOCK_METHOD(void, setConsoleOutput, (bool), (override));
-    MOCK_METHOD(bool, getConsoleOutput, (), (const, override));
-    MOCK_METHOD(std::string, getLogLevel, (), (const, override));
-    MOCK_METHOD(void, setLogLevel, (logging::LogLevel), (override));
-    MOCK_METHOD(SysResult, deallocateMemory, (void*), (override));
 };
 
 class ShellTest : public ::testing::Test {
 protected:
-    NiceMock<MockSysApi> mock_sys;
+    NiceMock<MockSysApiForShell> mockSys;
     std::unique_ptr<CommandRegistry> registry;
     
     void SetUp() override {
@@ -72,24 +46,24 @@ protected:
         initCommands(*registry);
         
         // Setup default return values
-        ON_CALL(mock_sys, getWorkingDir()).WillByDefault(Return("/"));
+        ON_CALL(mockSys, getWorkingDir()).WillByDefault(Return("/"));
         
         // Default async execution: instant completion
-        ON_CALL(mock_sys, waitForProcess(_)).WillByDefault(Return(true));     // Completes immediately
-        ON_CALL(mock_sys, exit(_, _)).WillByDefault(Return(true));            // Exits successfully
-        ON_CALL(mock_sys, reapProcess(_)).WillByDefault(Return(true));        // Reaps successfully
-        ON_CALL(mock_sys, isProcessComplete(_)).WillByDefault(Return(true));
-        ON_CALL(mock_sys, fork(_, _, _, _, _)).WillByDefault(Return(42));
-        ON_CALL(mock_sys, getProcessRemainingCycles(_)).WillByDefault(Return(-1));
-        ON_CALL(mock_sys, processExists(_)).WillByDefault(Return(true));
+        ON_CALL(mockSys, waitForProcess(_)).WillByDefault(Return(true));     // Completes immediately
+        ON_CALL(mockSys, exit(_, _)).WillByDefault(Return(true));            // Exits successfully
+        ON_CALL(mockSys, reapProcess(_)).WillByDefault(Return(true));        // Reaps successfully
+        ON_CALL(mockSys, isProcessComplete(_)).WillByDefault(Return(true));
+        ON_CALL(mockSys, fork(_, _, _, _, _)).WillByDefault(Return(42));
+        ON_CALL(mockSys, getProcessRemainingCycles(_)).WillByDefault(Return(-1));
+        ON_CALL(mockSys, processExists(_)).WillByDefault(Return(true));
     }
 };
 
 TEST_F(ShellTest, TouchCommandFileExists) {
-    Shell shell(mock_sys, *registry);
+    Shell shell(mockSys, *registry);
     std::ostringstream output;
     
-    EXPECT_CALL(mock_sys, createFile("test.txt")).WillOnce(Return(SysResult::AlreadyExists));
+    EXPECT_CALL(mockSys, createFile("test.txt")).WillOnce(Return(SysResult::AlreadyExists));
     
     shell.setOutputCallback([&output](const std::string& str) {
         output << str;
@@ -106,11 +80,11 @@ TEST_F(ShellTest, TouchCommandFileExists) {
 }
 
 TEST_F(ShellTest, LsCommandDisplaysFiles) {
-    Shell shell(mock_sys, *registry);
+    Shell shell(mockSys, *registry);
     std::ostringstream output;
     std::vector<std::string> files = {"file1.txt", "file2.txt", "dir1"};
     
-    EXPECT_CALL(mock_sys, listDir(_, _))
+    EXPECT_CALL(mockSys, listDir(_, _))
         .WillOnce(DoAll(
             SetArgReferee<1>(files),
             Return(SysResult::OK)
@@ -130,7 +104,7 @@ TEST_F(ShellTest, LsCommandDisplaysFiles) {
 }
 
 TEST_F(ShellTest, EmptyCommand) {
-    Shell shell(mock_sys, *registry);
+    Shell shell(mockSys, *registry);
     
     // Test behavior: Should handle empty command gracefully without crashing
     EXPECT_NO_THROW(shell.processCommandLine(""));
@@ -138,12 +112,12 @@ TEST_F(ShellTest, EmptyCommand) {
 }
 
 TEST_F(ShellTest, MemInfoCommand) {
-    Shell shell(mock_sys, *registry);
+    Shell shell(mockSys, *registry);
     SysApi::SysInfo info;
     info.totalMemory = 4096;  // 4 KB
     info.usedMemory = 2048;   // 2 KB
     
-    EXPECT_CALL(mock_sys, getSysInfo()).WillOnce(Return(info));
+    EXPECT_CALL(mockSys, getSysInfo()).WillOnce(Return(info));
     
     std::ostringstream output;
     shell.setOutputCallback([&output](const std::string& str) {
@@ -163,7 +137,7 @@ TEST_F(ShellTest, MemInfoCommand) {
 }
 
 TEST_F(ShellTest, PsCommandDisplaysProcesses) {
-    Shell shell(mock_sys, *registry);
+    Shell shell(mockSys, *registry);
     std::ostringstream output;
     
     std::vector<SysApi::ProcessInfo> processes = {
@@ -171,7 +145,7 @@ TEST_F(ShellTest, PsCommandDisplaysProcesses) {
         {2, "test_proc", "ready", 5}
     };
     
-    EXPECT_CALL(mock_sys, getProcessList()).WillOnce(Return(processes));
+    EXPECT_CALL(mockSys, getProcessList()).WillOnce(Return(processes));
     
     shell.setOutputCallback([&output](const std::string& str) {
         output << str;
@@ -186,10 +160,10 @@ TEST_F(ShellTest, PsCommandDisplaysProcesses) {
 }
 
 TEST_F(ShellTest, KillCommandSendsSignal) {
-    Shell shell(mock_sys, *registry);
+    Shell shell(mockSys, *registry);
     std::ostringstream output;
     
-    EXPECT_CALL(mock_sys, sendSignalToProcess(123, 9)).WillOnce(Return(SysResult::OK));
+    EXPECT_CALL(mockSys, sendSignalToProcess(123, 9)).WillOnce(Return(SysResult::OK));
     
     shell.setOutputCallback([&output](const std::string& str) {
         output << str;

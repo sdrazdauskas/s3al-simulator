@@ -1,17 +1,13 @@
-#include "memory/MemoryManager.h"
-#include "scheduler/Scheduler.h"
+#include "kernel/SysCallsAPI.h"
 #include "process/ProcessManager.h"
 #include <algorithm>
 #include <iostream>
 
 namespace process {
 
-ProcessManager::ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu)
-    : memManager(mem), cpuScheduler(cpu) 
+ProcessManager::ProcessManager(sys::SysApi* api)
+    : sysApi(api) 
 {
-    cpuScheduler.setProcessCompleteCallback([this](int pid) {
-        onProcessComplete(pid);
-    });
 }
 
 Process* ProcessManager::find(int pid) {
@@ -25,7 +21,7 @@ bool ProcessManager::processExists(int pid) const {
 }
 
 bool ProcessManager::isProcessPersistent(int pid) const {
-    Process* process = const_cast<ProcessManager*>(this)->find(pid);
+    const Process* process = const_cast<ProcessManager*>(this)->find(pid);
     return process && process->isPersistent();
 }
 
@@ -59,8 +55,12 @@ int ProcessManager::submit(const std::string& processName,
     }
     
     processTable.push_back(process);
-    memManager.allocate(memoryNeeded, pid);
-    cpuScheduler.enqueue(pid, cpuCycles, priority);
+    if (sysApi && memoryNeeded > 0) {
+        sysApi->allocateMemory(memoryNeeded, pid);
+    }
+    if (sysApi) {
+        sysApi->scheduleProcess(pid, cpuCycles, priority);
+    }
 
     logInfo("Submitted process '" + processName + "' (PID=" + std::to_string(pid) + 
         ", cycles=" + std::to_string(cpuCycles) + ", priority=" + std::to_string(priority) + ")");
@@ -121,7 +121,9 @@ bool ProcessManager::exit(int pid, int exitCode) {
     }
     
     logDebug("Process '" + process->getName() + "' exited with code " + std::to_string(exitCode) + " (PID=" + std::to_string(pid) + ")");
-    memManager.freeProcessMemory(pid);
+    if (sysApi) {
+        sysApi->freeProcessMemory(pid);
+    }
     return process->makeZombie();
 }
 
@@ -132,7 +134,9 @@ bool ProcessManager::suspendProcess(int pid) {
         return false;
     }
     
-    cpuScheduler.suspend(pid);
+    if (sysApi) {
+        sysApi->suspendScheduledProcess(pid);
+    }
     return process->suspend();
 }
 
@@ -143,7 +147,9 @@ bool ProcessManager::resumeProcess(int pid) {
         return false;
     }
     
-    cpuScheduler.resume(pid);
+    if (sysApi) {
+        sysApi->resumeScheduledProcess(pid);
+    }
     return process->resume();
 }
 
@@ -176,8 +182,10 @@ bool ProcessManager::sendSignal(int pid, int signal) {
         case 9:  // SIGKILL
         case 15: // SIGTERM
             logInfo("Terminating process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
-            cpuScheduler.remove(pid);
-            memManager.freeProcessMemory(pid);
+            if (sysApi) {
+                sysApi->unscheduleProcess(pid);
+                sysApi->freeProcessMemory(pid);
+            }
             if (!process->makeZombie()) {
                 logError("Failed to make process zombie: PID=" + std::to_string(pid));
                 return false;

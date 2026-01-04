@@ -41,27 +41,11 @@ public:
     void boot();
 
     sys::SysApi::SysInfo getSysInfo() const;
-    
-    // Memory management syscalls
-    void* allocateMemory(size_t size, int processId = 0);
-    sys::SysResult deallocateMemory(void* ptr);
 
     std::string handleQuit(const std::vector<std::string>& args);
     
     // Signal handling - kernel receives interrupts from hardware/terminal
     void handleInterruptSignal(int signal);
-    
-    // Process signal handling
-    bool sendSignalToProcess(int pid, int signal);
-    
-    // Process creation - creates a process entry, returns PID
-    int forkProcess(const std::string& name, int cpuTimeNeeded, int memoryNeeded, int priority = 0, bool persistent = false);
-    
-    // Get list of all processes
-    std::vector<sys::SysApi::ProcessInfo> getProcessList() const;
-    
-    // Check if process exists
-    bool processExists(int pid) const;
     
     // Kernel event loop - runs background tasks
     void runEventLoop();
@@ -74,18 +58,6 @@ public:
     
     // Check if process is persistent
     bool isProcessPersistent(int pid) const;
-    
-    // Process exit syscall (transitions to ZOMBIE)
-    bool exit(int pid, int exitCode = 0);
-    
-    // Reap a zombie process (clean up after completion)
-    bool reapProcess(int pid);
-    
-    // Check if a process has completed
-    bool isProcessComplete(int pid) const;
-    
-    // Get remaining cycles for a process
-    int getProcessRemainingCycles(int pid) const;
 
     bool setSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0);
     bool setSchedulerCyclesPerInterval(int cycles);
