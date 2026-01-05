@@ -1,6 +1,7 @@
 #include "storage/Storage.h"
 #include "kernel/SysCallsAPI.h"
 #include <fstream>
+#include <sstream>
 #include <cstring>
 
 namespace storage {
@@ -127,6 +128,53 @@ Response StorageManager::loadFromDisk(const std::string& fileName) {
         }
         root = deserializeFolder(j, nullptr, sysApi);
         currentFolder = root.get();
+        return Response::OK;
+    } catch (...) {
+        return Response::Error;
+    }
+}
+
+Response StorageManager::readFileFromHost(const std::string& hostFileName, std::string& outContent) {
+    try {
+        std::ifstream file;
+        
+        // Check if hostFileName is an absolute path
+        std::filesystem::path filePath(hostFileName);
+        if (filePath.is_absolute()) {
+            // Use the path directly
+            file.open(hostFileName);
+        } else {
+            // For relative paths, try in this order:
+            // 1. Current directory / near executable
+            file.open(hostFileName);
+            
+            if (!file.is_open()) {
+                // 2. Try Docker/container path
+                std::string dataPath = "/app/data/" + hostFileName;
+                file.open(dataPath);
+                
+                if (!file.is_open()) {
+                    // 3. Try local development data folder
+                    dataPath = "data/" + hostFileName;
+                    file.open(dataPath);
+                }
+            }
+        }
+        
+        if (!file.is_open()) {
+            return Response::NotFound;
+        }
+        
+        // Read the entire file content
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        outContent = buffer.str();
+        file.close();
+        
+        if (outContent.empty()) {
+            return Response::InvalidArgument;
+        }
+        
         return Response::OK;
     } catch (...) {
         return Response::Error;

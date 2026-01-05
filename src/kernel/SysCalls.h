@@ -151,6 +151,17 @@ struct SysApiKernel : ::sys::SysApi {
         }
     }
 
+    ::sys::SysResult readFileFromHost(const std::string& hostFileName, std::string& outContent) override {
+        using Resp = storage::StorageManager::StorageResponse;
+        auto res = storageManager.readFileFromHost(hostFileName, outContent);
+        switch (res) {
+            case Resp::OK: return ::sys::SysResult::OK;
+            case Resp::NotFound: return ::sys::SysResult::NotFound;
+            case Resp::InvalidArgument: return ::sys::SysResult::InvalidArgument;
+            default: return ::sys::SysResult::Error;
+        }
+    }
+
     ::sys::SysResult listDataFiles(std::vector<std::string>& out) override {
         using Resp = storage::StorageManager::StorageResponse;
         auto res = storageManager.listDataFiles(out);
