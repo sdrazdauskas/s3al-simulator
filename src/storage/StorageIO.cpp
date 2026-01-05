@@ -135,7 +135,6 @@ Response StorageManager::readFileFromHost(const std::string& hostFileName, std::
     try {
         std::ifstream file;
         
-        // Check if hostFileName is an absolute path
         std::filesystem::path filePath(hostFileName);
         if (filePath.is_absolute()) {
             // Use the path directly
@@ -162,7 +161,6 @@ Response StorageManager::readFileFromHost(const std::string& hostFileName, std::
             return Response::NotFound;
         }
         
-        // Read the entire file content
         std::stringstream buffer;
         buffer << file.rdbuf();
         outContent = buffer.str();
