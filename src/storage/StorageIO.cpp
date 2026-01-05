@@ -110,22 +110,19 @@ Response StorageManager::saveToDisk(const std::string& fileName) const {
 
 Response StorageManager::loadFromDisk(const std::string& fileName) {
     try {
-        std::string path = "data/" + fileName;
-        if (path.find(".json") == std::string::npos) path += ".json";
-
-        if (!std::filesystem::exists(path)) {
-            return Response::NotFound;
+        std::string fileNameWithExt = fileName;
+        if (fileNameWithExt.find(".json") == std::string::npos) {
+            fileNameWithExt += ".json";
         }
 
-        std::ifstream in(path);
-        if (!in.is_open()) {
-            return Response::Error;
+        std::string content;
+        auto readResult = readFileFromHost(fileNameWithExt, content);
+        if (readResult != Response::OK) {
+            return readResult;
         }
-        json j;
-        in >> j;
-        if (!in) {
-            return Response::Error;
-        }
+
+        // Parse the JSON content
+        json j = json::parse(content);
         root = deserializeFolder(j, nullptr, sysApi);
         currentFolder = root.get();
         return Response::OK;
