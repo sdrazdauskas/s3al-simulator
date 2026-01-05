@@ -314,10 +314,6 @@ std::string Shell::executeCommand(const std::string& command,
         return executeScriptFile(fileName);
     }
 
-    std::vector<std::string> argsWithInput = args;
-    if (!input.empty())
-        argsWithInput.push_back(input);
-
     if (isBuiltinCommand(command)) {
         ICommand* cmd = registry.find(command);
         if (!cmd) return "Error: Builtin missing: " + command;
@@ -334,7 +330,7 @@ std::string Shell::executeCommand(const std::string& command,
         
         if (inPipeChain) {
             std::cerr.flush();
-            cmd->execute(argsWithInput, input, out, err, sys);
+            cmd->execute(args, input, out, err, sys);
             if (!err.str().empty()) return out.str() + err.str();
             return out.str();
         } else {
@@ -343,7 +339,7 @@ std::string Shell::executeCommand(const std::string& command,
             CallbackStreamBuf err_buf(outputCallback);
             std::ostream os(&out_buf);
             std::ostream es(&err_buf);
-            cmd->execute(argsWithInput, input, os, es, sys);
+            cmd->execute(args, input, os, es, sys);
             os.flush(); es.flush();
             return "";
         }
@@ -375,7 +371,7 @@ std::string Shell::executeCommand(const std::string& command,
         // Pipe output mode
         std::ostringstream out, err;
         std::cerr.flush();
-        int returnCode = cmd->execute(argsWithInput, input, out, err, sys);
+        int returnCode = cmd->execute(args, input, out, err, sys);
         // Command finished - call exit() then wait()/reap
         sys.exit(pid, returnCode);
         sys.reapProcess(pid);
@@ -388,7 +384,7 @@ std::string Shell::executeCommand(const std::string& command,
     CallbackStreamBuf err_buf(outputCallback);
     std::ostream os(&out_buf);
     std::ostream es(&err_buf);
-    int returnCode = cmd->execute(argsWithInput, input, os, es, sys);
+    int returnCode = cmd->execute(args, input, os, es, sys);
     os.flush(); es.flush();
 
     // Command finished
