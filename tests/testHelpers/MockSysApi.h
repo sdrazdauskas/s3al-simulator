@@ -69,6 +69,7 @@ public:
     // Storage persistence - stubs
     sys::SysResult saveToDisk(const std::string&) override { return sys::SysResult::OK; }
     sys::SysResult loadFromDisk(const std::string&) override { return sys::SysResult::OK; }
+    sys::SysResult readFileFromHost(const std::string&, std::string&) override { return sys::SysResult::OK; }
     sys::SysResult resetStorage() override { return sys::SysResult::OK; }
     sys::SysResult listDataFiles(std::vector<std::string>&) override { return sys::SysResult::OK; }
     

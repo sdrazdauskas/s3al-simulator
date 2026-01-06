@@ -1,7 +1,6 @@
 #include "shell/CommandAPI.h"
 #include <memory>
-#include <fstream>
-#include <sstream>
+#include <filesystem>
 
 namespace shell {
 
@@ -17,51 +16,37 @@ public:
         
         auto fileName = args[0];
         
-        // Read the file from the data folder on the host filesystem
-        std::string dataPath = "/app/data/" + fileName;
-        std::ifstream file(dataPath);
-        
-        if (!file.is_open()) {
-            // Try alternative path for local development
-            dataPath = "data/" + fileName;
-            file.open(dataPath);
-            
-            if (!file.is_open()) {
-                err << "Error: Cannot open file '" << fileName << "' from data folder\n";
-                return 1;
-            }
-        }
-        
-        // Read the entire file content
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        std::string fileContent = buffer.str();
-        file.close();
-        
-        if (fileContent.empty()) {
-            err << "Error: File '" << fileName << "' is empty\n";
+        // Read the file content from host filesystem
+        std::string fileContent;
+        auto readResult = sys.readFileFromHost(fileName, fileContent);
+        if (readResult != SysResult::OK) {
+            err << "Error: Cannot load '" << fileName << "' from data folder: "
+                << toString(readResult) << "\n";
             return 1;
         }
         
-        // Create the file in the simulator's virtual filesystem
-        auto createResult = sys.createFile(fileName);
+        // Extract just the filename (without path) for the virtual filesystem
+        std::filesystem::path filePath(fileName);
+        std::string virtualFileName = filePath.filename().string();
+        
+        // Create the file in the virtual filesystem if it doesn't exist
+        auto createResult = sys.createFile(virtualFileName);
         if (createResult != SysResult::OK && createResult != SysResult::AlreadyExists) {
-            err << "Error: Cannot create file '" << fileName << "' in virtual filesystem: " 
+            err << "Error: Cannot create file '" << virtualFileName << "' in virtual filesystem: "
                 << toString(createResult) << "\n";
             return 1;
         }
         
-        // Write the content to the virtual file
-        auto writeResult = sys.writeFile(fileName, fileContent);
+        // Write the content to the virtual filesystem
+        auto writeResult = sys.writeFile(virtualFileName, fileContent);
         if (writeResult != SysResult::OK) {
-            err << "Error: Cannot write to file '" << fileName << "': " 
+            err << "Error: Cannot write to virtual file '" << virtualFileName << "': "
                 << toString(writeResult) << "\n";
             return 1;
         }
         
-        out << "Successfully loaded '" << fileName << "' from data folder into virtual filesystem\n";
+        out << "Successfully loaded '" << fileName << "' into virtual filesystem as '" << virtualFileName << "'\n";
         out << "File size: " << fileContent.size() << " bytes\n";
-        
         return 0;
     }
     

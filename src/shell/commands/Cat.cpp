@@ -6,11 +6,17 @@ namespace shell {
 class CatCommand : public ICommand {
 public:
     int execute(const std::vector<std::string>& args,
-                const std::string& /*input*/,
+                const std::string& input,
                 std::ostream& out,
                 std::ostream& err,
                 SysApi& sys) override
     {
+        // If no args and we have input from stdin/pipe, output that
+        if (args.empty() && !input.empty()) {
+            out << input;
+            return 0;
+        }
+        
         if (!requireArgs(args, 1, err)) return 1;
 
         int rc = 0;
