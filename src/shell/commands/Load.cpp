@@ -1,5 +1,6 @@
 #include "shell/CommandAPI.h"
 #include <memory>
+#include <filesystem>
 
 namespace shell {
 
@@ -24,23 +25,27 @@ public:
             return 1;
         }
         
+        // Extract just the filename (without path) for the virtual filesystem
+        std::filesystem::path filePath(fileName);
+        std::string virtualFileName = filePath.filename().string();
+        
         // Create the file in the virtual filesystem if it doesn't exist
-        auto createResult = sys.createFile(fileName);
+        auto createResult = sys.createFile(virtualFileName);
         if (createResult != SysResult::OK && createResult != SysResult::AlreadyExists) {
-            err << "Error: Cannot create file '" << fileName << "' in virtual filesystem: "
+            err << "Error: Cannot create file '" << virtualFileName << "' in virtual filesystem: "
                 << toString(createResult) << "\n";
             return 1;
         }
         
         // Write the content to the virtual filesystem
-        auto writeResult = sys.writeFile(fileName, fileContent);
+        auto writeResult = sys.writeFile(virtualFileName, fileContent);
         if (writeResult != SysResult::OK) {
-            err << "Error: Cannot write to virtual file '" << fileName << "': "
+            err << "Error: Cannot write to virtual file '" << virtualFileName << "': "
                 << toString(writeResult) << "\n";
             return 1;
         }
         
-        out << "Successfully loaded '" << fileName << "' from data folder into virtual filesystem\n";
+        out << "Successfully loaded '" << fileName << "' into virtual filesystem as '" << virtualFileName << "'\n";
         out << "File size: " << fileContent.size() << " bytes\n";
         return 0;
     }
