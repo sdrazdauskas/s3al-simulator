@@ -1,0 +1,104 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 20
+skinparam classAttributeFontSize 16
+skinparam stereotypeFontSize 14
+
+package logger {
+    enum LogLevel {
+        DEBUG
+        INFO
+        WARNING
+        ERROR
+    }
+
+    class Logger <<Singleton>> {
+        - {static} instance: Logger
+        - minLevel: LogLevel
+        - logToConsole: bool
+        - file: ofstream
+        - mutex: mutex
+        - consoleOutputCallback: function
+        __
+        - Logger()
+        - ~Logger()
+        __
+        + {static} getInstance(): Logger&
+        + init(filename: string, minLevel: LogLevel): void
+        + log(level: LogLevel, module: string, message: string): void
+        + log(level: string, module: string, message: string): void
+        + flush(): void
+        + setConsoleOutput(enabled: bool): void
+        + getConsoleOutput(): bool
+        + setConsoleOutputCallback(callback): void
+        - levelToString(level: LogLevel): string
+        - getCurrentTime(): string
+    }
+}
+
+package common {
+    abstract class LoggingMixin {
+        - logCallback: LogCallback
+        __
+        + setLogCallback(callback: LogCallback): void
+        # log(level: string, message: string): void
+        # logDebug(message: string): void
+        # logInfo(message: string): void
+        # logWarn(message: string): void
+        # logError(message: string): void
+        # {abstract} getModuleName(): string
+    }
+}
+
+class CPUScheduler {
+    - systemTime: int
+    - currentTask: ScheduledTask*
+    - algorithm: unique_ptr<SchedulingAlgorithm>
+    - processes: vector<ScheduledTask*>
+    - readyQueue: deque<ScheduledTask*>
+    __
+    + tick(): TickResult
+    + enqueue(pid: int, burstTime: int, priority: int): void
+    + setAlgorithm(algo: SchedulerAlgorithm, quantum: int): bool
+    # getModuleName(): string
+}
+
+class Kernel {
+    - cpuScheduler: CPUScheduler
+    - memManager: MemoryManager
+    - procManager: ProcessManager
+    - storageManager: Storage
+    __
+    + boot(): void
+    + handleQuit(args: vector<string>): string
+    # getModuleName(): string
+}
+
+class ProcessManager {
+    - processes: map<int, Process>
+    - nextPid: int
+    __
+    + submit(name: string, uid: int, memory: size_t, priority: int): int
+    + exit(pid: int, exitCode: int): bool
+    # getModuleName(): string
+}
+
+Logger "1" -down-> LogLevel : uses
+LoggingMixin .up.> Logger : uses (fallback)
+LoggingMixin <|-down- CPUScheduler : inherits
+LoggingMixin <|-down- Kernel : inherits
+LoggingMixin <|-down- ProcessManager : inherits
+
+note right of LoggingMixin
+  Modules inherit from LoggingMixin
+  to get logging capabilities.
+  Can use callback or direct Logger access.
+end note
+
+note top of Logger
+  Thread-safe Singleton.
+  Logs to file and optionally to console.
+  Console callback allows input redrawing.
+end note
+@enduml
