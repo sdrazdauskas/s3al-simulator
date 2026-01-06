@@ -1,11 +1,7 @@
 #include "storage/Storage.h"
+#include "common/TimeUtils.h"
 #include <algorithm>
-#include <iomanip>
-#include <ctime>
-#include <sstream>
 #include <cctype>
-#include <chrono>
-#include <format>
 
 namespace storage {
 
@@ -36,15 +32,8 @@ bool StorageManager::isNameInvalid(const std::string& s) {
     });
 }
 
-void StorageManager::log(const std::string& level, const std::string& message) {
-    if (logCallback) {
-        logCallback(level, "STORAGE", message);
-    }
-}
-
 std::string formatTime(const std::chrono::system_clock::time_point& tp) {
-    auto seconds = std::chrono::floor<std::chrono::seconds>(tp);
-    return std::format("{:%Y-%m-%d %H:%M:%S}", seconds);
+    return common::TimeUtils::format(tp, common::TimeUtils::Format::DateTimeSeconds);
 }
 
 StorageManager::PathInfo StorageManager::parsePath(const std::string& path) const {

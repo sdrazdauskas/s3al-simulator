@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 #include "kernel/Kernel.h"
 #include "storage/Storage.h"
+#include "kernel/SysCallsAPI.h"
 #include "memory/MemoryManager.h"
 #include "process/ProcessManager.h"
 #include "scheduler/Scheduler.h"
+#include "logger/Logger.h"
+#include "testHelpers/MockSysApi.h"
 
 using namespace kernel;
 using namespace storage;
@@ -11,16 +14,36 @@ using namespace memory;
 using namespace process;
 using namespace scheduler;
 
+// SysApi wrapper that uses real MemoryManager for integration testing
+class IntegrationSysApi : public testHelpers::MockSysApi {
+private:
+    MemoryManager& memManager;
+    
+public:
+    explicit IntegrationSysApi(MemoryManager& mem) : memManager(mem) {}
+    
+    void* allocateMemory(size_t size, int processId = 0) override {
+        return memManager.allocate(size, processId);
+    }
+    
+    sys::SysResult deallocateMemory(void* ptr) override {
+        return memManager.deallocate(ptr) ? sys::SysResult::OK : sys::SysResult::Error;
+    }
+    
+    void freeProcessMemory(int processId) override {
+        memManager.freeProcessMemory(processId);
+    }
+};
 
 class IntegrationTest : public ::testing::Test {
 protected:
 };
 
-// ProcessManager + MemoryManager + CPUScheduler
+// ProcessManager + MemoryManager + CPUScheduler integration
 TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
     MemoryManager memory(4096);
-    CPUScheduler scheduler;
-    ProcessManager procMgr(memory, scheduler);
+    IntegrationSysApi sysApi(memory);
+    ProcessManager procMgr(&sysApi);
     
     int pid1 = procMgr.submit("proc1", 10, 512, 5);
     int pid2 = procMgr.submit("proc2", 20, 256, 10);
@@ -29,6 +52,9 @@ TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
     EXPECT_GT(pid1, 0);
     EXPECT_GT(pid2, 0);
     EXPECT_GT(pid3, 0);
+    
+    // Verify memory was allocated for processes
+    EXPECT_GT(memory.getUsedMemory(), 0);
     
     auto snapshot = procMgr.snapshot();
     EXPECT_EQ(snapshot.size(), 3);
@@ -47,9 +73,10 @@ TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
     EXPECT_TRUE(procMgr.reapProcess(pid2));
     EXPECT_TRUE(procMgr.reapProcess(pid3));
     
-    // After reaping, snapshot should be empty
+    // After reaping, snapshot should be empty and memory should be freed
     snapshot = procMgr.snapshot();
     EXPECT_EQ(snapshot.size(), 0);
+    EXPECT_EQ(memory.getUsedMemory(), 0);
     
     // Submit new processes
     int execPid1 = procMgr.submit("exec1", 10, 512, 5);
@@ -77,7 +104,4 @@ TEST_F(IntegrationTest, ProcessSchedulerIntegration) {
     // After reaping, snapshot should be empty
     snapshot = procMgr.snapshot();
     EXPECT_EQ(snapshot.size(), 0);
-    
-    // Memory should be freed
-    EXPECT_EQ(memory.getUsedMemory(), 0);
 }

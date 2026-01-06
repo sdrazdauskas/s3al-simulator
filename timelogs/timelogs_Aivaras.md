@@ -2,9 +2,9 @@
 
 | Period      | Hours spent |
 |----------------|-------------|
-| Previous        | 97       |
-| 12-11 to 12-17  |    8    |
-|  Total hours spent   |    105    |
+| Previous        | 105       |
+| 12-17 to 01-06  |    9    |
+|  Total hours spent   |    114    |
 
 
 ---

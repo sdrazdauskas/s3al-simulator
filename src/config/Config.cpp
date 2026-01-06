@@ -1,4 +1,5 @@
 #include "config/Config.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -17,13 +18,15 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
     };
     
     // Map scheduler algorithm strings to enum values
-    static const std::map<std::string, SchedulerAlgorithm> schedulerMap = {
-        {"fcfs", SchedulerAlgorithm::FCFS},
-        {"rr", SchedulerAlgorithm::RoundRobin},
-        {"roundrobin", SchedulerAlgorithm::RoundRobin},
-        {"priority", SchedulerAlgorithm::Priority},
-        {"prio", SchedulerAlgorithm::Priority}
+    static const std::map<std::string, scheduler::SchedulerAlgorithm> schedulerMap = {
+        {"fcfs", scheduler::SchedulerAlgorithm::FCFS},
+        {"rr", scheduler::SchedulerAlgorithm::RoundRobin},
+        {"roundrobin", scheduler::SchedulerAlgorithm::RoundRobin},
+        {"priority", scheduler::SchedulerAlgorithm::Priority},
+        {"prio", scheduler::SchedulerAlgorithm::Priority}
     };
+
+    const size_t MAX_MEMORY = 2ULL * 1024 * 1024 * 1024; // 2GB
     
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -85,6 +88,12 @@ bool Config::parseArgs(int argc, char* argv[], Config& config) {
                 // Check if entire string was consumed (no invalid characters)
                 if (pos != memStr.length()) {
                     throw std::invalid_argument("contains non-numeric characters");
+                }
+
+                if (config.memorySize > MAX_MEMORY) {
+                    std::cerr << "Memory size exceeds maximum of " 
+                            << (MAX_MEMORY / (1024*1024)) << "MB" << std::endl;
+                    return false;
                 }
             } catch (const std::exception& e) {
                 std::cerr << "Invalid memory size: " << argv[i] << std::endl;

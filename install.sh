@@ -23,7 +23,9 @@ case "$OS" in
             g++ \
             libncurses-dev \
             lua5.4 \
-            liblua5.4-dev
+            liblua5.4-dev \
+            libcurl4-openssl-dev \
+            ca-certificates
         ;;
     fedora|rhel|centos)
         echo "Detected Fedora/RHEL/CentOS-based system"
@@ -35,7 +37,9 @@ case "$OS" in
             make \
             ncurses-devel \
             lua \
-            lua-devel
+            lua-devel \
+            libcurl-devel \
+            ca-certificates
         ;;
     arch|manjaro)
         echo "Detected Arch-based system"
@@ -44,11 +48,13 @@ case "$OS" in
             cmake \
             ninja \
             ncurses \
-            lua
+            lua \
+            curl \
+            ca-certificates
         ;;
     *)
         echo "Unsupported OS: $OS"
-        echo "Please manually install: build-essential/gcc, cmake, ninja-build, ncurses-dev"
+        echo "Please manually install: build-essential/gcc, cmake, ninja-build, ncurses-dev, lua, lua-dev, libcurl-dev"
         exit 1
         ;;
 esac

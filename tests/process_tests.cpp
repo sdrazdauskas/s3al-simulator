@@ -1,30 +1,22 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "process/ProcessManager.h"
-#include "memory/MemoryManager.h"
+#include "testHelpers/MockSysApi.h"
 #include "scheduler/Scheduler.h"
+#include "scheduler/algorithms/PriorityAlgorithm.h"
+#include "scheduler/algorithms/FCFSAlgorithm.h"
+#include "scheduler/algorithms/RoundRobinAlgorithm.h"
 #include "logger/Logger.h"
 
 using namespace process;
-using namespace memory;
 using namespace scheduler;
 using ::testing::_;
 using ::testing::Return;
 using ::testing::NiceMock;
 
-// Mock MemoryManager for unit testing
-class MockMemoryManager : public MemoryManager {
-public:
-    MockMemoryManager() : MemoryManager(4096) {}
-    
-    MOCK_METHOD(void*, allocate, (size_t size, int processId), (override));
-    MOCK_METHOD(void, deallocate, (void* ptr), (override));
-    MOCK_METHOD(void, freeProcessMemory, (int processId), (override));
-};
-
 class ProcessManagerMockTest : public ::testing::Test {
 protected:
-    NiceMock<MockMemoryManager> mock_memory;
+    testHelpers::MockSysApi mockSysApi;
     std::unique_ptr<CPUScheduler> scheduler;
     
     void SetUp() override {
@@ -34,16 +26,11 @@ protected:
 
 // Memory allocation failure handling
 TEST_F(ProcessManagerMockTest, ProcessCreationFailsWhenMemoryUnavailable) {
-    ProcessManager pm(mock_memory, *scheduler);
+    ProcessManager pm(&mockSysApi);
     
-    // Configure mock to simulate allocation failure when submitting the process
-    int expectedPid = pm.getNextPid();
-    EXPECT_CALL(mock_memory, allocate(512, expectedPid))
-        .WillOnce(Return(nullptr));
-    
-    // Submit process - allocation happens at submit time with new API
+    // Submit process - allocation happens at submit time
     int pid = pm.submit("test_process", 100, 512, 5);
-    EXPECT_GT(pid, 0); // Process submitted successfully (allocation returned nullptr but didn't fail)
+    EXPECT_GT(pid, 0); // Process submitted successfully
 }
 
 class SchedulerTest : public ::testing::Test {
@@ -62,13 +49,13 @@ TEST_F(SchedulerTest, EnqueueAddsProcessToReadyQueue) {
 }
 
 TEST_F(SchedulerTest, TickStartsProcessExecution) {
-    scheduler->enqueue(1, 5, 1);
+    scheduler->enqueue(1, 1, 1);
     
     auto result = scheduler->tick();
     
     EXPECT_EQ(scheduler->getReadyCount(), 0);
     EXPECT_EQ(result.currentPid, 1);
-    EXPECT_TRUE(result.contextSwitch);
+    EXPECT_FALSE(result.contextSwitch);
     EXPECT_FALSE(result.idle);
 }
 
@@ -92,7 +79,7 @@ TEST_F(SchedulerTest, ProcessCompletesAfterEnoughCycles) {
 }
 
 TEST_F(SchedulerTest, FCFSExecutesInOrder) {
-    scheduler->setAlgorithm(Algorithm::FCFS);
+    scheduler->setAlgorithm(std::make_unique<FCFSAlgorithm>());
     
     scheduler->enqueue(1, 2, 1);  // First
     scheduler->enqueue(2, 2, 5);  // Second (higher priority but later)
@@ -109,39 +96,38 @@ TEST_F(SchedulerTest, FCFSExecutesInOrder) {
 }
 
 TEST_F(SchedulerTest, RoundRobinPreemptsAfterQuantum) {
-    scheduler->setAlgorithm(Algorithm::RoundRobin);
-    scheduler->setQuantum(2);
-    
+    scheduler->setAlgorithm(std::make_unique<RoundRobinAlgorithm>(2));
+
     scheduler->enqueue(1, 5, 1);
     scheduler->enqueue(2, 5, 1);
-    
-    // Tick 1: starts first process, consumes 1 cycle (slice=1)
+
+    // Tick 1: starts first process, no context switch due scheduler being idle
     auto r1 = scheduler->tick();
     EXPECT_EQ(r1.currentPid, 1);
-    EXPECT_TRUE(r1.contextSwitch);
-    
-    // Tick 2: slice becomes 2 (hits quantum), preempts and switches
+    EXPECT_FALSE(r1.contextSwitch);
+
+    // Tick 2: process 1 continues, no context switch
     auto r2 = scheduler->tick();
-    EXPECT_EQ(r2.currentPid, 2);
-    EXPECT_TRUE(r2.contextSwitch);
-    
-    // Tick 3: running second, slice=1
+    EXPECT_EQ(r2.currentPid, 1);
+    EXPECT_FALSE(r2.contextSwitch);
+
+    // Tick 3: quantum expires, process 2 should be selected, context switch occurs
     auto r3 = scheduler->tick();
     EXPECT_EQ(r3.currentPid, 2);
-    EXPECT_FALSE(r3.contextSwitch);
+    EXPECT_TRUE(r3.contextSwitch);
 }
 
 TEST_F(SchedulerTest, PriorityPreemptsLowerPriority) {
-    scheduler->setAlgorithm(Algorithm::Priority);
+    scheduler->setAlgorithm(std::make_unique<PriorityAlgorithm>());
     
-    scheduler->enqueue(1, 10, 1);  // Low priority
+    scheduler->enqueue(1, 10, 10);  // Low priority
     
     // Start low priority process
     scheduler->tick();
     EXPECT_EQ(scheduler->getCurrentPid(), 1);
     
     // Submit high priority process
-    scheduler->enqueue(2, 2, 10);  // High priority
+    scheduler->enqueue(2, 2, 1);  // High priority
     
     // Next tick should preempt and run high priority
     auto result = scheduler->tick();

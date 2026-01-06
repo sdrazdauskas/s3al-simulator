@@ -4,6 +4,7 @@
 #include <string>
 #include <atomic>
 #include <thread>
+#include "common/LoggingMixin.h"
 
 namespace sys { class SysApi; }
 
@@ -11,17 +12,13 @@ namespace daemons {
 
 // Base class for daemon processes - long-running background services
 // Similar to systemd services in Linux
-class Daemon {
+class Daemon : public common::LoggingMixin {
 public:
-    using LogCallback = std::function<void(const std::string& level, 
-                                           const std::string& module, 
-                                           const std::string& message)>;
     using SignalCallback = std::function<void(int signal)>;
 
     Daemon(sys::SysApi& sys, const std::string& name);
     virtual ~Daemon() = default;
     
-    void setLogCallback(LogCallback callback) { logCallback = callback; }
     void setSignalCallback(SignalCallback callback) { signalCallback = callback; }
     void setPid(int pid) { this->pid = pid; }
     int getPid() const { return pid; }
@@ -47,7 +44,7 @@ protected:
     std::atomic<bool> suspended{false};
     int pid{-1};
     
-    void log(const std::string& level, const std::string& message);
+    std::string getModuleName() const override { return daemonName; }
     
     // Override this to implement daemon's work cycle
     // This is called after the scheduler has allocated CPU time
@@ -61,7 +58,6 @@ protected:
 
 private:
     std::string daemonName;
-    LogCallback logCallback;
     SignalCallback signalCallback;
     std::thread thread;
     

@@ -1,0 +1,56 @@
+@startuml
+!theme plain
+skinparam activityFontSize 14
+skinparam activityDiamondFontSize 12
+
+start
+
+:Start kernel thread;
+
+partition "Event Loop Thread" {
+    while (kernelRunning?) is (true)
+        :Get tick interval\n(from scheduler);
+        
+        :Wait for event or timeout\n(condition_variable.wait_for);
+        
+        if (Event arrived?) then (yes)
+            partition "Process Events" {
+                while (Event queue not empty?) is (yes)
+                    :Dequeue event;
+                    
+                    if (Event type?) then (TIMER_TICK)
+                        :handleTimerTick();
+                    elseif (INTERRUPT_SIGNAL) then
+                        :Process interrupt;
+                    else (SHUTDOWN)
+                        :Log shutdown event;
+                        :kernelRunning = false;
+                        note right
+                            Flag set but loop
+                            continues processing
+                            remaining events
+                        end note
+                    endif
+                endwhile (no)
+                note right
+                    All events processed,
+                    now check kernelRunning
+                end note
+            }
+        else (timeout)
+            :Get current time;
+            if (Time >= lastTick + interval?) then (yes)
+                :Generate TIMER_TICK event;
+                :handleTimerTick();
+                :Update lastTick;
+            else (no)
+                :Continue;
+            endif
+        endif
+    endwhile (false/shutdown)
+}
+
+:Log "Event loop stopped";
+
+stop
+@enduml
