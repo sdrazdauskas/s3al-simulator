@@ -6,11 +6,32 @@ namespace shell {
 class WriteCommand : public ICommand {
 public:
     int execute(const std::vector<std::string>& args,
-                const std::string& /*input*/,
+                const std::string& input,
                 std::ostream& out,
                 std::ostream& err,
                 SysApi& sys) override
     {
+        // If input from stdin, write that to file (args[0] = filename)
+        if (!input.empty()) {
+            if (!requireArgs(args, 1, err, 1)) return 1;
+            
+            std::string content = input;
+            // Remove trailing newline if present
+            if (!content.empty() && content.back() == '\n') {
+                content.pop_back();
+            }
+            
+            auto exists = sys.fileExists(args[0]);
+            if (exists != SysResult::OK) {
+                err << "write: " << args[0] << ": " << shell::toString(exists) << "\n";
+                return 1;
+            }
+            auto res = sys.writeFile(args[0], content);
+            out << "write: " << args[0] << ": " << shell::toString(res) << "\n";
+            return (res == SysResult::OK) ? 0 : 1;
+        }
+        
+        // Otherwise, use args as before
         if (!requireArgs(args, 2, err)) return 1;
         
         std::string content;

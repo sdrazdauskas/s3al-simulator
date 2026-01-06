@@ -53,14 +53,14 @@ public:
         return parts;
     }
 
-    // Parse quoted token from stream (handles "quoted strings")
-    static std::string parseQuotedToken(std::istringstream& iss, std::string token) {
+    // Parse quoted token from stream (handles "quoted strings" and 'quoted strings')
+    static std::string parseQuotedToken(std::istringstream& iss, std::string token, char quoteChar) {
         std::string quoted = token.substr(1);
         std::string next;
-        while (!quoted.empty() && quoted.back() != '"' && iss >> next) {
+        while (!quoted.empty() && quoted.back() != quoteChar && iss >> next) {
             quoted += " " + next;
         }
-        if (!quoted.empty() && quoted.back() == '"')
+        if (!quoted.empty() && quoted.back() == quoteChar)
             quoted.pop_back();
         return quoted;
     }
@@ -73,8 +73,8 @@ public:
         args.clear();
         std::string token;
         while (iss >> token) {
-            if (!token.empty() && token.front() == '"')
-                args.push_back(parseQuotedToken(iss, token));
+            if (!token.empty() && (token.front() == '"' || token.front() == '\''))
+                args.push_back(parseQuotedToken(iss, token, token.front()));
             else
                 args.push_back(token);
         }
