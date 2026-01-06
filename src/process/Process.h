@@ -2,6 +2,7 @@
 
 #include <string>
 #include <functional>
+#include "common/LoggingMixin.h"
 
 namespace process {
 
@@ -31,9 +32,8 @@ inline std::string stateToString(ProcessState s) {
 // Callback type for when a process completes execution
 using ExecutionCallback = std::function<void(int pid, int exitCode)>;
 
-class Process {
+class Process : public common::LoggingMixin {
 public:
-    using LogCallback = std::function<void(const std::string& level, const std::string& message)>;
 
     Process(const std::string& processName, 
             int pid,
@@ -62,8 +62,6 @@ public:
     // Execution callback - called when process finishes
     void setExecutionCallback(ExecutionCallback cb) { execCallback = cb; }
     void onComplete(int exitCode);
-    
-    void setLogCallback(LogCallback callback) { logCallback = callback; }
 
     // State transitions - these validate and enforce valid state changes
     bool makeReady();
@@ -83,10 +81,12 @@ private:
     int parentPid;
     ProcessState state;
     bool persistent{false};  // If true, process won't terminate when cycles reach 0
-    LogCallback logCallback;
     ExecutionCallback execCallback;
 
-    void log(const std::string& level, const std::string& message);
+protected:
+    std::string getModuleName() const override {
+        return "PID=" + std::to_string(pid) + " '" + processName + "'";
+    }
 };
 
 } // namespace process

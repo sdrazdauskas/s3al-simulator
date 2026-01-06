@@ -7,12 +7,13 @@
 #include <chrono>
 #include <filesystem>
 #include "json.hpp"
+#include "common/LoggingMixin.h"
 
 namespace sys { struct SysApi; }
 
 namespace storage {
 
-class StorageManager {
+class StorageManager : public common::LoggingMixin {
 public:
     // ENUMS
     enum class StorageResponse {
@@ -24,17 +25,13 @@ public:
         Error
     };
 
-    // CALLBACK TYPES
-    using LogCallback =
-        std::function<void(const std::string&, const std::string&, const std::string&)>;
-
     // STRUCTURES
     struct File {
         std::string name;
-        std::string content;
+        void* memoryToken = nullptr;
+        size_t contentSize = 0;
         std::chrono::system_clock::time_point createdAt;
         std::chrono::system_clock::time_point modifiedAt;
-        void* memoryToken = nullptr; // Token from MemoryManager to track content size
     };
 
     struct Folder {
@@ -61,14 +58,13 @@ public:
     // UTILITIES
     static std::string toString(StorageResponse status);
     static bool isNameInvalid(const std::string& s);
-    void setLogCallback(LogCallback callback);
-    void log(const std::string& level, const std::string& message);
 
     // FILE OPERATIONS
     StorageResponse fileExists(const std::string& name) const;
     StorageResponse createFile(const std::string& name);
     StorageResponse touchFile(const std::string& name);
     StorageResponse deleteFile(const std::string& name);
+    StorageResponse deleteFile(Folder& folder, const std::string& name);
     StorageResponse writeFile(const std::string& name, const std::string& content);
     StorageResponse readFile(const std::string& name, std::string& outContent) const;
     StorageResponse editFile(const std::string& name, const std::string& newContent);
@@ -83,10 +79,12 @@ public:
     std::string getWorkingDir() const;
     StorageResponse copyDir(const std::string& srcName, const std::string& destName);
     StorageResponse moveDir(const std::string& oldName, const std::string& newName);
+    static bool isDescendantOrSame(const Folder* ancestor, const Folder* descendant);
 
     // DISK IO OPERATIONS
     StorageResponse saveToDisk(const std::string& fileName) const;
     StorageResponse loadFromDisk(const std::string& fileName);
+    StorageResponse readFileFromHost(const std::string& hostFileName, std::string& outContent);
     StorageResponse listDataFiles(std::vector<std::string>& outFiles) const;
 
     // RESET
@@ -96,14 +94,17 @@ private:
     // INTERNAL HELPERS
     PathInfo parsePath(const std::string& path) const;
     int findFolderIndex(const std::string& name) const;
-    void recursiveDelete(Folder& folder);
+    StorageResponse recursiveDelete(Folder& folder);
     void recursiveCopyDir(const Folder& src, Folder& destParent);
+    StorageResponse allocateFileMemory(File& file, const void* data, size_t size);
 
     // DATA MEMBERS
     std::unique_ptr<Folder> root;
     Folder* currentFolder;
-    LogCallback logCallback;
     sys::SysApi* sysApi = nullptr;
+
+protected:
+    std::string getModuleName() const override { return "STORAGE"; }
 };
 
 // Utility function declarations

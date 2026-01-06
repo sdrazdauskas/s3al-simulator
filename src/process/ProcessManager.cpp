@@ -1,23 +1,13 @@
-#include "memory/MemoryManager.h"
-#include "scheduler/Scheduler.h"
+#include "kernel/SysCallsAPI.h"
 #include "process/ProcessManager.h"
 #include <algorithm>
 #include <iostream>
 
 namespace process {
 
-ProcessManager::ProcessManager(memory::MemoryManager& mem, scheduler::CPUScheduler& cpu)
-    : memManager(mem), cpuScheduler(cpu) 
+ProcessManager::ProcessManager(sys::SysApi* api)
+    : sysApi(api) 
 {
-    cpuScheduler.setProcessCompleteCallback([this](int pid) {
-        onProcessComplete(pid);
-    });
-}
-
-void ProcessManager::log(const std::string& level, const std::string& message) {
-    if (logCallback) {
-        logCallback(level, "PROCESS", message);
-    }
 }
 
 Process* ProcessManager::find(int pid) {
@@ -31,7 +21,7 @@ bool ProcessManager::processExists(int pid) const {
 }
 
 bool ProcessManager::isProcessPersistent(int pid) const {
-    Process* process = const_cast<ProcessManager*>(this)->find(pid);
+    const Process* process = const_cast<ProcessManager*>(this)->find(pid);
     return process && process->isPersistent();
 }
 
@@ -41,7 +31,7 @@ int ProcessManager::submit(const std::string& processName,
                            int priority,
                            bool persistent) {
     if (processName.empty() || cpuCycles < 1 || memoryNeeded < 0) {
-        log("ERROR", "Invalid process parameters: name=" + processName + 
+        logError("Invalid process parameters: name=" + processName + 
                      ", cpuCycles=" + std::to_string(cpuCycles) + 
                      ", memoryNeeded=" + std::to_string(memoryNeeded));
         return -1;
@@ -54,15 +44,8 @@ int ProcessManager::submit(const std::string& processName,
     process.setRemainingCycles(cpuCycles);
     process.setPersistent(persistent);
     
-    // Set up process logging
-    process.setLogCallback([this](const std::string& level, const std::string& message) {
-        if (logCallback) {
-            logCallback(level, "PROCESS", message);
-        }
-    });
-    
     if (!process.makeReady()) {
-        log("ERROR", "Failed to initialize process '" + processName + "'");
+        logError("Failed to initialize process '" + processName + "'");
         return -1;
     }
     
@@ -72,10 +55,14 @@ int ProcessManager::submit(const std::string& processName,
     }
     
     processTable.push_back(process);
-    memManager.allocate(memoryNeeded, pid);
-    cpuScheduler.enqueue(pid, cpuCycles, priority);
+    if (sysApi && memoryNeeded > 0) {
+        sysApi->allocateMemory(memoryNeeded, pid);
+    }
+    if (sysApi) {
+        sysApi->scheduleProcess(pid, cpuCycles, priority);
+    }
 
-    log("INFO", "Submitted process '" + processName + "' (PID=" + std::to_string(pid) + 
+    logInfo("Submitted process '" + processName + "' (PID=" + std::to_string(pid) + 
         ", cycles=" + std::to_string(cpuCycles) + ", priority=" + std::to_string(priority) + ")");
     
     return pid;
@@ -87,19 +74,18 @@ void ProcessManager::onProcessComplete(int pid) {
     
     // Check if process is persistent (long-running like init/daemons)
     if (process->isPersistent()) {
-        log("DEBUG", "Persistent process '" + process->getName() + "' (PID=" + std::to_string(pid) + ") cycle completed, keeping alive");
+        logDebug("Persistent process '" + process->getName() + "' (PID=" + std::to_string(pid) + ") cycle completed, keeping alive");
         return;  // Don't terminate persistent processes
     }
     
-    log("INFO", "Process '" + process->getName() + "' (PID=" + std::to_string(pid) + ") completed CPU scheduling");
+    logInfo("Process '" + process->getName() + "' (PID=" + std::to_string(pid) + ") completed CPU scheduling");
     
     // Ensure process is in RUNNING state
     if (process->getState() == ProcessState::READY) {
         process->start();
     }
     
-    // Keep process in RUNNING state - shell will transition to ZOMBIE after executing command
-    
+    // Keep process in RUNNING state - shell should transition to ZOMBIE after executing command
     if (completeCallback) {
         completeCallback(pid, 0);  // Exit code 0 for normal completion
     }
@@ -108,17 +94,17 @@ void ProcessManager::onProcessComplete(int pid) {
 bool ProcessManager::reapProcess(int pid) {
     Process* process = find(pid);
     if (!process) {
-        log("ERROR", "Cannot reap process: PID " + std::to_string(pid) + " not found");
+        logError("Cannot reap process: PID " + std::to_string(pid) + " not found");
         return false;
     }
     
     // Only reap zombie processes
     if (process->getState() != ProcessState::ZOMBIE) {
-        log("WARN", "Cannot reap process PID " + std::to_string(pid) + ": not in ZOMBIE state");
+        logWarn("Cannot reap process PID " + std::to_string(pid) + ": not in ZOMBIE state");
         return false;
     }
     
-    log("INFO", "Reaping zombie process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
+    logInfo("Reaping zombie process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
     
     processTable.erase(std::remove_if(processTable.begin(), processTable.end(),
                                       [pid](const Process& pr){ return pr.getPid() == pid; }),
@@ -130,49 +116,55 @@ bool ProcessManager::reapProcess(int pid) {
 bool ProcessManager::exit(int pid, int exitCode) {
     Process* process = find(pid);
     if (!process) {
-        log("ERROR", "Cannot exit: PID " + std::to_string(pid) + " not found");
+        logError("Cannot exit: PID " + std::to_string(pid) + " not found");
         return false;
     }
     
-    log("DEBUG", "Process '" + process->getName() + "' exited with code " + std::to_string(exitCode) + " (PID=" + std::to_string(pid) + ")");
-    memManager.freeProcessMemory(pid);
+    logDebug("Process '" + process->getName() + "' exited with code " + std::to_string(exitCode) + " (PID=" + std::to_string(pid) + ")");
+    if (sysApi) {
+        sysApi->freeProcessMemory(pid);
+    }
     return process->makeZombie();
 }
 
 bool ProcessManager::suspendProcess(int pid) {
     Process* process = find(pid);
     if (!process) {
-        log("ERROR", "Cannot suspend process: PID " + std::to_string(pid) + " not found");
+        logError("Cannot suspend process: PID " + std::to_string(pid) + " not found");
         return false;
     }
     
-    cpuScheduler.suspend(pid);
+    if (sysApi) {
+        sysApi->suspendScheduledProcess(pid);
+    }
     return process->suspend();
 }
 
 bool ProcessManager::resumeProcess(int pid) {
     Process* process = find(pid);
     if (!process) {
-        log("ERROR", "Cannot resume process: PID " + std::to_string(pid) + " not found");
+        logError("Cannot resume process: PID " + std::to_string(pid) + " not found");
         return false;
     }
     
-    cpuScheduler.resume(pid);
+    if (sysApi) {
+        sysApi->resumeScheduledProcess(pid);
+    }
     return process->resume();
 }
 
 bool ProcessManager::sendSignal(int pid, int signal) {
     Process* process = find(pid);
     if (!process) {
-        log("ERROR", "Cannot send signal to PID " + std::to_string(pid) + ": not found");
+        logError("Cannot send signal to PID " + std::to_string(pid) + ": not found");
         return false;
     }
     
-    log("INFO", "Sending signal " + std::to_string(signal) + " to process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
+    logInfo("Sending signal " + std::to_string(signal) + " to process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
     
     // Protect init process from termination signals - kernel blocks SIGKILL/SIGTERM to init
     if (process->getName() == "init" && (signal == 9 || signal == 15)) {
-        log("WARN", "Cannot send signal " + std::to_string(signal) + " to init process - kernel protection");
+        logWarn("Cannot send signal " + std::to_string(signal) + " to init process - kernel protection");
         return false;
     }
     
@@ -189,11 +181,13 @@ bool ProcessManager::sendSignal(int pid, int signal) {
             return resumeProcess(pid);
         case 9:  // SIGKILL
         case 15: // SIGTERM
-            log("INFO", "Terminating process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
-            cpuScheduler.remove(pid);
-            memManager.freeProcessMemory(pid);
+            logInfo("Terminating process '" + process->getName() + "' (PID=" + std::to_string(pid) + ")");
+            if (sysApi) {
+                sysApi->unscheduleProcess(pid);
+                sysApi->freeProcessMemory(pid);
+            }
             if (!process->makeZombie()) {
-                log("ERROR", "Failed to make process zombie: PID=" + std::to_string(pid));
+                logError("Failed to make process zombie: PID=" + std::to_string(pid));
                 return false;
             }
             // Notify completion callback on termination as well (exit code = signal)
@@ -202,7 +196,7 @@ bool ProcessManager::sendSignal(int pid, int signal) {
             }
             return true;
         default:
-            log("WARN", "Signal " + std::to_string(signal) + " not implemented");
+            logWarn("Signal " + std::to_string(signal) + " not implemented");
             return true;
     }
 }

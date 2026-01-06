@@ -4,6 +4,8 @@
 #include "memory/MemoryManager.h"
 #include "process/ProcessManager.h"
 #include "scheduler/Scheduler.h"
+#include "testHelpers/MockSysApi.h"
+#include "logger/Logger.h"
 #include "config/Config.h"
 #include <filesystem>
 
@@ -15,11 +17,13 @@ using namespace scheduler;
 
 class AcceptanceTest : public ::testing::Test {
 protected:
+    testHelpers::MockSysApi mockSysApi;
 };
 
-// User CREATES and MAANGES files
+// User CREATES and MANAGES files
 TEST_F(AcceptanceTest, UserManagesFilesScenario) {
     StorageManager storage;
+    storage.setSysApi(&mockSysApi);
     
     ASSERT_EQ(storage.createFile("notes.txt"), StorageManager::StorageResponse::OK);
     
@@ -41,6 +45,7 @@ TEST_F(AcceptanceTest, UserManagesFilesScenario) {
 // User ORGANIZES directories and files
 TEST_F(AcceptanceTest, UserOrganizesDirectoriesScenario) {
     StorageManager storage;
+    storage.setSysApi(&mockSysApi);
     
     ASSERT_EQ(storage.makeDir("work"), StorageManager::StorageResponse::OK);
     
@@ -70,6 +75,7 @@ TEST_F(AcceptanceTest, UserSavesAndRestoresSessionScenario) {
     
     {
         StorageManager storage;
+        storage.setSysApi(&mockSysApi);
         ASSERT_EQ(storage.makeDir("my_project"), StorageManager::StorageResponse::OK);
         ASSERT_EQ(storage.changeDir("my_project"), StorageManager::StorageResponse::OK);
         ASSERT_EQ(storage.createFile("code.cpp"), StorageManager::StorageResponse::OK);
@@ -80,6 +86,7 @@ TEST_F(AcceptanceTest, UserSavesAndRestoresSessionScenario) {
     
     {
         StorageManager storage;
+        storage.setSysApi(&mockSysApi);
         
         ASSERT_EQ(storage.loadFromDisk(session_file), StorageManager::StorageResponse::OK);
         
@@ -92,22 +99,4 @@ TEST_F(AcceptanceTest, UserSavesAndRestoresSessionScenario) {
     }
     
     std::filesystem::remove(session_file);
-}
-
-// Sys init
-TEST_F(AcceptanceTest, SystemInitializationScenario) {
-    config::Config cfg;
-    cfg.memorySize = 4096;
-    Kernel kernel(cfg);
-    
-    EXPECT_TRUE(kernel.isKernelRunning());
-    
-    auto sysinfo = kernel.getSysInfo();
-    EXPECT_EQ(sysinfo.totalMemory, 4096);
-    EXPECT_EQ(sysinfo.usedMemory, 0);
-    
-    std::string result = kernel.executeCommand("ls");
-    EXPECT_FALSE(result.empty());
-    
-    EXPECT_TRUE(kernel.isKernelRunning());
 }

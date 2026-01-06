@@ -14,16 +14,12 @@ class Daemon;
 // Separates daemon creation from Init's lifecycle management responsibilities
 class DaemonRegistry {
 public:
-    using LogCallback = std::function<void(const std::string& level, 
-                                           const std::string& module, 
-                                           const std::string& message)>;
     
     // Create a daemon by name
     // Returns nullptr if daemon type is unknown
-    static std::unique_ptr<Daemon> createDaemon(
+    static std::shared_ptr<Daemon> createDaemon(
         const std::string& name,
-        sys::SysApi& sys,
-        LogCallback logCallback
+        sys::SysApi& sys
     );
     
     // Get list of available daemon names

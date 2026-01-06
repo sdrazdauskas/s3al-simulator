@@ -1,16 +1,22 @@
 #include <gtest/gtest.h>
 #include "storage/Storage.h"
+#include "testHelpers/MockSysApi.h"
+#include "logger/Logger.h"
 
 using namespace storage;
 using Response = StorageManager::StorageResponse;
 
 class StorageManagerTest : public ::testing::Test {
 protected:
+    testHelpers::MockSysApi mockSysApi;
     StorageManager storage;
+    
+    void SetUp() override {
+        storage.setSysApi(&mockSysApi);
+    }
 };
 
 // FILE CREATION, DELETION
-
 TEST_F(StorageManagerTest, TouchFile_ShouldSucceedIfFileAlreadyExists) {
     EXPECT_EQ(storage.createFile("exists.txt"), Response::OK);
     EXPECT_EQ(storage.touchFile("exists.txt"), Response::OK);
@@ -50,7 +56,6 @@ TEST_F(StorageManagerTest, DeleteFile_InvalidOrMissing) {
 }
 
 // FILE READ, WRITE, EDIT
-
 TEST_F(StorageManagerTest, WriteAndReadFile_Success) {
     EXPECT_EQ(storage.createFile("data.txt"), Response::OK);
     EXPECT_EQ(storage.writeFile("data.txt", "hello"), Response::OK);
@@ -96,7 +101,6 @@ TEST_F(StorageManagerTest, ReadFile_FromDirectory_ShouldReturnInvalidArgument) {
 }
 
 // FILE COPY, MOVE
-
 TEST_F(StorageManagerTest, CopyFile_Success) {
     EXPECT_EQ(storage.createFile("src.txt"), Response::OK);
     EXPECT_EQ(storage.writeFile("src.txt", "data"), Response::OK);
@@ -154,7 +158,6 @@ TEST_F(StorageManagerTest, MoveFile_ToSubdirectory2) {
 }
 
 // DIRECTORY CREATION
-
 TEST_F(StorageManagerTest, MakeDir_Success) {
     EXPECT_EQ(storage.makeDir("stuff"), Response::OK);
     EXPECT_EQ(storage.changeDir("stuff"), Response::OK);
@@ -190,7 +193,6 @@ TEST_F(StorageManagerTest, ChangeDir_BeyondRoot_ShouldStayAtRoot) {
 }
 
 // DIRECTORY COPY, MOVE
-
 TEST_F(StorageManagerTest, CopyDir_SuccessRecursive) {
     EXPECT_EQ(storage.makeDir("src"), Response::OK);
     EXPECT_EQ(storage.createFile("src/data.txt"), Response::OK);
@@ -359,7 +361,6 @@ TEST_F(StorageManagerTest, ListDir_ShouldIncludeHiddenFiles) {
 }
 
 // PATH RESOLUTION
-
 TEST_F(StorageManagerTest, PathNormalization_ShouldCollapseExtraSlashes) {
     EXPECT_EQ(storage.makeDir("a/b/c"), Response::NotFound);
     EXPECT_EQ(storage.makeDir("a"), Response::OK);
@@ -437,7 +438,6 @@ TEST_F(StorageManagerTest, ChangeDir_WithAbsolutePath) {
 }
 
 // ELSE
-
 TEST_F(StorageManagerTest, FileLifecycle_EndToEnd) {
     EXPECT_EQ(storage.createFile("story.txt"), Response::OK);
     EXPECT_EQ(storage.writeFile("story.txt", "Chapter 1"), Response::OK);

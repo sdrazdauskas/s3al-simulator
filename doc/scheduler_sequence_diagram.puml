@@ -1,0 +1,67 @@
+@startuml
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Kernel/Timer" as Timer
+participant "CPUScheduler" as Scheduler
+participant "SchedulingAlgorithm\n(FCFS/RR/Priority)" as Algorithm
+participant "ScheduledTask" as Task
+participant "ProcessManager" as PM
+
+== Initialization ==
+Timer -> Scheduler: tick()
+activate Scheduler
+
+== Task Selection ==
+alt Ready queue not empty
+    Scheduler -> Algorithm: getNextTask(currentTask, readyQueue)
+    activate Algorithm
+    Algorithm -> Algorithm: Apply algorithm logic\n(Quantum check)
+    Algorithm --> Scheduler: nextTask
+    deactivate Algorithm
+    
+    alt Task changed (context switch needed)
+        Scheduler -> Scheduler: preemptCurrent()
+        activate Scheduler
+        Scheduler -> Scheduler: readyQueue.push_back(currentTask)
+        deactivate Scheduler
+
+        Scheduler -> Scheduler: Remove nextTask from readyQueue
+        note right: Context switch\noccurred
+    end
+else Ready queue empty
+    note over Scheduler: System idle\nNo task to execute
+end
+
+== Task Execution ==
+loop for each cycle in cyclesPerTick
+    alt currentTask exists
+        Scheduler -> Task: burstTime--
+        activate Task
+        Task --> Scheduler: remainingCycles
+        deactivate Task
+        note right: Execute one cycle
+        
+        alt burstTime <= 0
+            Scheduler -> Scheduler: Process completed
+            activate Scheduler
+            
+            Scheduler -> PM: completeCallback(pid)
+            activate PM
+            deactivate PM
+            
+            Scheduler -> Task: delete
+            destroy Task
+            
+            Scheduler -> Scheduler: currentTask = nullptr
+            deactivate Scheduler
+        end
+    else No current task
+        note over Scheduler: Idle cycle
+    end
+end
+
+Scheduler --> Timer: TickResult\n(currentPid, contextSwitch,\nprocessCompleted, idle)
+deactivate Scheduler
+@enduml

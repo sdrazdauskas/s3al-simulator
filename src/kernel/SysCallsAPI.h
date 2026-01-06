@@ -1,6 +1,9 @@
 #pragma once
+
 #include <string>
 #include <vector>
+#include "scheduler/Scheduler.h"
+#include "scheduler/algorithms/SchedulerAlgorithm.h"
  
 namespace sys {
 
@@ -51,14 +54,22 @@ struct SysApi {
 
     virtual SysResult saveToDisk(const std::string& fileName) = 0;
     virtual SysResult loadFromDisk(const std::string& fileName) = 0;
+    virtual SysResult readFileFromHost(const std::string& hostFileName, std::string& outContent) = 0;
     virtual SysResult resetStorage() = 0;
     virtual SysResult listDataFiles(std::vector<std::string>& out) = 0;
 
     virtual SysInfo getSysInfo() = 0;
     
-    // Memory allocation syscalls for storage
+    // Memory allocation syscalls for storage and processes
     virtual void* allocateMemory(size_t size, int processId = 0) = 0;
-    virtual void deallocateMemory(void* ptr) = 0;
+    virtual SysResult deallocateMemory(void* ptr) = 0;
+    virtual void freeProcessMemory(int processId) = 0;
+    
+    // Scheduler operations
+    virtual void scheduleProcess(int pid, int cpuCycles, int priority) = 0;
+    virtual void unscheduleProcess(int pid) = 0;
+    virtual void suspendScheduledProcess(int pid) = 0;
+    virtual void resumeScheduledProcess(int pid) = 0;
 
     virtual void requestShutdown() = 0;
     
@@ -90,10 +101,6 @@ struct SysApi {
     // Call beginInteractiveMode() before taking over the terminal, endInteractiveMode() when done
     virtual void beginInteractiveMode() = 0;
     virtual void endInteractiveMode() = 0;
-
-    // Submit a command to run through the scheduler with CPU cost cycles
-    // Returns process ID, or -1 on failure
-    virtual int submitCommand(const std::string& name, int cpuCycles, int priority = 0) = 0;
     
     // Add CPU work to an existing process (for daemons doing periodic work)
     // Returns true if successful, false if process not found
@@ -114,6 +121,17 @@ struct SysApi {
     
     // Get remaining cycles for a process (-1 if not found)
     virtual int getProcessRemainingCycles(int pid) = 0;
+
+    // Scheduler configuration
+    virtual bool setSchedulingAlgorithm(scheduler::SchedulerAlgorithm algo, int quantum = 0) = 0;
+    virtual bool setSchedulerCyclesPerInterval(int cycles) = 0;
+    virtual bool setSchedulerTickIntervalMs(int ms) = 0;
+
+    // Logging control
+    virtual bool getConsoleOutput() const = 0;
+    virtual void setConsoleOutput(bool enabled) = 0;
+    virtual std::string getLogLevel() const = 0;
+    virtual void setLogLevel(logging::LogLevel level) = 0;
 
     virtual ~SysApi() = default;
 };
