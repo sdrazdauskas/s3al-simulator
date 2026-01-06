@@ -1,0 +1,110 @@
+@startuml MemoryManager Sequence Diagram
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Process" as Proc
+participant "Kernel" as Kernel
+participant "MemoryManager" as MM
+participant "Logger" as Log
+
+== Memory Allocation ==
+Proc -> Kernel: allocateMemory(size, pid)
+activate Kernel
+
+Kernel -> MM: allocate(size, processId)
+activate MM
+
+MM -> MM: Check: usedMemory + size <= totalMemory?
+
+alt Sufficient memory available
+    MM -> MM: ptr = new byte[size]
+    MM -> MM: allocations[ptr] = {size, processId}
+    MM -> MM: usedMemory += size
+    
+    MM -> Log: logDebug("Allocated X bytes for process Y")
+    activate Log
+    Log --> MM: 
+    deactivate Log
+    
+    MM --> Kernel: return ptr
+    deactivate MM
+    
+    Kernel --> Proc: memory pointer
+    deactivate Kernel
+    
+else Out of memory
+    MM -> Log: logError("Out of memory: requested X bytes")
+    activate Log
+    Log --> MM: 
+    deactivate Log
+    
+    MM --> Kernel: return nullptr
+    deactivate MM
+    
+    Kernel --> Proc: allocation failed
+    deactivate Kernel
+end
+
+== Memory Deallocation ==
+Proc -> Kernel: deallocateMemory(ptr)
+activate Kernel
+
+Kernel -> MM: deallocate(ptr)
+activate MM
+
+MM -> MM: Find ptr in allocations map
+
+alt Pointer tracked
+    MM -> MM: usedMemory -= size
+    MM -> MM: Remove from allocations map
+    MM -> MM: delete[] ptr
+    
+    MM -> Log: logDebug("Deallocated X bytes")
+    activate Log
+    Log --> MM: 
+    deactivate Log
+    
+    MM --> Kernel: return true
+    deactivate MM
+    
+    Kernel --> Proc: success
+    deactivate Kernel
+    
+else Pointer not found
+    MM -> Log: logError("Attempt to deallocate untracked memory")
+    activate Log
+    Log --> MM: 
+    deactivate Log
+    
+    MM --> Kernel: return false
+    deactivate MM
+    
+    Kernel --> Proc: failure
+    deactivate Kernel
+end
+
+== Process Cleanup ==
+participant "ProcessManager" as PM
+
+PM -> MM: freeProcessMemory(processId)
+activate MM
+
+loop For each allocation
+    alt Allocation owned by processId
+        MM -> MM: usedMemory -= size
+        MM -> MM: Remove from allocations
+        MM -> MM: delete[] ptr
+        note right: Free all memory\nowned by process
+    end
+end
+
+MM -> Log: logInfo("Freed X bytes for process Y")
+activate Log
+Log --> MM: 
+deactivate Log
+
+MM --> PM: cleanup complete
+deactivate MM
+
+@enduml
