@@ -18,3 +18,6 @@
 - **09 Dec:** 19:00–19:30 — Internal meeting (4/5 members) — 0.5h
 - **12 Dec:** 11:00–12:00 — Internal meeting (4/5 members) — 1.0h
 - **16 Dec:** 19:00–19:45 — Internal meeting (5/5 members) — 0.75h
+- **29 Dec:** 18:00–19:00 — Internal meeting (2/5 members) — 1h
+- **05 Jan:** 18:00–19:30 — Internal meeting (5/5 members) — 1.5h
+- **06 Jan:** 18:00–19:40 — Internal meeting (5/5 members) — 1.75h
