@@ -54,10 +54,17 @@ int ProcessManager::submit(const std::string& processName,
         process.start();
     }
     
-    processTable.push_back(process);
+
     if (sysApi && memoryNeeded > 0) {
-        sysApi->allocateMemory(memoryNeeded, pid);
+        if (sysApi->allocateMemory(memoryNeeded, pid)) {
+            logDebug("Allocated " + std::to_string(memoryNeeded) + " bytes for process '" + processName + "' (PID=" + std::to_string(pid) + ")");
+        } else {
+            logError("Failed to allocate memory for process '" + processName + "' (PID=" + std::to_string(pid) + ")");
+            return -1;
+        }
     }
+    processTable.push_back(process);
+    
     if (sysApi) {
         sysApi->scheduleProcess(pid, cpuCycles, priority);
     }
