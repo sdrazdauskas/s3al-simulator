@@ -244,6 +244,14 @@ void Kernel::runEventLoop() {
     logInfo("Kernel event loop stopped");
 }
 
+void Kernel::stopKernelThread() {
+    kernelRunning.store(false);
+    queueCondition.notify_one();
+    if (kernelThread.joinable()) {
+        kernelThread.join();
+    }
+}
+
 void Kernel::boot() {
     logging::logInfo("KERNEL", "Booting s3al OS...");
     
@@ -296,16 +304,15 @@ void Kernel::boot() {
         initPtr->signalShutdown();
     };
     
-    init.start();
+    if (!init.start()) {
+        logError("Init process failed to start");
+        stopKernelThread();
+        return;
+    }
     
     
     // After init exits, stop kernel event loop
-    kernelRunning.store(false);
-    queueCondition.notify_one();
-    
-    if (kernelThread.joinable()) {
-        kernelThread.join();
-    }
+    stopKernelThread();
     
     logInfo("Shutdown complete");
 }

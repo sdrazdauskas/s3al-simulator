@@ -17,14 +17,17 @@ std::mutex Init::registryMutex;
 Init::Init(sys::SysApi& sys)
     : sysApi(sys) {}
 
-void Init::start() {
+bool Init::start() {
     logInfo("Init process (PID 1) starting...");
     
-    // Start background daemons (system services)
-    startDaemons();
+    if (!startDaemons()) {
+        logError("Failed to start all daemons");
+        stopDaemons();
+        return false;
+    }
     
     // Wait for all persistent processes (init + daemons) to complete their first scheduling cycle
-    // This ensures the scheduler has processed them before we start accepting user input
+    // Ensures the scheduler has processed them before we start accepting user input
     logInfo("Waiting for system initialization...");
     for (const auto& daemonProc : daemons) {
         sysApi.waitForProcess(daemonProc.pid);
@@ -38,6 +41,7 @@ void Init::start() {
     stopDaemons();
     
     logInfo("Init process shutdown complete");
+    return true;
 }
 
 void Init::initializeShell() {
@@ -130,7 +134,7 @@ void Init::handleProcessSignal(int pid, int signal) {
     handleDaemonSignal(pid, signal);
 }
 
-void Init::startDaemons() {
+bool Init::startDaemons() {
     logInfo("Starting system daemons...");
     
     auto system_daemons = daemons::DaemonRegistry::getAvailableDaemons();
@@ -140,14 +144,14 @@ void Init::startDaemons() {
         int pid = sysApi.fork(daemonName, 1, 512, 5, true);
         if (pid <= 0) {
             logError("Failed to fork daemon: " + daemonName);
-            continue;
+            return false;
         }
         
-        // Create the daemon instance using the registry (now returns shared_ptr)
+        // Create the daemon instance using the registry
         std::shared_ptr<daemons::Daemon> daemonShared = daemons::DaemonRegistry::createDaemon(daemonName, sysApi);
         if (!daemonShared) {
             logError("Unknown daemon type: " + daemonName);
-            continue;
+            return false;
         }
         
         daemonShared->setPid(pid);
@@ -155,8 +159,8 @@ void Init::startDaemons() {
         // Set up signal handler - when process gets signaled, notify daemon
         auto daemonWeak = std::weak_ptr<daemons::Daemon>(daemonShared);
         daemonShared->setSignalCallback([daemonWeak](int sig) {
-            if (auto daemon_ptr = daemonWeak.lock()) {
-                daemon_ptr->handleSignal(sig);
+            if (auto daemonPtr = daemonWeak.lock()) {
+                daemonPtr->handleSignal(sig);
             }
         });
         
@@ -172,6 +176,7 @@ void Init::startDaemons() {
     }
     
     logInfo("Started " + std::to_string(daemons.size()) + " system daemons");
+    return true;
 }
 
 void Init::stopDaemons() {
@@ -179,17 +184,31 @@ void Init::stopDaemons() {
     
     // Send SIGTERM to all daemon processes
     for (auto& dp : daemons) {
-        sysApi.sendSignalToProcess(dp.pid, 15);  // SIGTERM
+        if (dp.daemon) {
+            sysApi.sendSignalToProcess(dp.pid, 15);  // SIGTERM
+        }
     }
     
     // Stop daemon threads
     for (auto& dp : daemons) {
-        dp.daemon->stop();
+        if (dp.daemon) {
+            try {
+                dp.daemon->stop();
+            } catch (const std::exception& e) {
+                logError("Error stopping daemon (PID=" + std::to_string(dp.pid) + "): " + e.what());
+            }
+        }
     }
     
     // Wait for daemon threads to finish
     for (auto& dp : daemons) {
-        dp.daemon->join();
+        if (dp.daemon) {
+            try {
+                dp.daemon->join();
+            } catch (const std::exception& e) {
+                logError("Error joining daemon (PID=" + std::to_string(dp.pid) + "): " + e.what());
+            }
+        }
     }
     
     // Unregister from global registry

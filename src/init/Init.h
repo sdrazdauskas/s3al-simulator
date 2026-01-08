@@ -41,7 +41,7 @@ public:
     void handleProcessSignal(int pid, int signal);
     
     // Start init process - this becomes PID 1
-    void start();
+    bool start();
     
     // Static method to forward signals to daemon threads
     static void forwardSignalToDaemon(int pid, int signal);
@@ -65,7 +65,7 @@ private:
     std::vector<DaemonProcess> daemons;
     int shellPid = -1;
     
-    void startDaemons();
+    bool startDaemons();
     void stopDaemons();
     void initializeShell();
 };
