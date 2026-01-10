@@ -3,6 +3,7 @@
 #include "daemon/MonitoringDaemon.h"
 #include "kernel/SysCallsAPI.h"
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 #include <iostream>
 
@@ -13,6 +14,9 @@ namespace daemons {
 static const std::unordered_map<std::string, std::function<std::shared_ptr<Daemon>(sys::SysApi&)>> daemonFactories = {
     {"sysmon", [](sys::SysApi& sys) { return std::make_shared<MonitoringDaemon>(sys); }}
 };
+
+DaemonRegistry::DaemonRegistry(sys::SysApi& sys)
+    : sysApi(sys) {}
 
 std::shared_ptr<Daemon> DaemonRegistry::createDaemon(
     const std::string& name,
@@ -34,21 +38,20 @@ std::vector<std::string> DaemonRegistry::getAvailableDaemons() {
     return names;
 }
 
-bool DaemonRegistry::startAll(sys::SysApi& sys) {
+bool DaemonRegistry::startAll() {
     logInfo("Starting system daemons...");
     
-    auto system_daemons = getAvailableDaemons();
+    auto systemDaemons = getAvailableDaemons();
     
-    for (const auto& daemonName : system_daemons) {
+    for (const auto& daemonName : systemDaemons) {
         // Fork a new persistent process for this daemon
-        int pid = sys.fork(daemonName, 1, 512, 5, true);
+        int pid = sysApi.fork(daemonName, 1, 512, 5, true);
         if (pid <= 0) {
             logError("Failed to fork daemon: " + daemonName);
             return false;
         }
         
-        // Create the daemon instance
-        std::shared_ptr<Daemon> daemonShared = createDaemon(daemonName, sys);
+        std::shared_ptr<Daemon> daemonShared = createDaemon(daemonName, sysApi);
         if (!daemonShared) {
             logError("Unknown daemon type: " + daemonName);
             return false;
@@ -77,11 +80,11 @@ bool DaemonRegistry::startAll(sys::SysApi& sys) {
     return true;
 }
 
-void DaemonRegistry::stopAll(sys::SysApi& sys) {
+void DaemonRegistry::stopAll() {
     logInfo("Stopping system daemons...");
     
     for (auto& dp : daemons) {
-        sys.sendSignalToProcess(dp.pid, 15);  // SIGTERM
+        sysApi.sendSignalToProcess(dp.pid, 15);  // SIGTERM
     }
     
     for (auto& dp : daemons) {
@@ -90,6 +93,11 @@ void DaemonRegistry::stopAll(sys::SysApi& sys) {
     
     for (auto& dp : daemons) {
         dp.daemon->join();
+    }
+
+    for (auto& dp : daemons) {
+        sysApi.exit(dp.pid, 0);
+        sysApi.reapProcess(dp.pid);
     }
     
     {
@@ -100,15 +108,59 @@ void DaemonRegistry::stopAll(sys::SysApi& sys) {
     }
     
     daemons.clear();
-    
     logInfo("All system daemons stopped");
 }
 
 void DaemonRegistry::forwardSignal(int pid, int signal) {
-    std::lock_guard<std::mutex> lock(registryMutex);
-    auto it = registry.find(pid);
-    if (it != registry.end()) {
-        it->second->handleSignal(signal);
+    std::shared_ptr<Daemon> daemon;
+
+    {
+        std::lock_guard<std::mutex> lock(registryMutex);
+        auto it = registry.find(pid);
+        if (it != registry.end()) {
+            daemon = it->second;
+        }
+    }
+
+    if (daemon) {
+        daemon->handleSignal(signal);
+        
+        // If termination signal (SIGKILL=9 or SIGTERM=15), stop daemon and mark for reaping
+        if (signal == 9 || signal == 15) {
+            daemon->join();
+            
+            {
+                std::lock_guard<std::mutex> lock(registryMutex);
+                registry.erase(pid);
+            }
+            
+            daemons.erase(
+                std::remove_if(daemons.begin(), daemons.end(),
+                    [pid](const DaemonProcess& dp) { return dp.pid == pid; }),
+                daemons.end()
+            );
+            
+            {
+                std::lock_guard<std::mutex> lock(terminatedMutex);
+                terminatedDaemons.insert(pid);
+            }
+        }
+    }
+}
+
+void DaemonRegistry::reapDaemon(int pid) {
+    bool shouldReap = false;
+    {
+        std::lock_guard<std::mutex> lock(terminatedMutex);
+        auto it = terminatedDaemons.find(pid);
+        if (it != terminatedDaemons.end()) {
+            shouldReap = true;
+            terminatedDaemons.erase(it);
+        }
+    }
+    
+    if (shouldReap) {
+        sysApi.reapProcess(pid);
     }
 }
 

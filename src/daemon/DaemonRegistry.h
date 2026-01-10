@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <mutex>
 #include "common/LoggingMixin.h"
 
@@ -17,8 +18,8 @@ class Daemon;
 // DaemonRegistry - Factory and lifecycle manager for daemon instances
 class DaemonRegistry : public common::LoggingMixin {
 public:
-    DaemonRegistry() = default;
-    ~DaemonRegistry() = default;
+
+    DaemonRegistry(sys::SysApi& sys);
     
     // Create a daemon by name - Returns nullptr if daemon type is unknown
     static std::shared_ptr<Daemon> createDaemon(
@@ -30,13 +31,16 @@ public:
     static std::vector<std::string> getAvailableDaemons();
     
     // Start all available daemons (fork processes, register, start threads)
-    bool startAll(sys::SysApi& sys);
+    bool startAll();
     
     // Stop all daemons (send signals, stop threads, unregister)
-    void stopAll(sys::SysApi& sys);
+    void stopAll();
     
     // Forward signal to daemon thread by PID
     void forwardSignal(int pid, int signal);
+    
+    // Reap a terminated daemon process (called after it becomes zombie)
+    void reapDaemon(int pid);
 
 protected:
     std::string getModuleName() const override { return "DAEMON_REGISTRY"; }
@@ -46,10 +50,16 @@ private:
         std::shared_ptr<Daemon> daemon;
         int pid;
     };
+
+    sys::SysApi& sysApi;
     
     std::unordered_map<int, std::shared_ptr<Daemon>> registry;
     std::mutex registryMutex;
     std::vector<DaemonProcess> daemons;
+    
+    // Track PIDs of terminated daemons waiting to be reaped
+    std::unordered_set<int> terminatedDaemons;
+    std::mutex terminatedMutex;
 };
 
 } // namespace daemons
