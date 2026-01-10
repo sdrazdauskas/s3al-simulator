@@ -10,15 +10,15 @@
 namespace init {
 
 Init::Init(sys::SysApi& sys)
-    : sysApi(sys) {}
+    : sysApi(sys), daemonRegistry(sys) {}
 
 bool Init::start() {
     logInfo("Init process (PID 1) starting...");
     
     // Start background daemons (system services)
-    if (!daemonRegistry.startAll(sysApi)) {
+    if (!daemonRegistry.startAll()) {
         logError("Failed to start system daemons - aborting init");
-        daemonRegistry.stopAll(sysApi);
+        daemonRegistry.stopAll();
         return false;
     }
     
@@ -29,7 +29,7 @@ bool Init::start() {
     initializeShell();
     
     // Shutdown daemons when shell exits
-    daemonRegistry.stopAll(sysApi);
+    daemonRegistry.stopAll();
     
     logInfo("Init process shutdown complete");
     return true;
@@ -112,8 +112,14 @@ void Init::handleProcessSignal(int pid, int signal) {
         return;
     }
     
-    // Forward signal to daemon (if it's a daemon process)
-    daemonRegistry.forwardSignal(pid, signal);
+    // Check if signal is less than 20 (actual signal) or >= 20 (exit code from completion callback)
+    if (signal < 20) {
+        // Forward signal to daemon (if it's a daemon process)
+        daemonRegistry.forwardSignal(pid, signal);
+    } else {
+        // This is a completion callback (exit code), reap the daemon if it was terminated
+        daemonRegistry.reapDaemon(pid);
+    }
 }
 
 } // namespace init

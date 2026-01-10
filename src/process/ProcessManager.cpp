@@ -197,9 +197,9 @@ bool ProcessManager::sendSignal(int pid, int signal) {
                 logError("Failed to make process zombie: PID=" + std::to_string(pid));
                 return false;
             }
-            // Notify completion callback on termination as well (exit code = signal)
+            // Notify completion callback on termination (use 128+signal as exit code per Unix convention)
             if (completeCallback) {
-                completeCallback(pid, signal);
+                completeCallback(pid, 128 + signal);
             }
             return true;
         default:
