@@ -3,26 +3,18 @@
 #include <functional>
 #include <string>
 #include <memory>
-#include <vector>
-#include <unordered_map>
-#include <mutex>
 #include "common/LoggingMixin.h"
+#include "daemon/DaemonRegistry.h"
 
 namespace sys { class SysApi; }
 namespace terminal { class Terminal; }
-
-// Forward declare daemons namespace for the .cpp file includes
-namespace daemons { 
-    class Daemon; 
-}
 
 namespace init {
 
 // Init process (PID 1) - First user-space process
 // Responsible for:
 // - Starting the shell
-// - Managing system services (daemons)
-// - Handling orphaned processes (not implemented yet)
+// - Coordinating system services (via DaemonRegistry)
 class Init : public common::LoggingMixin {
 public:
     using ShutdownCallback = std::function<void()>;
@@ -33,40 +25,24 @@ public:
     
     // Called by kernel to signal init to shutdown (like SIGTERM)
     void signalShutdown();
-    
-    // Called by kernel when a signal is sent to a daemon process
-    void handleDaemonSignal(int pid, int signal);
 
     // Called by kernel when any process (shell/daemon) signals or terminates
     void handleProcessSignal(int pid, int signal);
     
     // Start init process - this becomes PID 1
+    // Returns false if daemon startup fails
     bool start();
-    
-    // Static method to forward signals to daemon threads
-    static void forwardSignalToDaemon(int pid, int signal);
 
 protected:
     std::string getModuleName() const override { return "INIT"; }
 
 private:
-    // Static registry for mapping PIDs to daemon instances
-    static std::unordered_map<int, std::shared_ptr<daemons::Daemon>> daemonRegistry;
-    static std::mutex registryMutex;
-    
-    struct DaemonProcess {
-        std::shared_ptr<daemons::Daemon> daemon;
-        int pid;
-    };
-    
     sys::SysApi& sysApi;
     ShutdownCallback shutdownCb;
     terminal::Terminal* terminal = nullptr;
-    std::vector<DaemonProcess> daemons;
     int shellPid = -1;
+    daemons::DaemonRegistry daemonRegistry;
     
-    bool startDaemons();
-    void stopDaemons();
     void initializeShell();
 };
 
