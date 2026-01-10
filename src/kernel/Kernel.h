@@ -78,6 +78,7 @@ private:
     
     void processEvent(const KernelEvent& event);
     void handleTimerTick();
+    void stopKernelThread();
     
     std::queue<KernelEvent> eventQueue;
     std::mutex queueMutex;

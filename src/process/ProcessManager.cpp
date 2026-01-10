@@ -54,10 +54,17 @@ int ProcessManager::submit(const std::string& processName,
         process.start();
     }
     
-    processTable.push_back(process);
+
     if (sysApi && memoryNeeded > 0) {
-        sysApi->allocateMemory(memoryNeeded, pid);
+        if (sysApi->allocateMemory(memoryNeeded, pid)) {
+            logDebug("Allocated " + std::to_string(memoryNeeded) + " bytes for process '" + processName + "' (PID=" + std::to_string(pid) + ")");
+        } else {
+            logError("Failed to allocate memory for process '" + processName + "' (PID=" + std::to_string(pid) + ")");
+            return -1;
+        }
     }
+    processTable.push_back(process);
+    
     if (sysApi) {
         sysApi->scheduleProcess(pid, cpuCycles, priority);
     }
@@ -190,9 +197,9 @@ bool ProcessManager::sendSignal(int pid, int signal) {
                 logError("Failed to make process zombie: PID=" + std::to_string(pid));
                 return false;
             }
-            // Notify completion callback on termination as well (exit code = signal)
+            // Notify completion callback on termination (use 128+signal as exit code per Unix convention)
             if (completeCallback) {
-                completeCallback(pid, signal);
+                completeCallback(pid, 128 + signal);
             }
             return true;
         default:
