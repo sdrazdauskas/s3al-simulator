@@ -1,5 +1,8 @@
 # s3al
 
+This project is a small-scale operating system simulator. Rather than studying theory or navigating a real kernel, users can interact with and observe a simplified environment that makes core OS concepts visible and approachable for beginners.
+It features a shell, CPU scheduler, process manager, memory manager, and a file system - all running without real hardware.
+
 ## Quick Start
 
 ### Native Build
